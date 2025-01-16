@@ -1920,7 +1920,7 @@ components:
           properties:
             pagination:
               $ref: '#/components/schemas/Pagination'
-    pairs:
+    Pairs:
       type: object
       required:
         - id
@@ -1981,7 +1981,7 @@ components:
               type: array
               maxItems: 100
               items:
-                $ref: '#/components/schemas/pairs'
+                $ref: '#/components/schemas/Pairs'
     ExampleQuoteResponse:
       allOf:
         - $ref: '#/components/schemas/BaseSchema'
