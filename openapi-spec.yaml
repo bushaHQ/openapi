@@ -1,0 +1,2961 @@
+openapi: 3.0.0
+info:
+  title: Busha API
+  contact:
+    email: developers@busha.co
+  description: |
+    ## 1. Introduction
+    The **Busha API** is designed to provide businesses with tools for borderless financial transactions and operations, enabling modern, global money management. It serves as the backbone for facilitating:
+    - Creation and management of multi-currency balances
+    - Retrieval of real-time cryptocurrency rates
+    - Substantial data insights for business owners
+
+    Whether you’re a product-driven fintech or a developer building integrations, this API significantly accelerates implementation while reducing financial complexities.
+    For detailed guides on API integration, visit our [official documentation]().
+
+
+    ### 2. Authentication
+    All API requests require a **Bearer Token** for authentication, passed in the `Authorization` header.
+    Your authorization value is a base64 encoded value of your api key and your secret key.
+    You can obtain API tokens via your Busha user or business account. Authentication is mandatory to ensure secure and authorized interactions with the API.
+    The API keys from the dashboard provides `apiKey` and `secretKey`
+    Generate a base64 encoding of the two keys in this format:
+    `<apiKey>:<secretKey>`
+
+    Your generated Key should look like this:
+    `VURtNXhWcHueantkpaiewjo0S044MWsadfojienuoxRTiWDJaeWJaTGxxanZ3Ym10OU1RZnVWajVW=`
+
+    Example Header:
+    ``` curl
+    Authorization: Bearer VURtNXhWcHueantkpaiewjo0S044MWsadfojienuoxRTiWDJaeWJaTGxxanZ3Ym10OU1RZnVWajVW=
+    ```
+
+    ### 3. Error Handling
+    #Standardized error responses ensure predictable interactions. Errors are detailed for easy debugging and understanding:
+    | **Error Code** | **HTTP Status Code** | **Description** |
+    | --- | --- | --- |
+    | `bad_request` | 400 | Invalid input or malformed request |
+    | `unauthorized` | 401 | Invalid or missing authentication |
+    | `not_found` | 404 | Resource not found |
+    | `service_unavailable` | 503 | Server error |
+
+    Basic Error Example:
+    ``` json
+    {
+      "error": {
+        "name": "bad_request",
+        "message": "Invalid input data"
+      }
+    }
+    ```
+
+    Schema Error Body Example:
+    ``` json
+    {
+      "error": {
+        "name": "bad_request",
+        "message": "Invalid input data"
+      },
+      "schema": {
+        "reason": "The request body is defined as an object. However, it does not meet the schema requirements of the specification",
+        "fix": "Ensure that the object being submitted, matches the schema correctly"
+      }
+    }
+    ```
+
+    Field Error Body Example:
+    ``` json
+    {
+      "error": {
+        "name": "bad_request",
+        "message": "Invalid input data"
+      },
+      "fields": {
+        "field1": [
+          {
+            "reason": "The request body is defined as an object. However, it does not meet the schema requirements of the specification",
+          },
+        ],
+        "field2": [
+          {
+            "reason": "The request body is defined as an object. However, it does not meet the schema requirements of the specification",
+          }
+        ],
+      }
+    }
+    ```
+
+    ### 4. Pagination
+    Pagination uses cursors provided as:
+    The API supports **cursor-based pagination** for endpoints with large datasets. Pagination uses a `next_cursor` and `previous_cursor` returned in the response.
+    Example Response Format:
+    ``` json
+    {
+      "current_entries_size": 10,
+      "next_cursor": "base64_cursor_value",
+      "previous_cursor": "base64_previous_cursor_value"
+    }
+    ```
+
+    ### 5. Rate Limiting
+    Rate limits determine how many API calls can be made in a rolling minute. This ensures fair and optimized use of system resources.
+
+    The rate limits allowed by each resource will be provided with the header:
+    ```curl
+    x-rate-limit 100
+    ```
+    If this header does not exist, then the rate limit is set at a default 100 req/min
+
+    Requests exceeding the allocated quota will receive a `429 Too Many Requests` response.
+
+    ###  Common Parameters
+    Common parameters enhance consistency across endpoints:
+      | **Parameter Name** | **Location** | **Description** | **Example** |
+      | --- | --- | --- | --- |
+      | `X-BU-PROFILE-ID` | Header | User profile identifier | `BUS_qwejinoiuiqw93ejjw` |
+      | `id` | Path | Unique NanoID identifier | `dpt_jweqafajsndiun34fd` |
+      | `cursor` | Query | Pagination cursor | `base64_cursor_string` |
+
+    ##### Paginated Response Example
+      ``` json
+      {
+        "status": "success",
+        "message": "Data retrieved",
+        "pagination": {
+          "next_cursor": "value_for_next_page",
+          "current_entries_size": 20
+        },
+        "data": [...]
+      }
+      ```
+  version: 1.0.0
+servers:
+  - url: https://api.sandbox.busha.so
+    description: Sandbox Environment
+  - url: https://api.busha.so
+    description: Production Environment
+tags:
+  - name: Balances
+    description: Handles account balances across different currencies
+    x-displayName: Balances
+  - name: Currencies
+    description: |
+      Endpoints to manage supported currencies, their properties, and network details.
+    x-displayName: Currencies
+  - name: Earn
+    description: Main tag for the Earn service
+    x-displayName: Earn
+  - name: Pairs
+    description: Access trading pair information and rates
+    x-displayName: Pairs
+  - name: Quote
+    description: Handle quotes requests and responses
+    x-displayName: Quote
+  - name: Recipients
+    x-displayName: Recipients
+  - name: Transfers
+    x-displayName: Transfers
+paths:
+  /v1/balances:
+    post:
+      security:
+        - Auth:
+            - balances:write
+      tags:
+        - Balances
+      operationId: createBalance
+      parameters:
+        - $ref: '#/components/parameters/ProfileHeader'
+      summary: Create currency balance
+      description: Creates a new balance for managing funds in a specific currency.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBalanceRequest'
+      responses:
+        '201':
+          description: Balance created successfully
+          content:
+            application/json:
+              schema:
+                required:
+                  - data
+                allOf:
+                  - $ref: '#/components/schemas/BaseSchema'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Balance'
+        4XX:
+          $ref: '#/components/responses/BalanceError4XX'
+    get:
+      tags:
+        - Balances
+      operationId: listBalances
+      parameters:
+        - $ref: '#/components/parameters/ProfileHeader'
+      summary: List all balances
+      description: Retrieves all account balances with their current status.
+      responses:
+        '200':
+          description: List of account balances
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BalanceListResponse'
+        4XX:
+          $ref: '#/components/responses/BalanceError4XX'
+      security:
+        - Auth:
+            - balances:read
+  /v1/balances/{id}:
+    get:
+      tags:
+        - Balances
+      operationId: getBalance
+      summary: Get balance details
+      parameters:
+        - $ref: '#/components/parameters/ParamUUID'
+        - $ref: '#/components/parameters/ProfileHeader'
+      responses:
+        '200':
+          description: Balance details retrieved successfully
+          content:
+            application/json:
+              schema:
+                required:
+                  - data
+                allOf:
+                  - $ref: '#/components/schemas/BaseSchema'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Balance'
+        4XX:
+          $ref: '#/components/responses/BalanceError4XX'
+      security:
+        - Auth:
+            - balances:read
+  /v1/currencies:
+    get:
+      tags:
+        - Currencies
+      summary: Retrieve supported currencies
+      description: |
+        Retrieves a list of all supported currencies along with their basic details. This endpoint can be used to display available currencies in wallets or APIs requiring currency data.
+      operationId: listCurrencies
+      responses:
+        '200':
+          description: A list of supported currencies.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CurrenciesListResponse'
+        4XX:
+          $ref: '#/components/responses/CurrenciesError4XX'
+      security:
+        - Auth:
+            - currencies:read
+            - currencies:write
+  /v1/currencies/{code}:
+    get:
+      tags:
+        - Currencies
+      summary: Retrieve details of a specific currency
+      description: |
+        Fetches detailed information about a specific currency using its unique code. This includes details such as network support, decimal precision, and transaction limits.
+      parameters:
+        - $ref: '#/components/parameters/CurrencyCodePathParam'
+      operationId: getCurrency
+      responses:
+        '200':
+          description: Details of the requested currency.
+          content:
+            application/json:
+              schema:
+                required:
+                  - data
+                allOf:
+                  - $ref: '#/components/schemas/BaseSchema'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Currencies'
+        4XX:
+          $ref: '#/components/responses/CurrenciesError4XX'
+      security:
+        - Auth:
+            - currencies:read
+            - currencies:write
+  /v1/earn/products:
+    get:
+      tags:
+        - Earn
+      summary: List All Products For Earn
+      description: Retrieves the list of all available products
+      operationId: listEarnProducts
+      parameters:
+        - name: limit
+          in: query
+          description: Number of items to return per page
+          required: false
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 100
+        - name: page
+          in: query
+          description: Page number to return
+          required: false
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: currency
+          in: query
+          description: Filter products by currency
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseSchema'
+                  - type: object
+                    required:
+                      - pagination
+                      - data
+                    properties:
+                      pagination:
+                        $ref: '#/components/schemas/CursorPagination'
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Products'
+        4XX:
+          $ref: '#/components/responses/EarnError4XX'
+      security:
+        - Auth:
+            - earn:read
+  /v1/earn/products/{id}:
+    get:
+      tags:
+        - Earn
+      summary: Get Product For Earn
+      description: Retrieves the product details for a given product id
+      operationId: getEarnProduct
+      parameters:
+        - $ref: '#/components/parameters/ParamUUID'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                required:
+                  - data
+                allOf:
+                  - $ref: '#/components/schemas/BaseSchema'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Products'
+        4XX:
+          $ref: '#/components/responses/EarnError4XX'
+      security:
+        - Auth:
+            - earn:read
+  /v1/earn/subscriptions:
+    get:
+      tags:
+        - Earn
+      operationId: listEarnSubscriptions
+      parameters:
+        - $ref: '#/components/parameters/ProfileHeader'
+        - name: expand
+          in: query
+          description: Expand Product Object
+          required: false
+          schema:
+            type: string
+        - name: product_id
+          in: query
+          description: Filter subscriptions by product id
+          required: false
+          schema:
+            type: string
+        - name: status
+          in: query
+          description: Filter subscriptions by status
+          required: false
+          schema:
+            type: string
+        - name: limit
+          in: query
+          description: Number of items to return per page
+          required: false
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 100
+        - name: page
+          in: query
+          description: Page number to return
+          required: false
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+      summary: List Earn Subscriptions
+      description: List All Earn Subscriptions for User
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                required:
+                  - data
+                allOf:
+                  - $ref: '#/components/schemas/BaseSchema'
+                  - type: object
+                    required:
+                      - pagination
+                      - data
+                    properties:
+                      pagination:
+                        $ref: '#/components/schemas/CursorPagination'
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/SubscriptionExpanded'
+        4XX:
+          $ref: '#/components/responses/EarnError4XX'
+      security:
+        - Auth:
+            - earn:read
+    post:
+      security:
+        - Auth:
+            - earn:write
+      tags:
+        - Earn
+      operationId: createEarnSubscription
+      parameters:
+        - $ref: '#/components/parameters/ProfileHeader'
+      summary: Create Earn Subscription
+      description: Creates a new earn subscription.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSubscriptionRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                required:
+                  - data
+                allOf:
+                  - $ref: '#/components/schemas/BaseSchema'
+                  - type: object
+                    properties:
+                      pagination:
+                        $ref: '#/components/schemas/CursorPagination'
+                      data:
+                        $ref: '#/components/schemas/SubscriptionExpanded'
+        4XX:
+          $ref: '#/components/responses/EarnError4XX'
+  /v1/earn/subscriptions/{id}:
+    get:
+      tags:
+        - Earn
+      summary: Get Earn Subscription
+      description: Retrieves the subscription details for a given subscription id
+      operationId: getEarnSubscription
+      parameters:
+        - $ref: '#/components/parameters/ParamUUID'
+        - $ref: '#/components/parameters/ProfileHeader'
+        - name: expand
+          in: query
+          description: Expand subscription details
+          required: false
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                required:
+                  - data
+                allOf:
+                  - $ref: '#/components/schemas/BaseSchema'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/SubscriptionExpanded'
+        4XX:
+          $ref: '#/components/responses/EarnError4XX'
+      security:
+        - Auth:
+            - earn:read
+  /v1/earn/redemptions:
+    get:
+      tags:
+        - Earn
+      summary: List Earn Redemptions
+      description: List all earn redemptions for a user
+      operationId: listEarnRedemptions
+      parameters:
+        - $ref: '#/components/parameters/ProfileHeader'
+        - name: status
+          in: query
+          description: Filter redemptions by status
+          required: false
+          schema:
+            type: string
+        - name: limit
+          in: query
+          description: Number of items to return per page
+          required: false
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 100
+        - name: page
+          in: query
+          description: Page number to return
+          required: false
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: product_id
+          in: query
+          description: Filter redemptions by product id
+          required: false
+          schema:
+            type: string
+        - name: expand
+          in: query
+          description: Expand subscription details
+          required: false
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                required:
+                  - data
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      pagination:
+                        $ref: '#/components/schemas/CursorPagination'
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Redemption'
+        4XX:
+          $ref: '#/components/responses/EarnError4XX'
+      security:
+        - Auth:
+            - earn:read
+    post:
+      security:
+        - Auth:
+            - earn:write
+      tags:
+        - Earn
+      summary: Create Earn Redemption
+      description: Creates a new earn redemption.
+      operationId: createEarnRedemption
+      requestBody:
+        $ref: '#/components/requestBodies/CreateRedemptionRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseSchema'
+        4XX:
+          $ref: '#/components/responses/EarnError4XX'
+  /v1/earn/redemptions/{id}:
+    get:
+      tags:
+        - Earn
+      summary: Get Earn Redemption
+      description: Retrieves the redemption details for a given redemption id
+      operationId: getEarnRedemption
+      parameters:
+        - $ref: '#/components/parameters/ParamUUID'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseSchema'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Redemption'
+        4XX:
+          $ref: '#/components/responses/EarnError4XX'
+      security:
+        - Auth:
+            - earn:read
+  /v1/earn/earnings:
+    get:
+      tags:
+        - Earn
+      summary: List Earn Earnings
+      description: List all earn earnings from a yield subscription
+      operationId: listEarnEarnings
+      parameters:
+        - $ref: '#/components/parameters/ProfileHeader'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      pagination:
+                        $ref: '#/components/schemas/CursorPagination'
+                      data:
+                        $ref: '#/components/schemas/Earning'
+        4XX:
+          $ref: '#/components/responses/EarnError4XX'
+      security:
+        - Auth:
+            - earn:read
+  /v1/earn/earnings/{id}:
+    get:
+      tags:
+        - Earn
+      summary: Retrieve Earn Earnings
+      description: Earnings are the interest received from a subscription daily based on the APY of the product.
+      operationId: getEarnEarnings
+      parameters:
+        - $ref: '#/components/parameters/ParamUUID'
+        - $ref: '#/components/parameters/ProfileHeader'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseSchema'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Earning'
+        4XX:
+          $ref: '#/components/responses/EarnError4XX'
+      security:
+        - Auth:
+            - earn:read
+  /v1/earn/positions:
+    get:
+      tags:
+        - Earn
+      summary: List Earn Positions
+      description: This describes the summary of a user's subscription positions.
+      operationId: listEarnPositions
+      parameters:
+        - $ref: '#/components/parameters/ProfileHeader'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      pagination:
+                        $ref: '#/components/schemas/CursorPagination'
+                      data:
+                        $ref: '#/components/schemas/Positions'
+        4XX:
+          $ref: '#/components/responses/EarnError4XX'
+      security:
+        - Auth:
+            - earn:read
+  /v1/earn/positions/{id}:
+    get:
+      tags:
+        - Earn
+      summary: Retrieve Earn Positions
+      description: This describes the summary of a user's subscription positions.
+      operationId: getEarnPositions
+      parameters:
+        - $ref: '#/components/parameters/ParamUUID'
+        - $ref: '#/components/parameters/ProfileHeader'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseSchema'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Positions'
+        4XX:
+          $ref: '#/components/responses/EarnError4XX'
+      security:
+        - Auth:
+            - earn:read
+  /v1/pairs:
+    get:
+      tags:
+        - Pairs
+      summary: List trading pairs
+      description: Retrieves all available trading pairs with their current rates.
+      operationId: listPairs
+      responses:
+        '200':
+          description: List of trading pairs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PairsListResponse'
+        4XX:
+          $ref: '#/components/responses/PairError4XX'
+      security: []
+  /v1/quotes:
+    post:
+      security:
+        - Auth:
+            - quotes:write
+      summary: Create a new Quote
+      description: Create Quote
+      operationId: createQuote
+      tags:
+        - Quote
+      parameters:
+        - $ref: '#/components/parameters/ProfileHeader'
+      requestBody:
+        description: Create a new Quote
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateQuoteRequest'
+      responses:
+        '201':
+          $ref: '#/components/responses/QuoteResponse'
+        4XX:
+          $ref: '#/components/responses/QuoteError4XX'
+    get:
+      summary: List Quotes
+      description: List Quotes
+      operationId: listQuotes
+      tags:
+        - Quote
+      parameters:
+        - $ref: '#/components/parameters/ProfileHeader'
+        - $ref: '#/components/parameters/CursorQueryParams'
+        - $ref: '#/components/parameters/LimitQueryParam'
+      responses:
+        '200':
+          $ref: '#/components/responses/QuotesListResponse'
+        4XX:
+          $ref: '#/components/responses/QuoteError4XX'
+      security:
+        - Auth:
+            - quotes:read
+  /v1/quotes/{id}:
+    get:
+      summary: Get Quote
+      description: Returns a single quote by it's unique ID
+      operationId: getQuote
+      tags:
+        - Quote
+      parameters:
+        - $ref: '#/components/parameters/ParamUUID'
+        - $ref: '#/components/parameters/ProfileHeader'
+      responses:
+        '200':
+          $ref: '#/components/responses/QuoteResponse'
+        4XX:
+          $ref: '#/components/responses/QuoteError4XX'
+      security:
+        - Auth:
+            - quotes:read
+  /v1/recipients:
+    post:
+      security:
+        - Auth:
+            - recipients:write
+      tags:
+        - Recipients
+      operationId: createRecipient
+      summary: '[ WIP ] Creates a recipient'
+      description: Create a new recipient for transfers
+      parameters:
+        - $ref: '#/components/parameters/ProfileHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRecipientRequest'
+      responses:
+        '201':
+          description: Recipient created successfully
+          content:
+            application/json:
+              schema:
+                required:
+                  - data
+                allOf:
+                  - $ref: '#/components/schemas/BaseSchema'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Recipient'
+        4XX:
+          $ref: '#/components/responses/RecipientError4XX'
+    get:
+      tags:
+        - Recipients
+      operationId: listRecipients
+      summary: List recipients
+      description: Retrieve a list of all recipients
+      parameters:
+        - name: currency_id
+          in: query
+          description: Filter by currency code
+          required: false
+          schema:
+            type: string
+        - name: country_id
+          in: query
+          description: Filter by country code
+          required: false
+          schema:
+            type: string
+        - name: type
+          in: query
+          description: Filter by recipient type
+          required: false
+          schema:
+            type: string
+        - name: cursor
+          in: query
+          description: Cursor for pagination
+          required: false
+          schema:
+            type: string
+        - name: per_page
+          in: query
+          description: Number of items per page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - $ref: '#/components/parameters/ProfileHeader'
+      responses:
+        '200':
+          description: Recipients retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecipientListResponse'
+        4XX:
+          $ref: '#/components/responses/RecipientError4XX'
+      security:
+        - Auth:
+            - recipients:read
+  /v1/recipients/{platform_id}:
+    get:
+      tags:
+        - Recipients
+      summary: Retrieve a recipient
+      description: Get details of a specific recipient
+      operationId: getRecipient
+      parameters:
+        - $ref: '#/components/parameters/ParamPlatformID'
+        - $ref: '#/components/parameters/ProfileHeader'
+      responses:
+        '200':
+          description: Recipient retrieved successfully
+          content:
+            application/json:
+              schema:
+                required:
+                  - data
+                allOf:
+                  - $ref: '#/components/schemas/BaseSchema'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Recipient'
+        4XX:
+          $ref: '#/components/responses/RecipientError4XX'
+      security:
+        - Auth:
+            - recipients:read
+  /v1/recipient-requirements:
+    get:
+      tags:
+        - Recipients
+      summary: List recipient requirements
+      description: Retrieve recipient requirements for specific currency and country combinations
+      operationId: listRecipientRequirements
+      parameters:
+        - name: currency_id
+          in: query
+          description: Filter by currency code (e.g., KES, NGN)
+          required: false
+          schema:
+            $ref: '#/components/schemas/Currency'
+        - name: country_id
+          in: query
+          description: Filter by country code (e.g., KE, NG)
+          required: false
+          schema:
+            $ref: '#/components/schemas/CountryID'
+        - $ref: '#/components/parameters/ProfileHeader'
+      responses:
+        '200':
+          description: Recipient requirements retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecipientRequirementListResponse'
+        4XX:
+          $ref: '#/components/responses/RecipientError4XX'
+      security:
+        - Auth:
+            - recipients:read
+  /v1/transfers:
+    post:
+      security:
+        - Auth:
+            - transfers:write
+      summary: Create transfer
+      description: Create a transfer object
+      operationId: createTransfer
+      tags:
+        - Transfers
+      parameters:
+        - $ref: '#/components/parameters/ProfileHeader'
+      requestBody:
+        description: Customer details needed to create a new customer
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTransferRequest'
+      responses:
+        '201':
+          $ref: '#/components/responses/TransferResponse'
+        4XX:
+          $ref: '#/components/responses/TransferError4XX'
+    get:
+      summary: List transfers
+      description: Returns a simple greeting from the transfer service
+      operationId: listTransfer
+      tags:
+        - Transfers
+      parameters:
+        - $ref: '#/components/parameters/ProfileHeader'
+        - name: source_currency
+          in: query
+          description: Filter by source_currency code
+          required: false
+          schema:
+            type: string
+        - name: target_currency
+          in: query
+          description: Filter by target_currency code
+          required: false
+          schema:
+            type: string
+        - name: status
+          in: query
+          description: Filter by status
+          required: false
+          schema:
+            type: string
+        - name: cursor
+          in: query
+          description: Cursor for pagination
+          required: false
+          schema:
+            type: string
+        - name: sort
+          in: query
+          description: sort direction for result
+          required: false
+          schema:
+            type: string
+        - name: per_page
+          in: query
+          description: Number of items per page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          $ref: '#/components/responses/TransferListResponse'
+        4XX:
+          $ref: '#/components/responses/TransferError4XX'
+      security:
+        - Auth:
+            - transfers:read
+  /v1/transfers/{id}:
+    get:
+      summary: Get transfer
+      description: Retrieves a transfer
+      operationId: getTransfer
+      tags:
+        - Transfers
+      parameters:
+        - $ref: '#/components/parameters/ParamNanoID'
+        - $ref: '#/components/parameters/ProfileHeader'
+      responses:
+        '200':
+          $ref: '#/components/responses/TransferResponse'
+        4XX:
+          $ref: '#/components/responses/TransferError4XX'
+      security:
+        - Auth:
+            - transfers:read
+components:
+  parameters:
+    ProfileHeader:
+      in: header
+      name: X-BU-PROFILE-ID
+      required: false
+      description: User profile header
+      schema:
+        type: string
+        example: BUS_YOK8tp5Zga01qOKEsqp07
+    ParamUUID:
+      in: path
+      name: id
+      required: true
+      schema:
+        type: string
+        format: uuid
+        example: 550e8400-e29b-41d4-a716-446655440000
+        x-go-type: string
+      x-oapi-codegen-extra-tags:
+        validate: required|uuid
+    CurrencyCodePathParam:
+      name: code
+      in: path
+      required: false
+      description: The currency path parameter
+      schema:
+        type: string
+        example: BTC
+        x-go-type: string
+    CursorQueryParams:
+      name: cursor
+      in: query
+      description: The cursor
+      schema:
+        type: string
+        format: string
+        example: base64_encoding
+    LimitQueryParam:
+      name: limit
+      in: query
+      description: The number of items to return
+      schema:
+        type: integer
+        example: 10
+        x-go-type: uint64
+    ParamNanoID:
+      in: path
+      name: id
+      required: true
+      schema:
+        type: string
+        format: nanoid
+        example: bus_123456789
+      x-go-type: uuid
+      x-go-type-import:
+        path: github.com/gofrs/uuid
+        name: uuid.UUID
+      x-oapi-codegen-extra-tags:
+        validate: required|nanoid
+    ParamPlatformID:
+      in: path
+      name: platform_id
+      required: true
+      description: uuid and nano_id
+      schema:
+        type: string
+        example: platform_123456
+  schemas:
+    Balance:
+      type: object
+      required:
+        - id
+        - currency
+        - name
+        - type
+        - pending
+        - available
+        - total
+        - user_id
+        - profile_id
+      properties:
+        id:
+          $ref: '#/components/schemas/UuidID'
+        user_id:
+          $ref: '#/components/schemas/PlatformID'
+        profile_id:
+          $ref: '#/components/schemas/PlatformID'
+        currency:
+          $ref: '#/components/schemas/Currency'
+        name:
+          type: string
+          example: Bitcoin
+        type:
+          type: string
+          enum:
+            - fiat
+            - crypto
+          example: crypto
+        pending:
+          $ref: '#/components/schemas/Amount'
+        available:
+          $ref: '#/components/schemas/Amount'
+        total:
+          $ref: '#/components/schemas/Amount'
+    Amount:
+      type: object
+      required:
+        - amount
+        - currency
+      properties:
+        amount:
+          type: string
+          example: '0.5432'
+        currency:
+          $ref: '#/components/schemas/Currency'
+    BalanceListResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseSchema'
+        - type: object
+          required:
+            - pagination
+          properties:
+            pagination:
+              $ref: '#/components/schemas/CursorPagination'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/Balance'
+    CreateBalanceRequest:
+      type: object
+      required:
+        - currency
+      properties:
+        currency:
+          $ref: '#/components/schemas/Currency'
+    BaseSchema:
+      description: General response Values
+      type: object
+      required:
+        - status
+        - message
+      properties:
+        status:
+          type: string
+          x-go-type: string
+          enum:
+            - success
+            - error
+          example: success
+        message:
+          type: string
+          example: message for success
+    CursorPagination:
+      description: Cursor-based pagination values
+      type: object
+      required:
+        - current_entries_size
+      properties:
+        next_cursor:
+          type: string
+          example: MjAyNC0xMC0xNVQxMTowNTo1My45NTkxNDErMDE6MDA=
+        current_entries_size:
+          type: integer
+          example: 20
+        previous_cursor:
+          type: string
+          example: MjAyNC0xMC0xNVQxMDowNTo1My45NTIxQjE3MDE6MDA=
+    UuidID:
+      type: string
+      example: 550e8400-e29b-41d4-a716-446655440000
+      format: uuid
+      description: A valid UUID
+      x-oapi-codegen-extra-tags:
+        validate: required|uuid
+      x-go-type: uuid.UUID
+      x-go-type-import:
+        path: github.com/gofrs/uuid
+        name: uuid
+    PlatformID:
+      type: string
+      example: platform_123456
+      format: nanoid
+      description: A valid platform id that supports uuid and nanoid
+      x-oapi-codegen-extra-tags:
+        validate: required|string
+    Currency:
+      type: string
+      example: BTC
+      format: string
+      maxLength: 5
+      minLength: 3
+      description: A valid currency
+      x-oapi-codegen-extra-tags:
+        validate: required|min_len:3|max_len:5
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: object
+          required:
+            - name
+            - message
+          properties:
+            name:
+              type: string
+              example: bad_request
+            message:
+              type: string
+              example: Invalid Request
+        fields:
+          type: object
+        schema:
+          type: array
+          items:
+            type: object
+      example:
+        error:
+          name: bad_request
+          message: Invalid Request
+    Currencies:
+      type: object
+      required:
+        - name
+        - code
+        - decimals
+        - precision
+        - default_network
+        - supported_networks
+      properties:
+        name:
+          type: string
+          example: Bitcoin
+          description: The official name of the cryptocurrency.
+        display_name:
+          type: string
+          example: Bitcoin (BTC)
+          description: The formatted display name of the cryptocurrency.
+        code:
+          $ref: '#/components/schemas/Currency'
+        icon:
+          $ref: '#/components/schemas/UrlField'
+        decimals:
+          type: string
+          example: '8'
+          description: |
+            The number of decimal places supported by the blockchain. Defines how the currency value is divided.
+        precision:
+          type: string
+          example: '8'
+          description: |
+            The level of precision supported by this service. This may differ from blockchain-level precision in some cases.
+        is_stable_coin:
+          type: boolean
+          description: Indicates whether the cryptocurrency is a stablecoin.
+        deposit:
+          type: boolean
+          description: Indicates if deposits are supported for this currency.
+        withdrawal:
+          type: boolean
+          description: Indicates if withdrawals are supported for this currency.
+        default_network:
+          type: string
+          description: The identifier of the default network for this currency.
+          example: ethereum
+        supported_networks:
+          type: array
+          description: A list of networks supported by the currency, including details for each.
+          items:
+            $ref: '#/components/schemas/Network'
+    Network:
+      type: object
+      required:
+        - id
+        - name
+        - status
+      properties:
+        id:
+          type: string
+          example: ethereum
+          description: The unique identifier for the blockchain network.
+        name:
+          type: string
+          example: Ethereum
+          description: The descriptive name of the network.
+        status:
+          type: string
+          example: active
+          description: The current operational status of the network.
+        transaction_link:
+          $ref: '#/components/schemas/UrlField'
+        address_link:
+          $ref: '#/components/schemas/UrlField'
+        max_withdrawal_amount:
+          type: string
+          example: '100.00'
+          description: Maximum withdrawal amount for this network in the currency.
+        min_withdrawal_amount:
+          type: string
+          example: '0.01'
+          description: Minimum withdrawal amount for this network in the currency.
+        min_deposit_amount:
+          type: string
+          example: '0.001'
+          description: Minimum deposit amount for this network in the currency.
+        confirmations_required:
+          type: string
+          example: '12'
+          description: Number of confirmations required for deposits to be recognized.
+        address_regex:
+          $ref: '#/components/schemas/AddressRegexField'
+        testnet_address_regex:
+          $ref: '#/components/schemas/AddressRegexField'
+        contract_address:
+          type: string
+          example: '0xdac17f958d2ee523a2206206994597c13d831ec7'
+          description: The contract address for tokens on this network.
+    CurrenciesListResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseSchema'
+        - type: object
+          required:
+            - pagination
+          properties:
+            pagination:
+              $ref: '#/components/schemas/CursorPagination'
+          description: Contains pagination information for the currencies list response.
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/Currencies'
+    UrlField:
+      type: string
+      example: https://example.com
+      format: url
+      description: A valid url
+      x-oapi-codegen-extra-tags:
+        validate: required|url
+    AddressRegexField:
+      type: string
+      example: ^0x[a-fA-F0-9]{40}$
+      format: address
+      x-oapi-codegen-extra-tags:
+        validate: required|regex
+    BaseCustomerRequest:
+      type: object
+      properties:
+        first_name:
+          $ref: '#/components/schemas/NameField'
+        middle_name:
+          $ref: '#/components/schemas/NameField'
+        last_name:
+          $ref: '#/components/schemas/NameField'
+        phone:
+          $ref: '#/components/schemas/PhoneField'
+        birth_date:
+          type: string
+          example: 24-12-2000
+          description: date of birth of the user
+        tax_identification_number:
+          type: string
+        signed_agreement_id:
+          type: string
+        address:
+          $ref: '#/components/schemas/Address'
+        bvn:
+          $ref: '#/components/schemas/BVNField'
+        gov_id_country:
+          $ref: '#/components/schemas/CountryID'
+        gov_id_number:
+          type: string
+          description: Gov ID number
+          maxLength: 20
+          x-oapi-codegen-extra-tags:
+            validate: alphaNum|maxlen:20
+        proof_of_address_document:
+          type: string
+          format: base64
+          description: Proof of address document in base64 format
+    UpdateCustomerRequest:
+      $ref: '#/components/schemas/BaseCustomerRequest'
+    CreateCustomerRequest:
+      allOf:
+        - $ref: '#/components/schemas/BaseCustomerRequest'
+        - type: object
+          required:
+            - email
+            - has_accepted_terms
+            - first_name
+            - middle_name
+            - last_name
+            - phone
+            - address
+            - birth_date
+            - tax_identification_number
+            - signed_agreement_id
+            - gov_id_country
+            - gov_id_number
+          properties:
+            email:
+              $ref: '#/components/schemas/EmailField'
+            has_accepted_terms:
+              type: boolean
+              description: has the customer accepted the terms and conditions
+    Customer:
+      type: object
+      required:
+        - id
+        - first_name
+        - last_name
+        - status
+        - type
+        - email
+        - business_id
+        - has_accepted_terms_of_service
+        - address
+        - created_at
+        - updated_at
+      properties:
+        id:
+          $ref: '#/components/schemas/NanoID'
+        business_id:
+          $ref: '#/components/schemas/NanoID'
+        first_name:
+          type: string
+        middle_name:
+          type: string
+        last_name:
+          type: string
+        status:
+          type: string
+          enum:
+            - active
+            - inactive
+        type:
+          type: string
+          enum:
+            - individual
+            - business
+        email:
+          $ref: '#/components/schemas/EmailField'
+        has_accepted_terms_of_service:
+          type: boolean
+        address:
+          $ref: '#/components/schemas/Address'
+        rejection_reasons:
+          type: array
+          items:
+            type: string
+        requirements_due:
+          type: array
+          items:
+            type: string
+        future_requirements_due:
+          type: array
+          items:
+            type: string
+        beneficial_owners:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              email:
+                $ref: '#/components/schemas/EmailField'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    NanoID:
+      type: string
+      example: bus_123456789
+      format: nanoid
+      description: A valid id
+      x-oapi-codegen-extra-tags:
+        validate: required|nanoid
+    EmailField:
+      type: string
+      example: bCnW7@example.com
+      format: email
+      description: A valid email address
+      x-oapi-codegen-extra-tags:
+        validate: required|email|check_temp_email
+        filter: trim|lower
+      x-go-type: string
+    Address:
+      type: object
+      description: Address of the business.
+      properties:
+        city:
+          type: string
+          example: Lekki
+          x-oapi-codegen-extra-tags:
+            mapstructure: city
+        state:
+          type: string
+          example: Lagos
+          x-oapi-codegen-extra-tags:
+            mapstructure: state
+        country_id:
+          type: string
+          example: NG
+          format: alpha2
+          description: A valid country id
+          x-oapi-codegen-extra-tags:
+            validate: alpha2
+            mapstructure: country_id
+        address_line_1:
+          type: string
+          example: RT Lawal
+          x-oapi-codegen-extra-tags:
+            mapstructure: address_line_1
+        address_line_2:
+          type: string
+          example: ''
+          x-oapi-codegen-extra-tags:
+            mapstructure: address_line_2
+        province:
+          type: string
+          example: province
+          x-oapi-codegen-extra-tags:
+            mapstructure: province
+        postal_code:
+          type: string
+          example: '12345'
+          x-oapi-codegen-extra-tags:
+            mapstructure: postal_code
+    NameField:
+      type: string
+      example: John
+      description: A valid name
+      x-oapi-codegen-extra-tags:
+        validate: regex:^[-a-zA-Z0-9]+$|minLen:3|maxLen:70
+        filter: trim|lower|ucFirst
+    PhoneField:
+      type: string
+      example: +234 8012345678
+      format: phone
+      description: A valid phone number
+      x-oapi-codegen-extra-tags:
+        validate: phone
+    BVNField:
+      type: string
+      description: Bank Verification Number (BVN)
+      format: number
+      example: '12345678901'
+      minLength: 11
+      maxLength: 11
+      x-oapi-codegen-extra-tags:
+        validate: num|len:11
+    CountryID:
+      type: string
+      example: NG
+      format: alpha2
+      description: A valid country id
+      x-oapi-codegen-extra-tags:
+        validate: alpha2
+    Positions:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UuidID'
+        product:
+          type: string
+          format: uuid
+          example: 7fb2ba81-0e0a-45ec-b325-9edd4cad6014
+          description: ID of the product
+        effective_interest_rate:
+          type: string
+          example: '10'
+          description: The effective interest rate for the position
+        accruing_interest:
+          type: string
+          example: '110'
+          description: Amount currently accruing interest
+        subscribed_today:
+          type: string
+          example: '20'
+          description: Amount subscribed on the current day
+        pending_redemption:
+          type: string
+          example: '10'
+          description: Amount pending redemption
+        free_amount:
+          type: string
+          example: '120'
+          description: Available amount for withdrawal
+        total_amount:
+          type: string
+          example: '130'
+          description: Total amount in the position
+        cumulative_interest:
+          type: string
+          example: '0.02739726'
+          description: Total accumulated interest
+    Earning:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 2dda9a1e-146b-4bd8-bf82-6f966083f2b8
+          format: uuid
+        product:
+          $ref: '#/components/schemas/Products'
+        amount:
+          type: string
+          example: '900'
+          format: decimal
+          description: Amount being used for the earning model.
+        interest:
+          type: string
+          example: '900'
+          format: decimal
+          description: Interest rate associated with the earning model.
+        created_at:
+          type: string
+          format: date-time
+          example: '2022-02-11T15:08:27.132269Z'
+          description: The date and time the earning was created
+    Redemption:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 2dda9a1e-146b-4bd8-bf82-6f966083f2b8
+          description: ID that represents a redemption
+        subscription:
+          $ref: '#/components/schemas/SubscriptionExpanded'
+        product_id:
+          type: string
+          example: 2dda9a1e-146b-4bd8-bf82-6f966083f2b8
+          description: ID that represents a product
+        amount:
+          type: string
+          example: '900'
+          format: decimal
+          description: The amount to redeem from the product
+        status:
+          type: string
+          example: pending
+          description: The status of the redemption
+        created_at:
+          type: string
+          format: date-time
+          example: '2022-02-11T15:08:27.132269Z'
+          description: The date and time the redemption was created
+        updated_at:
+          type: string
+          format: date-time
+          example: '2022-02-11T15:08:27.132269Z'
+          description: The date and time the redemption was updated
+    CreateRedemptionRequest:
+      type: object
+      properties:
+        product_id:
+          type: string
+          example: 2dda9a1e-146b-4bd8-bf82-6f966083f2b8
+          description: ID that represents a product
+        amount:
+          type: string
+          example: '900'
+          format: decimal
+          description: The amount to redeem from the product
+        fast:
+          type: boolean
+          example: true
+          description: Whether the redemption is fast or not
+    SubscriptionExpanded:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 2dda9a1e-146b-4bd8-bf82-6f966083f2b8
+          description: ID that represents a subscription
+        user:
+          type: string
+          example: 29af2d2d-e826-470b-a2f7-b476f3a99cf0
+          description: Identifies the user who owns this subscription
+        product:
+          $ref: '#/components/schemas/Products'
+        amount:
+          type: string
+          example: '10'
+          description: string representation of the amount invested
+        active:
+          type: boolean
+          example: true
+          description: Shows whether the subscription is active or not
+        created_at:
+          type: string
+          format: date-time
+          example: '2022-02-11T15:08:27.132269Z'
+        accrue_started_at:
+          type: string
+          format: date-time
+          example: '2022-02-11T15:08:27.132269Z'
+        next_distribution_at:
+          type: string
+          format: date-time
+          example: '2022-02-11T15:08:27.132269Z'
+    CreateSubscriptionRequest:
+      type: object
+      properties:
+        product_id:
+          type: string
+          example: 7fb2ba81-0e0a-45ec-b325-9edd4cad6014
+          description: Product ID to subscribe to earn
+        amount:
+          type: string
+          example: '900'
+          format: decimal
+          description: The amount to invest in the chosen product
+    Tier:
+      type: object
+      properties:
+        minimum:
+          type: string
+          example: '0.9'
+          format: decimal
+          description: Minimum amount to invest in earn
+        maximum:
+          type: string
+          example: '900'
+          format: decimal
+          description: Maximum amount to invest in earn
+        apy:
+          type: number
+          example: 7.5
+          description: Annual Yield in %
+    EarnCurrency:
+      type: object
+      properties:
+        name:
+          type: string
+          example: USDT
+          description: name of the currency for the product
+        asset:
+          type: string
+          example: USDT
+          description: Asset...
+        is_fiat:
+          type: boolean
+          example: false
+          description: tells us if the currency is fiat or not
+    Products:
+      type: object
+      required:
+        - id
+        - currency
+        - name
+        - minimum
+        - maximum
+        - active
+        - flexible
+        - frequency
+        - tiers
+        - max_apy
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          example: 874984-234n890-42389n-9983
+          description: UUID of the specific product
+        currency:
+          $ref: '#/components/schemas/EarnCurrency'
+        name:
+          type: string
+          example: USDT
+          description: Name of the earn product
+        minimum:
+          type: string
+          example: '0.9'
+          format: decimal
+          description: Minimum amount to invest in earn
+        maximum:
+          type: string
+          example: '900'
+          format: decimal
+          description: Maximum amount to invest in earn
+        active:
+          type: boolean
+          example: false
+          description: product is active for investment
+        flexible:
+          type: boolean
+          example: false
+          description: product can have flexible investment
+        frequency:
+          type: number
+          example: 5
+          description: Frequency
+        tiers:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tier'
+        max_apy:
+          type: string
+          example: '0.7'
+          format: decimal
+          description: Annual Yield in %
+        created_at:
+          type: string
+          format: date-time
+          example: '2024-03-19T10:30:00Z'
+        updated_at:
+          type: string
+          format: date-time
+          example: '2024-03-19T10:30:00Z'
+    Pagination:
+      type: object
+      required:
+        - total_count
+        - page
+        - per_page
+        - offset
+        - total_entries_size
+        - current_entries_size
+        - total_pages
+      properties:
+        total_count:
+          type: integer
+          example: 100
+        page:
+          type: integer
+          example: 1
+        per_page:
+          type: integer
+          example: 10
+        offset:
+          type: integer
+          example: 0
+        total_entries_size:
+          type: integer
+          example: 100
+        current_entries_size:
+          type: integer
+          example: 10
+        total_pages:
+          type: integer
+          example: 10
+    PaginatedResponse:
+      description: Paginated response values
+      allOf:
+        - $ref: '#/components/schemas/BaseSchema'
+        - type: object
+          required:
+            - pagination
+          properties:
+            pagination:
+              $ref: '#/components/schemas/Pagination'
+    pairs:
+      type: object
+      required:
+        - id
+        - source_currency
+        - target_currency
+        - type
+        - is_buy_supported
+        - is_sell_supported
+        - buy_price
+        - sell_price
+      properties:
+        id:
+          type: string
+          example: eth-btc
+        source_currency:
+          $ref: '#/components/schemas/Currency'
+        target_currency:
+          $ref: '#/components/schemas/Currency'
+        type:
+          type: string
+          enum:
+            - crypto
+            - fiat
+        is_buy_supported:
+          type: boolean
+        is_sell_supported:
+          type: boolean
+        buy_price:
+          type: string
+          example: '0.07'
+        max_buy_amount:
+          type: string
+          example: '10'
+        min_buy_amount:
+          type: string
+          example: '0.00006'
+        sell_price:
+          type: string
+          example: '0.07'
+        max_sell_amount:
+          type: string
+          example: '10'
+        min_sell_amount:
+          type: string
+          example: '0.00006'
+        source_currency_decimal:
+          type: string
+          example: '6'
+        target_currency_decimal:
+          type: string
+          example: '2'
+    PairsListResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseSchema'
+        - type: object
+          properties:
+            data:
+              type: array
+              maxItems: 100
+              items:
+                $ref: '#/components/schemas/pairs'
+    ExampleQuoteResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseSchema'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                greeting:
+                  type: string
+                  example: Welcome to the quote service!
+    PayInObj:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          example: bank_transfer
+          enum:
+            - address
+            - bank_transfer
+            - mobile_money
+            - email
+            - btag
+        recipient_id:
+          type: string
+          example: 64ae8c26ea1033204c805a8a
+    RecipientDetails:
+      type: object
+      properties:
+        account_name:
+          type: string
+        bank_code:
+          type: string
+        bank_name:
+          type: string
+        account_number:
+          type: string
+        country:
+          type: string
+        phone_number:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+          example: sbsbs@busha.co
+    PayOutObj:
+      allOf:
+        - $ref: '#/components/schemas/PayInObj'
+        - type: object
+          properties:
+            recipient_id:
+              type: string
+              example: 64ae8c26ea1033204c805a8a
+              description: |
+                This represents the recipient ID, used for `mobile_money` and `bank_transfer` types.
+            profile_id:
+              type: string
+              example: profile-id-1234
+            address:
+              type: string
+              example: tb1qj4263506wyu8khrz2dwce0agk8lhyjgy269rxr
+              description: |
+                This could be the address for type `address`, the btag for type `btag` or an email for type `email`
+            network:
+              type: string
+              example: BTC
+              description: |
+                This specifies the blockchain network associated with the address receiving the payment, typically used with address type payouts.
+            memo:
+              type: string
+              example: memo
+              description: |
+                This refers to the memo required for blockchain networks that mandate a memo for cryptocurrency transactions.
+    PaymentObj:
+      allOf:
+        - $ref: '#/components/schemas/PayOutObj'
+        - type: object
+          properties:
+            profile_id:
+              type: string
+              example: profile-id-1234
+            address:
+              type: string
+              example: tb1qj4263506wyu8khrz2dwce0agk8lhyjgy269rxr
+            network:
+              type: string
+              example: BTC
+            memo:
+              type: string
+              example: address memo
+            recipient_details:
+              $ref: '#/components/schemas/RecipientDetails'
+    QuoteReference:
+      type: string
+      example: QUO_123456abc
+      maxLength: 64
+      minLength: 12
+    CreateQuoteRequest:
+      type: object
+      required:
+        - source_currency
+        - target_currency
+      properties:
+        source_currency:
+          $ref: '#/components/schemas/Currency'
+        target_currency:
+          $ref: '#/components/schemas/Currency'
+        reference:
+          $ref: '#/components/schemas/QuoteReference'
+        source_amount:
+          type: string
+          description: Source Amount. Either `source_amount` or `target_amount` must be set.
+          example: '100'
+          x-go-type: decimal.Decimal
+          x-go-type-import:
+            path: github.com/shopspring/decimal
+            name: decimal
+            x-oapi-codegen-extra-tags:
+              validate: requiredWithout:target_amount|num
+        target_amount:
+          type: string
+          description: Target Amount. Either `source_amount` or `target_amount` must be set.
+          example: '100'
+          x-go-type: decimal.Decimal
+          x-go-type-import:
+            path: github.com/shopspring/decimal
+            name: decimal
+            x-oapi-codegen-extra-tags:
+              validate: requiredWithout:source_amount|num
+        pay_out:
+          $ref: '#/components/schemas/PayOutObj'
+    Quote:
+      type: object
+      required:
+        - id
+        - source_currency
+        - target_currency
+        - source_amount
+        - target_amount
+        - profile_id
+        - reference
+        - created_at
+        - updated_at
+        - status
+        - rate
+        - fees
+      properties:
+        id:
+          $ref: '#/components/schemas/NanoID'
+        source_currency:
+          $ref: '#/components/schemas/Currency'
+        target_currency:
+          $ref: '#/components/schemas/Currency'
+        source_amount:
+          $ref: '#/components/schemas/Decimal'
+        target_amount:
+          $ref: '#/components/schemas/Decimal'
+        profile_id:
+          $ref: '#/components/schemas/NanoID'
+        rate:
+          $ref: '#/components/schemas/QuoteRate'
+        fees:
+          type: array
+          items:
+            $ref: '#/components/schemas/Fee'
+        pay_in:
+          allOf:
+            - $ref: '#/components/schemas/PaymentObj'
+        pay_out:
+          allOf:
+            - $ref: '#/components/schemas/PaymentObj'
+        reference:
+          $ref: '#/components/schemas/QuoteReference'
+        status:
+          type: string
+          enum:
+            - pending
+          example: pending
+        expires_at:
+          type: string
+          format: date-time
+          example: '2023-12-01T15:04:05Z'
+        created_at:
+          type: string
+          format: date-time
+          example: '2023-10-15T12:15:30Z'
+        updated_at:
+          type: string
+          format: date-time
+          example: '2023-10-15T12:20:45Z'
+    Decimal:
+      type: string
+      description: string to decimal
+      example: '100'
+      x-go-type: decimal.Decimal
+      x-go-type-import:
+        path: github.com/shopspring/decimal
+        name: decimal
+    QuoteRate:
+      type: object
+      properties:
+        product:
+          type: string
+          example: BTCUSDT
+        source_currency:
+          $ref: '#/components/schemas/Currency'
+        target_currency:
+          $ref: '#/components/schemas/Currency'
+        rate:
+          $ref: '#/components/schemas/Decimal'
+        side:
+          type: string
+          enum:
+            - buy
+            - sell
+          example: sell
+        type:
+          type: string
+          enum:
+            - FIXED
+          example: FIXED
+    Fee:
+      type: object
+      required:
+        - name
+        - amount
+        - currency
+        - type
+      properties:
+        name:
+          type: string
+          example: processing_fee
+        amount:
+          $ref: '#/components/schemas/Decimal'
+        currency:
+          $ref: '#/components/schemas/Currency'
+        type:
+          type: string
+          example: FIXED
+    CreateRecipientRequest:
+      type: object
+      required:
+        - currency_id
+        - country_id
+        - type
+        - legal_entity_type
+        - fields
+      properties:
+        currency_id:
+          $ref: '#/components/schemas/Currency'
+        country_id:
+          $ref: '#/components/schemas/CountryID'
+        type:
+          type: string
+          description: Type of recipient account
+          example: ngn_bank_transfer
+        legal_entity_type:
+          type: string
+          description: Type of legal entity
+          enum:
+            - business
+            - personal
+          example: business
+        fields:
+          type: array
+          description: List of fields containing recipient details
+          items:
+            type: object
+            required:
+              - name
+              - value
+            properties:
+              name:
+                type: string
+                description: Field identifier
+                example: bank_name
+              value:
+                type: string
+                description: Field value
+                example: Access Bank Nigeria
+      example:
+        currency_id: NGN
+        country_id: NG
+        type: ngn_bank_transfer
+        legal_entity_type: business
+        fields:
+          - name: bank_name
+            value: Access Bank Nigeria
+          - name: account_number
+            value: '0064244032'
+          - name: bank_code
+            value: '000014'
+    RecipientField:
+      type: object
+      required:
+        - value
+        - display_name
+        - name
+        - is_copyable
+        - is_visible
+        - required
+      properties:
+        value:
+          type: string
+          description: The value of the recipient field
+          example: Access Bank Nigeria
+        display_name:
+          type: string
+          description: Human-readable name of the field
+          example: Bank Name
+        name:
+          type: string
+          description: System identifier for the field
+          example: bank_name
+        is_copyable:
+          type: boolean
+          description: Whether the field value can be copied
+          example: false
+        is_visible:
+          type: boolean
+          description: Whether the field should be displayed
+          example: true
+        required:
+          type: boolean
+          description: Whether the field is required
+          example: true
+    Recipient:
+      type: object
+      required:
+        - object
+        - id
+        - user_id
+        - profile_id
+        - currency_id
+        - country_id
+        - type
+        - legal_entity_type
+        - owned_by_customer
+        - active
+        - created_at
+        - updated_at
+        - fields
+      properties:
+        object:
+          type: string
+          description: Type of the object
+          example: recipient
+        id:
+          $ref: '#/components/schemas/PlatformID'
+        user_id:
+          $ref: '#/components/schemas/PlatformID'
+        profile_id:
+          $ref: '#/components/schemas/PlatformID'
+        currency_id:
+          $ref: '#/components/schemas/Currency'
+        country_id:
+          $ref: '#/components/schemas/CountryID'
+        type:
+          type: string
+          description: Type of recipient account
+          example: ngn_bank_transfer
+        legal_entity_type:
+          type: string
+          description: Type of legal entity
+          enum:
+            - business
+            - personal
+          example: business
+        owned_by_customer:
+          type: boolean
+          description: Whether the recipient is owned by the customer
+          example: true
+        active:
+          type: boolean
+          description: Whether the recipient is active
+          example: true
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp when the recipient was created
+          example: '2024-05-16T13:06:31.409336+01:00'
+        updated_at:
+          type: string
+          format: date-time
+          description: Timestamp when the recipient was last updated
+          example: '2024-05-16T13:06:31.409336+01:00'
+        fields:
+          type: array
+          description: List of fields containing recipient details
+          items:
+            $ref: '#/components/schemas/RecipientField'
+    RecipientListResponse:
+      allOf:
+        - $ref: '#/components/schemas/CursorPagination'
+        - type: object
+          properties:
+            data:
+              type: array
+              description: List of recipients
+              items:
+                $ref: '#/components/schemas/Recipient'
+          required:
+            - data
+      example:
+        status: success
+        message: Recipients retrieved successfully
+        data:
+          - object: recipient
+            id: 8014c2ee-c70f-4c72-8d9f-c8b9d708a688
+            user_id: b8277d1c-1bde-46ef-92ce-ebb4752eede5
+            profile_id: b8277d1c-1bde-46ef-92ce-ebb4752eede5
+            currency_id: NGN
+            country_id: NG
+            type: ngn_bank_transfer
+            legal_entity_type: business
+            owned_by_customer: true
+            active: true
+            created_at: '2024-05-16T13:06:31.409336+01:00'
+            updated_at: '2024-05-16T13:06:31.409336+01:00'
+            fields:
+              - value: Access Bank Nigeria
+                display_name: Bank Name
+                name: bank_name
+                is_copyable: false
+                is_visible: true
+                required: true
+              - value: '0013246052'
+                display_name: Account Number
+                name: account_number
+                is_copyable: false
+                is_visible: true
+                required: true
+              - value: '000014'
+                display_name: Bank Code
+                name: bank_code
+                is_copyable: false
+                is_visible: false
+                required: true
+              - value: JOHN DOE
+                display_name: Account Name
+                name: full_name
+                is_copyable: false
+                is_visible: true
+                required: true
+    RecipientRequirementListResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseSchema'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/RecipientRequirement'
+    RecipientRequirement:
+      type: object
+      required:
+        - id
+        - country_id
+        - currency_id
+        - name
+        - description
+        - type
+        - fields
+        - active
+        - created_at
+      properties:
+        id:
+          type: string
+        country_id:
+          type: string
+        currency_id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        type:
+          type: string
+        fields:
+          $ref: '#/components/schemas/RequirementFields'
+        active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+    RequirementFields:
+      type: object
+      required:
+        - id
+        - name
+        - fields
+        - created_at
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        fields:
+          type: array
+          items:
+            $ref: '#/components/schemas/RequirementField'
+        created_at:
+          type: string
+          format: date-time
+    RequirementField:
+      type: object
+      required:
+        - display_name
+        - name
+        - hint_word
+        - type
+        - is_copyable
+        - is_visible
+        - required
+        - order
+        - unique
+      properties:
+        display_name:
+          type: string
+        name:
+          type: string
+        hint_word:
+          type: string
+        type:
+          type: string
+        is_copyable:
+          type: boolean
+        is_visible:
+          type: boolean
+        validator:
+          type: string
+        required:
+          type: boolean
+        message:
+          type: string
+        unique:
+          type: boolean
+        order:
+          type: integer
+        description:
+          type: string
+        requires_url_validation:
+          type: boolean
+        options:
+          type: array
+          items:
+            type: object
+            required:
+              - label
+              - value
+            properties:
+              label:
+                type: string
+              value:
+                type: string
+        populate_target:
+          type: array
+          items:
+            type: string
+        populate_from:
+          type: string
+        populate_from_value:
+          type: string
+        validator_field:
+          type: object
+          required:
+            - url
+            - params
+          properties:
+            url:
+              type: string
+            params:
+              type: array
+              items:
+                type: string
+        validation_rules:
+          type: object
+          properties:
+            conditions:
+              type: array
+              items:
+                type: object
+                properties:
+                  field:
+                    type: string
+                  rule:
+                    type: string
+                  value:
+                    type: string
+            message:
+              type: string
+    Transfer:
+      type: object
+      required:
+        - id
+        - source_currency
+        - target_currency
+        - source_amount
+        - target_amount
+        - profile_id
+        - reference
+        - created_at
+        - updated_at
+        - status
+        - rate
+        - fees
+      properties:
+        id:
+          $ref: '#/components/schemas/NanoID'
+        source_currency:
+          $ref: '#/components/schemas/Currency'
+        target_currency:
+          $ref: '#/components/schemas/Currency'
+        source_amount:
+          $ref: '#/components/schemas/Decimal'
+        target_amount:
+          $ref: '#/components/schemas/Decimal'
+        profile_id:
+          $ref: '#/components/schemas/NanoID'
+        rate:
+          $ref: '#/components/schemas/QuoteRate'
+        fees:
+          type: array
+          items:
+            $ref: '#/components/schemas/Fee'
+        pay_in:
+          allOf:
+            - $ref: '#/components/schemas/PaymentObj'
+        pay_out:
+          allOf:
+            - $ref: '#/components/schemas/PaymentObj'
+        reference:
+          $ref: '#/components/schemas/Reference'
+        status:
+          type: string
+          enum:
+            - pending
+          example: pending
+        expires_at:
+          type: string
+          format: date-time
+          example: '2023-12-01T15:04:05Z'
+        created_at:
+          type: string
+          format: date-time
+          example: '2023-10-15T12:15:30Z'
+        updated_at:
+          type: string
+          format: date-time
+          example: '2023-10-15T12:20:45Z'
+    Reference:
+      type: string
+      example: TRF_123456abc
+      maxLength: 64
+      minLength: 12
+    CreateTransferRequest:
+      type: object
+      required:
+        - quote_id
+      properties:
+        quote_id:
+          $ref: '#/components/schemas/NanoID'
+  responses:
+    BalanceError4XX:
+      description: 409 error when a balance with the same currency already exists for a user
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            default:
+              $ref: '#/components/examples/DefaultError'
+            not_found_error:
+              $ref: '#/components/examples/NotFoundError'
+            unauthorized_error:
+              $ref: '#/components/examples/UnAuthorizedError'
+            request_validation_error:
+              $ref: '#/components/examples/RequestValidationError'
+            schema_validation_error:
+              $ref: '#/components/examples/SchemaValidationError'
+    CurrenciesError4XX:
+      description: Error from customer resource.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            default:
+              $ref: '#/components/examples/DefaultError'
+            not_found_error:
+              $ref: '#/components/examples/NotFoundError'
+            unauthorized_error:
+              $ref: '#/components/examples/UnAuthorizedError'
+            request_validation_error:
+              $ref: '#/components/examples/RequestValidationError'
+            schema_validation_error:
+              $ref: '#/components/examples/SchemaValidationError'
+    CustomerError4XX:
+      description: Something went wrong in Customer resource
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            default:
+              $ref: '#/components/examples/DefaultError'
+            not_found_error:
+              $ref: '#/components/examples/NotFoundError'
+            unauthorized_error:
+              $ref: '#/components/examples/UnAuthorizedError'
+            request_validation_error:
+              $ref: '#/components/examples/RequestValidationError'
+            schema_validation_error:
+              $ref: '#/components/examples/SchemaValidationError'
+    CustomerResponse:
+      description: Successful response
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/BaseSchema'
+              - type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Customer'
+    CustomerListResponse:
+      description: Customer List Response
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/BaseSchema'
+              - type: object
+                required:
+                  - pagination
+                  - data
+                properties:
+                  pagination:
+                    $ref: '#/components/schemas/CursorPagination'
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Customer'
+    CustomerCreateResponse:
+      description: Customer Create Response
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/BaseSchema'
+              - type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    type: object
+                    required:
+                      - id
+                    properties:
+                      id:
+                        $ref: '#/components/schemas/NanoID'
+    GeneralResponse:
+      description: Customer successfully created
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/BaseSchema'
+    EarnError4XX:
+      description: Default
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    HealthError4XX:
+      description: 409 error when a balance with the same currency already exists for a user
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            default:
+              $ref: '#/components/examples/DefaultError'
+            not_found_error:
+              $ref: '#/components/examples/NotFoundError'
+            unauthorized_error:
+              $ref: '#/components/examples/UnAuthorizedError'
+            request_validation_error:
+              $ref: '#/components/examples/RequestValidationError'
+            schema_validation_error:
+              $ref: '#/components/examples/SchemaValidationError'
+    PairError4XX:
+      description: Default
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            default:
+              $ref: '#/components/examples/DefaultError'
+            not_found_error:
+              $ref: '#/components/examples/NotFoundError'
+            unauthorized_error:
+              $ref: '#/components/examples/UnAuthorizedError'
+            request_validation_error:
+              $ref: '#/components/examples/RequestValidationError'
+            schema_validation_error:
+              $ref: '#/components/examples/SchemaValidationError'
+    QuoteError4XX:
+      description: Default
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            default:
+              $ref: '#/components/examples/DefaultError'
+            not_found_error:
+              $ref: '#/components/examples/NotFoundError'
+            unauthorized_error:
+              $ref: '#/components/examples/UnAuthorizedError'
+            request_validation_error:
+              $ref: '#/components/examples/RequestValidationError'
+            schema_validation_error:
+              $ref: '#/components/examples/SchemaValidationError'
+    QuoteResponse:
+      description: Quote Response
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/BaseSchema'
+              - type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Quote'
+    QuotesListResponse:
+      description: Quotes List Response
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/BaseSchema'
+              - type: object
+                required:
+                  - pagination
+                  - data
+                properties:
+                  pagination:
+                    $ref: '#/components/schemas/CursorPagination'
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Quote'
+    RecipientError4XX:
+      description: Recipient Error sample
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            default:
+              $ref: '#/components/examples/DefaultError'
+            not_found_error:
+              $ref: '#/components/examples/NotFoundError'
+            unauthorized_error:
+              $ref: '#/components/examples/UnAuthorizedError'
+            request_validation_error:
+              $ref: '#/components/examples/RequestValidationError'
+            schema_validation_error:
+              $ref: '#/components/examples/SchemaValidationError'
+    TransferError4XX:
+      description: Default
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            default:
+              $ref: '#/components/examples/DefaultError'
+            not_found_error:
+              $ref: '#/components/examples/NotFoundError'
+            unauthorized_error:
+              $ref: '#/components/examples/UnAuthorizedError'
+            request_validation_error:
+              $ref: '#/components/examples/RequestValidationError'
+            schema_validation_error:
+              $ref: '#/components/examples/SchemaValidationError'
+    TransferResponse:
+      description: Transfer Response
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/BaseSchema'
+              - type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Transfer'
+    TransferListResponse:
+      description: Transfer List Response
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/CursorPagination'
+              - type: object
+                properties:
+                  data:
+                    type: array
+                    description: List of recipients
+                    items:
+                      $ref: '#/components/schemas/Transfer'
+                required:
+                  - data
+  securitySchemes:
+    Auth:
+      type: http
+      scheme: bearer
+      description: Bearer Authentication
+  examples:
+    DefaultError:
+      description: Default error
+      value:
+        error:
+          name: bad_request
+          message: Invalid request
+    NotFoundError:
+      description: Not Found error
+      value:
+        error:
+          name: resource_not_found
+          message: Resource Not Found
+    UnAuthorizedError:
+      description: Unauthorized Error
+      value:
+        error:
+          name: unauthorized
+          message: Unauthorized request
+    RequestValidationError:
+      description: Request Validation error example
+      value:
+        error:
+          name: request_validation
+          message: Validation error
+        fields:
+          field1:
+            - reason: One of target and source amount must be set
+          field2:
+            - reason: One of target and source amount must be set
+    SchemaValidationError:
+      description: Schema validation error example
+      value:
+        error:
+          name: schema_validation
+          message: Error Validating Requests
+        schema:
+          - reason: The request body is defined as an object. However, it does not meet the schema requirements of the specification
+            fix: Ensure that the object being submitted, matches the schema correctly
+            schema_validation_error:
+              - 'minLength: got 3, want 12'
+  requestBodies:
+    CreateRedemptionRequest:
+      description: Create Earn Redemption Request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CreateRedemptionRequest'
