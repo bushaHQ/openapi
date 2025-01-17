@@ -4,7 +4,7 @@ info:
   contact:
     email: developers@busha.co
   description: |
-    ## 1. Introduction
+    ## Introduction
     The **Busha API** is designed to provide businesses with tools for borderless financial transactions and operations, enabling modern, global money management. It serves as the backbone for facilitating:
     - Creation and management of multi-currency balances
     - Retrieval of real-time cryptocurrency rates
@@ -14,7 +14,7 @@ info:
     For detailed guides on API integration, visit our [official documentation]().
 
 
-    ## 2. Authentication
+    ## Authentication
     All API requests require a **Bearer Token** for authentication, passed in the `Authorization` header.
     Your authorization value is a base64 encoded value of your api key and your secret key.
     You can obtain API tokens via your Busha user or business account. Authentication is mandatory to ensure secure and authorized interactions with the API.
@@ -30,7 +30,7 @@ info:
     Authorization: Bearer VURtNXhWcHueantkpaiewjo0S044MWsadfojienuoxRTiWDJaeWJaTGxxanZ3Ym10OU1RZnVWajVW=
     ```
 
-    ## 3. Error Handling
+    ## Error Handling
     #Standardized error responses ensure predictable interactions. Errors are detailed for easy debugging and understanding:
     | **Error Code** | **HTTP Status Code** | **Description** |
     | --- | --- | --- |
@@ -85,7 +85,7 @@ info:
     }
     ```
 
-    ## 4. Pagination
+    ## Pagination
     Pagination uses cursors provided as:
     The API supports **cursor-based pagination** for endpoints with large datasets. Pagination uses a `next_cursor` and `previous_cursor` returned in the response.
     Example Response Format:
@@ -97,7 +97,7 @@ info:
     }
     ```
 
-    ## 5. Rate Limiting
+    ## Rate Limiting
     Rate limits determine how many API calls can be made in a rolling minute. This ensures fair and optimized use of system resources.
 
     The rate limits allowed by each resource will be provided with the header:
@@ -746,6 +746,20 @@ paths:
       summary: List trading pairs
       description: Retrieves all available trading pairs with their current rates.
       operationId: listPairs
+      security: []
+      parameters:
+        - name: id
+          in: query
+          schema:
+            type: string
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum:
+              - fiat
+              - stablecoin
+              - crypto
       responses:
         '200':
           description: List of trading pairs
@@ -755,7 +769,6 @@ paths:
                 $ref: '#/components/schemas/PairsListResponse'
         4XX:
           $ref: '#/components/responses/PairError4XX'
-      security: []
   /v1/quotes:
     post:
       security:
@@ -1946,6 +1959,7 @@ components:
           enum:
             - crypto
             - fiat
+            - stablecoin
         is_buy_supported:
           type: boolean
         is_sell_supported:
