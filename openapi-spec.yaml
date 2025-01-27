@@ -132,7 +132,7 @@ info:
 servers:
   - url: https://api.sandbox.busha.so
     description: Sandbox Environment
-  - url: https://api.busha.so
+  - url: https://api.busha.co
     description: Production Environment
 tags:
   - name: Balances
@@ -151,8 +151,6 @@ tags:
   - name: Quotes
     description: Handle quotes requests and responses
     x-displayName: Quotes
-  - name: Quote
-    x-displayName: Quote
   - name: Recipients
     x-displayName: Recipients
   - name: Transfers
@@ -163,6 +161,7 @@ paths:
       security:
         - Auth:
             - balances:write
+            - api:write
       tags:
         - Balances
       operationId: createBalance
@@ -212,6 +211,7 @@ paths:
       security:
         - Auth:
             - balances:read
+            - api:read
   /v1/balances/{id}:
     get:
       tags:
@@ -240,6 +240,7 @@ paths:
       security:
         - Auth:
             - balances:read
+            - api:read
   /v1/currencies:
     get:
       tags:
@@ -248,6 +249,8 @@ paths:
       description: |
         Retrieves a list of all supported currencies along with their basic details. This endpoint can be used to display available currencies in wallets or APIs requiring currency data.
       operationId: listCurrencies
+      parameters:
+        - $ref: '#/components/parameters/CurrencyType'
       responses:
         '200':
           description: A list of supported currencies.
@@ -257,10 +260,7 @@ paths:
                 $ref: '#/components/schemas/CurrenciesListResponse'
         4XX:
           $ref: '#/components/responses/CurrenciesError4XX'
-      security:
-        - Auth:
-            - currencies:read
-            - currencies:write
+      security: []
   /v1/currencies/{code}:
     get:
       tags:
@@ -287,10 +287,7 @@ paths:
                         $ref: '#/components/schemas/Currencies'
         4XX:
           $ref: '#/components/responses/CurrenciesError4XX'
-      security:
-        - Auth:
-            - currencies:read
-            - currencies:write
+      security: []
   /v1/earn/products:
     get:
       tags:
@@ -346,6 +343,7 @@ paths:
       security:
         - Auth:
             - earn:read
+            - api:read
   /v1/earn/products/{id}:
     get:
       tags:
@@ -374,6 +372,7 @@ paths:
       security:
         - Auth:
             - earn:read
+            - api:read
   /v1/earn/subscriptions:
     get:
       tags:
@@ -444,10 +443,12 @@ paths:
       security:
         - Auth:
             - earn:read
+            - api:read
     post:
       security:
         - Auth:
             - earn:write
+            - api:write
       tags:
         - Earn
       operationId: createEarnSubscription
@@ -515,6 +516,7 @@ paths:
       security:
         - Auth:
             - earn:read
+            - api:read
   /v1/earn/redemptions:
     get:
       tags:
@@ -582,10 +584,12 @@ paths:
       security:
         - Auth:
             - earn:read
+            - api:read
     post:
       security:
         - Auth:
             - earn:write
+            - api:write
       tags:
         - Earn
       summary: Create Earn Redemption
@@ -629,6 +633,7 @@ paths:
       security:
         - Auth:
             - earn:read
+            - api:read
   /v1/earn/earnings:
     get:
       tags:
@@ -657,6 +662,7 @@ paths:
       security:
         - Auth:
             - earn:read
+            - api:read
   /v1/earn/earnings/{id}:
     get:
       tags:
@@ -684,6 +690,7 @@ paths:
       security:
         - Auth:
             - earn:read
+            - api:read
   /v1/earn/positions:
     get:
       tags:
@@ -712,6 +719,7 @@ paths:
       security:
         - Auth:
             - earn:read
+            - api:read
   /v1/earn/positions/{id}:
     get:
       tags:
@@ -739,6 +747,7 @@ paths:
       security:
         - Auth:
             - earn:read
+            - api:read
   /v1/pairs:
     get:
       tags:
@@ -746,10 +755,12 @@ paths:
       summary: List trading pairs
       description: Retrieves all available trading pairs with their current rates.
       operationId: listPairs
-      security: []
       parameters:
         - name: id
           in: query
+          x-oapi-codegen-extra-tags:
+            validate: min_len:6|max_len:20
+            filter: trim|upper
           schema:
             type: string
         - name: type
@@ -760,6 +771,20 @@ paths:
               - fiat
               - stablecoin
               - crypto
+        - name: source_currency
+          in: query
+          x-oapi-codegen-extra-tags:
+            validate: min_len:3|max_len:10
+            filter: trim|upper
+          schema:
+            $ref: '#/components/schemas/Currency'
+        - name: target_currency
+          in: query
+          x-oapi-codegen-extra-tags:
+            validate: min_len:3|max_len:10
+            filter: trim|upper
+          schema:
+            $ref: '#/components/schemas/Currency'
       responses:
         '200':
           description: List of trading pairs
@@ -769,16 +794,38 @@ paths:
                 $ref: '#/components/schemas/PairsListResponse'
         4XX:
           $ref: '#/components/responses/PairError4XX'
+      security: []
+  /v1/quote/unauthenticated:
+    post:
+      security: []
+      summary: Create Unauthenticated Quotes
+      description: Create Unauthenticated Quote
+      operationId: unauthenticatedCreateQuote
+      tags:
+        - Quotes
+      requestBody:
+        description: Create a unauthenticated Quote
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UnauthenticatedCreateQuote'
+      responses:
+        '201':
+          $ref: '#/components/responses/QuoteResponse'
+        4XX:
+          $ref: '#/components/responses/QuoteError4XX'
   /v1/quotes:
     post:
       security:
         - Auth:
             - quotes:write
+            - api:write
       summary: Create a new Quote
       description: Create Quote
       operationId: createQuote
       tags:
-        - Quote
+        - Quotes
       parameters:
         - $ref: '#/components/parameters/ProfileHeader'
       requestBody:
@@ -798,7 +845,7 @@ paths:
       description: List Quotes
       operationId: listQuotes
       tags:
-        - Quote
+        - Quotes
       parameters:
         - $ref: '#/components/parameters/ProfileHeader'
         - $ref: '#/components/parameters/CursorQueryParams'
@@ -811,13 +858,14 @@ paths:
       security:
         - Auth:
             - quotes:read
+            - api:read
   /v1/quotes/{id}:
     get:
       summary: Get Quote
       description: Returns a single quote by it's unique ID
       operationId: getQuote
       tags:
-        - Quote
+        - Quotes
       parameters:
         - $ref: '#/components/parameters/ParamUUID'
         - $ref: '#/components/parameters/ProfileHeader'
@@ -829,15 +877,17 @@ paths:
       security:
         - Auth:
             - quotes:read
+            - api:read
   /v1/recipients:
     post:
       security:
         - Auth:
             - recipients:write
+            - api:write
       tags:
         - Recipients
       operationId: createRecipient
-      summary: '[ WIP ] Creates a recipient'
+      summary: Creates a recipient
       description: Create a new recipient for transfers
       parameters:
         - $ref: '#/components/parameters/ProfileHeader'
@@ -916,6 +966,7 @@ paths:
       security:
         - Auth:
             - recipients:read
+            - api:read
   /v1/recipients/{platform_id}:
     get:
       tags:
@@ -945,6 +996,7 @@ paths:
       security:
         - Auth:
             - recipients:read
+            - api:read
   /v1/recipient-requirements:
     get:
       tags:
@@ -978,11 +1030,13 @@ paths:
       security:
         - Auth:
             - recipients:read
+            - api:read
   /v1/transfers:
     post:
       security:
         - Auth:
             - transfers:write
+            - api:write
       summary: Create transfer
       description: Create a transfer object
       operationId: createTransfer
@@ -1057,6 +1111,7 @@ paths:
       security:
         - Auth:
             - transfers:read
+            - api:read
   /v1/transfers/{id}:
     get:
       summary: Get transfer
@@ -1075,6 +1130,7 @@ paths:
       security:
         - Auth:
             - transfers:read
+            - api:read
 components:
   parameters:
     ProfileHeader:
@@ -1096,6 +1152,19 @@ components:
         x-go-type: string
       x-oapi-codegen-extra-tags:
         validate: required|uuid
+    CurrencyType:
+      name: type
+      in: query
+      schema:
+        type: array
+        items:
+          type: string
+          enum:
+            - fiat
+            - crypto
+            - stablecoin
+      style: form
+      example: fiat
     CurrencyCodePathParam:
       name: code
       in: path
@@ -1267,11 +1336,12 @@ components:
       type: string
       example: BTC
       format: string
-      maxLength: 5
+      maxLength: 10
       minLength: 3
       description: A valid currency
       x-oapi-codegen-extra-tags:
-        validate: required|min_len:3|max_len:5
+        validate: required|min_len:3|max_len:10
+        filter: trim|upper
     ErrorResponse:
       type: object
       required:
@@ -2009,29 +2079,40 @@ components:
                 greeting:
                   type: string
                   example: Welcome to the quote service!
-    PayInObj:
+    UnAuthPayInObj:
       type: object
       required:
         - type
       properties:
         type:
           type: string
-          example: bank_transfer
+          example: address
           enum:
             - address
             - bank_transfer
             - mobile_money
             - email
             - btag
-        recipient_id:
+            - virtual_bank
+        network:
           type: string
-          example: 64ae8c26ea1033204c805a8a
+          example: BTC
+          description: |
+            This specifies the blockchain network associated with the address receiving the payment, typically used with address type payouts.
+    PayInObj:
+      allOf:
+        - $ref: '#/components/schemas/UnAuthPayInObj'
+        - type: object
+          properties:
+            recipient_id:
+              type: string
+              example: 64ae8c26ea1033204c805a8a
+              description: |
+                This represents the recipient ID, used for `mobile_money` and `bank_transfer` types.
     RecipientDetails:
       type: object
       properties:
         account_name:
-          type: string
-        bank_code:
           type: string
         bank_name:
           type: string
@@ -2051,11 +2132,6 @@ components:
         - $ref: '#/components/schemas/PayInObj'
         - type: object
           properties:
-            recipient_id:
-              type: string
-              example: 64ae8c26ea1033204c805a8a
-              description: |
-                This represents the recipient ID, used for `mobile_money` and `bank_transfer` types.
             profile_id:
               type: string
               example: profile-id-1234
@@ -2079,25 +2155,57 @@ components:
         - $ref: '#/components/schemas/PayOutObj'
         - type: object
           properties:
-            profile_id:
-              type: string
-              example: profile-id-1234
             address:
               type: string
               example: tb1qj4263506wyu8khrz2dwce0agk8lhyjgy269rxr
-            network:
-              type: string
-              example: BTC
             memo:
               type: string
               example: address memo
             recipient_details:
               $ref: '#/components/schemas/RecipientDetails'
+            expires_at:
+              type: string
+              format: date-time
+              example: '2023-10-15T12:15:30Z'
     QuoteReference:
       type: string
       example: QUO_123456abc
       maxLength: 64
       minLength: 12
+    UnauthenticatedCreateQuote:
+      type: object
+      required:
+        - source_currency
+        - target_currency
+      properties:
+        source_currency:
+          $ref: '#/components/schemas/Currency'
+        target_currency:
+          $ref: '#/components/schemas/Currency'
+        source_amount:
+          type: string
+          description: Source Amount. Either `source_amount` or `target_amount` must be set.
+          example: '100'
+          x-go-type: decimal.Decimal
+          x-go-type-import:
+            path: github.com/shopspring/decimal
+            name: decimal
+            x-oapi-codegen-extra-tags:
+              validate: requiredWithout:target_amount|num
+        target_amount:
+          type: string
+          description: Target Amount. Either `source_amount` or `target_amount` must be set.
+          example: '100'
+          x-go-type: decimal.Decimal
+          x-go-type-import:
+            path: github.com/shopspring/decimal
+            name: decimal
+            x-oapi-codegen-extra-tags:
+              validate: requiredWithout:source_amount|num
+        pay_in:
+          $ref: '#/components/schemas/UnAuthPayInObj'
+        pay_out:
+          $ref: '#/components/schemas/PayOutObj'
     CreateQuoteRequest:
       type: object
       required:
@@ -2130,6 +2238,13 @@ components:
             name: decimal
             x-oapi-codegen-extra-tags:
               validate: requiredWithout:source_amount|num
+        pay_in:
+          allOf:
+            - $ref: '#/components/schemas/PayInObj'
+            - type: object
+              properties:
+                phone:
+                  $ref: '#/components/schemas/PhoneField'
         pay_out:
           $ref: '#/components/schemas/PayOutObj'
     Quote:
@@ -2596,12 +2711,12 @@ components:
       type: object
       required:
         - id
+        - quote_id
         - source_currency
         - target_currency
         - source_amount
         - target_amount
         - profile_id
-        - reference
         - created_at
         - updated_at
         - status
@@ -2609,6 +2724,8 @@ components:
         - fees
       properties:
         id:
+          $ref: '#/components/schemas/NanoID'
+        quote_id:
           $ref: '#/components/schemas/NanoID'
         source_currency:
           $ref: '#/components/schemas/Currency'
@@ -2632,8 +2749,6 @@ components:
         pay_out:
           allOf:
             - $ref: '#/components/schemas/PaymentObj'
-        reference:
-          $ref: '#/components/schemas/Reference'
         status:
           type: string
           enum:
@@ -2651,11 +2766,6 @@ components:
           type: string
           format: date-time
           example: '2023-10-15T12:20:45Z'
-    Reference:
-      type: string
-      example: TRF_123456abc
-      maxLength: 64
-      minLength: 12
     CreateTransferRequest:
       type: object
       required:
