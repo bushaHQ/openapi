@@ -18,9 +18,7 @@ info:
     All API requests require a **Bearer Token** for authentication, passed in the `Authorization` header.
     Your authorization value is a base64 encoded value of your api key and your secret key.
     You can obtain API tokens via your Busha user or business account. Authentication is mandatory to ensure secure and authorized interactions with the API.
-    The API keys from the dashboard provides `apiKey` and `secretKey`
-    Generate a base64 encoding of the two keys in this format:
-    `<apiKey>:<secretKey>`
+    The API keys from the dashboard provides a base64 encoding of the your authorrization tokens.
 
     Your generated Key should look like this:
     `VURtNXhWcHueantkpaiewjo0S044MWsadfojienuoxRTiWDJaeWJaTGxxanZ3Ym10OU1RZnVWajVW=`
@@ -142,9 +140,9 @@ tags:
     description: |
       Endpoints to manage supported currencies, their properties, and network details.
     x-displayName: Currencies
-  - name: Earn
-    description: Main tag for the Earn service
-    x-displayName: Earn
+  - name: Miscellaneous
+    description: Provides auxiliary APIs to complement and enhance other services.
+    x-displayName: Miscellaneous
   - name: Pairs
     description: Access trading pair information and rates
     x-displayName: Pairs
@@ -153,6 +151,8 @@ tags:
     x-displayName: Quotes
   - name: Recipients
     x-displayName: Recipients
+  - name: Transactions
+    x-displayName: Transactions
   - name: Transfers
     x-displayName: Transfers
 paths:
@@ -197,6 +197,10 @@ paths:
       operationId: listBalances
       parameters:
         - $ref: '#/components/parameters/ProfileHeader'
+        - name: currency
+          in: query
+          schema:
+            $ref: '#/components/schemas/Currency'
       summary: List all balances
       description: Retrieves all account balances with their current status.
       responses:
@@ -288,466 +292,73 @@ paths:
         4XX:
           $ref: '#/components/responses/CurrenciesError4XX'
       security: []
-  /v1/earn/products:
-    get:
-      tags:
-        - Earn
-      summary: List All Products For Earn
-      description: Retrieves the list of all available products
-      operationId: listEarnProducts
-      parameters:
-        - name: limit
-          in: query
-          description: Number of items to return per page
-          required: false
-          schema:
-            type: integer
-            default: 10
-            minimum: 1
-            maximum: 100
-        - name: page
-          in: query
-          description: Page number to return
-          required: false
-          schema:
-            type: integer
-            default: 1
-            minimum: 1
-        - name: currency
-          in: query
-          description: Filter products by currency
-          required: false
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: '#/components/schemas/BaseSchema'
-                  - type: object
-                    required:
-                      - pagination
-                      - data
-                    properties:
-                      pagination:
-                        $ref: '#/components/schemas/CursorPagination'
-                      data:
-                        type: array
-                        items:
-                          $ref: '#/components/schemas/Products'
-        4XX:
-          $ref: '#/components/responses/EarnError4XX'
-      security:
-        - Auth:
-            - earn:read
-            - api:read
-  /v1/earn/products/{id}:
-    get:
-      tags:
-        - Earn
-      summary: Get Product For Earn
-      description: Retrieves the product details for a given product id
-      operationId: getEarnProduct
-      parameters:
-        - $ref: '#/components/parameters/ParamUUID'
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                required:
-                  - data
-                allOf:
-                  - $ref: '#/components/schemas/BaseSchema'
-                  - type: object
-                    properties:
-                      data:
-                        $ref: '#/components/schemas/Products'
-        4XX:
-          $ref: '#/components/responses/EarnError4XX'
-      security:
-        - Auth:
-            - earn:read
-            - api:read
-  /v1/earn/subscriptions:
-    get:
-      tags:
-        - Earn
-      operationId: listEarnSubscriptions
-      parameters:
-        - $ref: '#/components/parameters/ProfileHeader'
-        - name: expand
-          in: query
-          description: Expand Product Object
-          required: false
-          schema:
-            type: string
-        - name: product_id
-          in: query
-          description: Filter subscriptions by product id
-          required: false
-          schema:
-            type: string
-        - name: status
-          in: query
-          description: Filter subscriptions by status
-          required: false
-          schema:
-            type: string
-        - name: limit
-          in: query
-          description: Number of items to return per page
-          required: false
-          schema:
-            type: integer
-            default: 10
-            minimum: 1
-            maximum: 100
-        - name: page
-          in: query
-          description: Page number to return
-          required: false
-          schema:
-            type: integer
-            default: 1
-            minimum: 1
-      summary: List Earn Subscriptions
-      description: List All Earn Subscriptions for User
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                required:
-                  - data
-                allOf:
-                  - $ref: '#/components/schemas/BaseSchema'
-                  - type: object
-                    required:
-                      - pagination
-                      - data
-                    properties:
-                      pagination:
-                        $ref: '#/components/schemas/CursorPagination'
-                      data:
-                        type: array
-                        items:
-                          $ref: '#/components/schemas/SubscriptionExpanded'
-        4XX:
-          $ref: '#/components/responses/EarnError4XX'
-      security:
-        - Auth:
-            - earn:read
-            - api:read
+  /v1/validate:
     post:
-      security:
-        - Auth:
-            - earn:write
-            - api:write
       tags:
-        - Earn
-      operationId: createEarnSubscription
-      parameters:
-        - $ref: '#/components/parameters/ProfileHeader'
-      summary: Create Earn Subscription
-      description: Creates a new earn subscription.
+        - Miscellaneous
+      summary: Validate payment destination
+      description: validates a payment destination is valid
+      operationId: validatePaymentDestination
       requestBody:
+        description: validate a payment destination
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateSubscriptionRequest'
+              $ref: '#/components/schemas/ValidateDestinationRequest'
       responses:
         '200':
-          description: Successful Response
+          description: Successful response
           content:
             application/json:
               schema:
-                required:
-                  - data
-                allOf:
-                  - $ref: '#/components/schemas/BaseSchema'
-                  - type: object
-                    properties:
-                      pagination:
-                        $ref: '#/components/schemas/CursorPagination'
-                      data:
-                        $ref: '#/components/schemas/SubscriptionExpanded'
+                $ref: '#/components/schemas/ValidateDestinationResponse'
         4XX:
-          $ref: '#/components/responses/EarnError4XX'
-  /v1/earn/subscriptions/{id}:
+          $ref: '#/components/responses/MiscellaneousError4XX'
+      security: []
+  /v1/banks:
     get:
       tags:
-        - Earn
-      summary: Get Earn Subscription
-      description: Retrieves the subscription details for a given subscription id
-      operationId: getEarnSubscription
+        - Miscellaneous
+      summary: List banks resource
+      description: Returns a list of all banks and their bank codes
+      operationId: listBanks
       parameters:
-        - $ref: '#/components/parameters/ParamUUID'
-        - $ref: '#/components/parameters/ProfileHeader'
-        - name: expand
-          in: query
-          description: Expand subscription details
-          required: false
-          schema:
-            type: boolean
-            default: false
+        - $ref: '#/components/parameters/CurrencyQueryParam'
+        - $ref: '#/components/parameters/CountryQueryParam'
       responses:
         '200':
-          description: Successful Response
+          description: Successful response
           content:
             application/json:
               schema:
-                required:
-                  - data
-                allOf:
-                  - $ref: '#/components/schemas/BaseSchema'
-                  - type: object
-                    properties:
-                      data:
-                        $ref: '#/components/schemas/SubscriptionExpanded'
+                $ref: '#/components/schemas/ListBankResponse'
         4XX:
-          $ref: '#/components/responses/EarnError4XX'
-      security:
-        - Auth:
-            - earn:read
-            - api:read
-  /v1/earn/redemptions:
+          $ref: '#/components/responses/MiscellaneousError4XX'
+      security: []
+  /v1/countries:
     get:
       tags:
-        - Earn
-      summary: List Earn Redemptions
-      description: List all earn redemptions for a user
-      operationId: listEarnRedemptions
+        - Miscellaneous
+      summary: Returns a list of countries
+      description: Returns a list of countries and their supported payment channels
+      operationId: listCountries
       parameters:
-        - $ref: '#/components/parameters/ProfileHeader'
-        - name: status
-          in: query
-          description: Filter redemptions by status
-          required: false
-          schema:
-            type: string
-        - name: limit
-          in: query
-          description: Number of items to return per page
-          required: false
-          schema:
-            type: integer
-            default: 10
-            minimum: 1
-            maximum: 100
-        - name: page
-          in: query
-          description: Page number to return
-          required: false
-          schema:
-            type: integer
-            default: 1
-            minimum: 1
-        - name: product_id
-          in: query
-          description: Filter redemptions by product id
-          required: false
-          schema:
-            type: string
-        - name: expand
-          in: query
-          description: Expand subscription details
-          required: false
-          schema:
-            type: boolean
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                required:
-                  - data
-                allOf:
-                  - $ref: '#/components/schemas/PaginatedResponse'
-                  - type: object
-                    properties:
-                      pagination:
-                        $ref: '#/components/schemas/CursorPagination'
-                      data:
-                        type: array
-                        items:
-                          $ref: '#/components/schemas/Redemption'
-        4XX:
-          $ref: '#/components/responses/EarnError4XX'
-      security:
-        - Auth:
-            - earn:read
-            - api:read
-    post:
-      security:
-        - Auth:
-            - earn:write
-            - api:write
-      tags:
-        - Earn
-      summary: Create Earn Redemption
-      description: Creates a new earn redemption.
-      operationId: createEarnRedemption
-      requestBody:
-        $ref: '#/components/requestBodies/CreateRedemptionRequest'
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: '#/components/schemas/BaseSchema'
-        4XX:
-          $ref: '#/components/responses/EarnError4XX'
-  /v1/earn/redemptions/{id}:
-    get:
-      tags:
-        - Earn
-      summary: Get Earn Redemption
-      description: Retrieves the redemption details for a given redemption id
-      operationId: getEarnRedemption
-      parameters:
-        - $ref: '#/components/parameters/ParamUUID'
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: '#/components/schemas/BaseSchema'
-                  - type: object
-                    properties:
-                      data:
-                        $ref: '#/components/schemas/Redemption'
-        4XX:
-          $ref: '#/components/responses/EarnError4XX'
-      security:
-        - Auth:
-            - earn:read
-            - api:read
-  /v1/earn/earnings:
-    get:
-      tags:
-        - Earn
-      summary: List Earn Earnings
-      description: List all earn earnings from a yield subscription
-      operationId: listEarnEarnings
-      parameters:
+        - $ref: '#/components/parameters/SortQueryParam'
+        - $ref: '#/components/parameters/CursorQueryParams'
+        - $ref: '#/components/parameters/LimitQueryParam'
+        - $ref: '#/components/parameters/CountryQueryParam'
         - $ref: '#/components/parameters/ProfileHeader'
       responses:
         '200':
-          description: Successful Response
+          description: Successful response
           content:
             application/json:
               schema:
-                allOf:
-                  - $ref: '#/components/schemas/PaginatedResponse'
-                  - type: object
-                    properties:
-                      pagination:
-                        $ref: '#/components/schemas/CursorPagination'
-                      data:
-                        $ref: '#/components/schemas/Earning'
-        4XX:
-          $ref: '#/components/responses/EarnError4XX'
-      security:
-        - Auth:
-            - earn:read
-            - api:read
-  /v1/earn/earnings/{id}:
-    get:
-      tags:
-        - Earn
-      summary: Retrieve Earn Earnings
-      description: Earnings are the interest received from a subscription daily based on the APY of the product.
-      operationId: getEarnEarnings
-      parameters:
-        - $ref: '#/components/parameters/ParamUUID'
-        - $ref: '#/components/parameters/ProfileHeader'
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: '#/components/schemas/BaseSchema'
-                  - type: object
-                    properties:
-                      data:
-                        $ref: '#/components/schemas/Earning'
-        4XX:
-          $ref: '#/components/responses/EarnError4XX'
-      security:
-        - Auth:
-            - earn:read
-            - api:read
-  /v1/earn/positions:
-    get:
-      tags:
-        - Earn
-      summary: List Earn Positions
-      description: This describes the summary of a user's subscription positions.
-      operationId: listEarnPositions
-      parameters:
-        - $ref: '#/components/parameters/ProfileHeader'
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: '#/components/schemas/PaginatedResponse'
-                  - type: object
-                    properties:
-                      pagination:
-                        $ref: '#/components/schemas/CursorPagination'
-                      data:
-                        $ref: '#/components/schemas/Positions'
-        4XX:
-          $ref: '#/components/responses/EarnError4XX'
-      security:
-        - Auth:
-            - earn:read
-            - api:read
-  /v1/earn/positions/{id}:
-    get:
-      tags:
-        - Earn
-      summary: Retrieve Earn Positions
-      description: This describes the summary of a user's subscription positions.
-      operationId: getEarnPositions
-      parameters:
-        - $ref: '#/components/parameters/ParamUUID'
-        - $ref: '#/components/parameters/ProfileHeader'
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: '#/components/schemas/BaseSchema'
-                  - type: object
-                    properties:
-                      data:
-                        $ref: '#/components/schemas/Positions'
-        4XX:
-          $ref: '#/components/responses/EarnError4XX'
-      security:
-        - Auth:
-            - earn:read
-            - api:read
+                $ref: '#/components/schemas/CountriesListResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security: []
   /v1/pairs:
     get:
       tags:
@@ -771,14 +382,7 @@ paths:
               - fiat
               - stablecoin
               - crypto
-        - name: source_currency
-          in: query
-          x-oapi-codegen-extra-tags:
-            validate: min_len:3|max_len:10
-            filter: trim|upper
-          schema:
-            $ref: '#/components/schemas/Currency'
-        - name: target_currency
+        - name: currency
           in: query
           x-oapi-codegen-extra-tags:
             validate: min_len:3|max_len:10
@@ -795,7 +399,7 @@ paths:
         4XX:
           $ref: '#/components/responses/PairError4XX'
       security: []
-  /v1/quote/unauthenticated:
+  /v1/quotes/unauthenticated:
     post:
       security: []
       summary: Create Unauthenticated Quotes
@@ -920,40 +524,24 @@ paths:
       summary: List recipients
       description: Retrieve a list of all recipients
       parameters:
-        - name: currency_id
-          in: query
-          description: Filter by currency code
-          required: false
-          schema:
-            type: string
-        - name: country_id
-          in: query
-          description: Filter by country code
-          required: false
-          schema:
-            type: string
+        - $ref: '#/components/parameters/SortQueryParam'
+        - $ref: '#/components/parameters/CurrencyQueryParam'
+        - $ref: '#/components/parameters/CursorQueryParams'
+        - $ref: '#/components/parameters/LimitQueryParam'
+        - $ref: '#/components/parameters/CountryQueryParam'
+        - $ref: '#/components/parameters/ProfileHeader'
         - name: type
           in: query
           description: Filter by recipient type
           required: false
           schema:
             type: string
-        - name: cursor
+        - name: category
           in: query
-          description: Cursor for pagination
+          description: Filter by recipient the requirement category
           required: false
           schema:
             type: string
-        - name: per_page
-          in: query
-          description: Number of items per page
-          required: false
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 100
-            default: 20
-        - $ref: '#/components/parameters/ProfileHeader'
       responses:
         '200':
           description: Recipients retrieved successfully
@@ -967,7 +555,7 @@ paths:
         - Auth:
             - recipients:read
             - api:read
-  /v1/recipients/{platform_id}:
+  /v1/recipients/{id}:
     get:
       tags:
         - Recipients
@@ -975,7 +563,7 @@ paths:
       description: Get details of a specific recipient
       operationId: getRecipient
       parameters:
-        - $ref: '#/components/parameters/ParamPlatformID'
+        - $ref: '#/components/parameters/ParamUUID'
         - $ref: '#/components/parameters/ProfileHeader'
       responses:
         '200':
@@ -1031,6 +619,109 @@ paths:
         - Auth:
             - recipients:read
             - api:read
+  /v1/recipients/resolve-bank-account:
+    post:
+      security:
+        - Auth:
+            - recipients:write
+            - api:write
+      tags:
+        - Recipients
+      operationId: resolveBankAccount
+      summary: Resolves a bank account
+      description: Resolves a bank account for bank transfers
+      parameters:
+        - $ref: '#/components/parameters/ProfileHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResolveBankAccountRequest'
+      responses:
+        '201':
+          description: Recipient created successfully
+          content:
+            application/json:
+              schema:
+                required:
+                  - data
+                allOf:
+                  - $ref: '#/components/schemas/BaseSchema'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ResolveBankAccountResponse'
+        4XX:
+          $ref: '#/components/responses/RecipientError4XX'
+  /v1/transactions:
+    get:
+      tags:
+        - Transactions
+      description: Returns a list of transactions
+      operationId: listTransactions
+      summary: List transactions
+      parameters:
+        - $ref: '#/components/parameters/SortQueryParam'
+        - $ref: '#/components/parameters/CurrencyQueryParam'
+        - name: is_fiat
+          in: query
+          description: Filter by fiat currencies
+          required: false
+          schema:
+            type: boolean
+        - name: is_credit
+          in: query
+          description: Filter by transactions that are credit
+          required: false
+          schema:
+            type: boolean
+        - $ref: '#/components/parameters/CursorQueryParams'
+        - $ref: '#/components/parameters/LimitQueryParam'
+        - $ref: '#/components/parameters/ProfileHeader'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionsListResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+        - Auth:
+            - transactions:read
+            - api:read
+  /v1/transactions/{id}:
+    get:
+      tags:
+        - Transactions
+      description: Retrieves a transactions
+      operationId: getTransaction
+      summary: Get transaction
+      parameters:
+        - $ref: '#/components/parameters/ParamUUID'
+        - $ref: '#/components/parameters/ProfileHeader'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                required:
+                  - data
+                allOf:
+                  - $ref: '#/components/schemas/BaseSchema'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Transaction'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+        - Auth:
+            - transactions:read
+            - api:read
   /v1/transfers:
     post:
       security:
@@ -1082,27 +773,9 @@ paths:
           required: false
           schema:
             type: string
-        - name: cursor
-          in: query
-          description: Cursor for pagination
-          required: false
-          schema:
-            type: string
-        - name: sort
-          in: query
-          description: sort direction for result
-          required: false
-          schema:
-            type: string
-        - name: per_page
-          in: query
-          description: Number of items per page
-          required: false
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 100
-            default: 20
+        - $ref: '#/components/parameters/CursorQueryParams'
+        - $ref: '#/components/parameters/SortQueryParam'
+        - $ref: '#/components/parameters/LimitQueryParam'
       responses:
         '200':
           $ref: '#/components/responses/TransferListResponse'
@@ -1168,7 +841,7 @@ components:
     CurrencyCodePathParam:
       name: code
       in: path
-      required: false
+      required: true
       description: The currency path parameter
       schema:
         type: string
@@ -1204,14 +877,29 @@ components:
         name: uuid.UUID
       x-oapi-codegen-extra-tags:
         validate: required|nanoid
-    ParamPlatformID:
-      in: path
-      name: platform_id
-      required: true
-      description: uuid and nano_id
+    CurrencyQueryParam:
+      name: currency
+      in: query
+      x-oapi-codegen-extra-tags:
+        validate: min_len:3|max_len:10
+        filter: trim|upper
       schema:
         type: string
-        example: platform_123456
+    CountryQueryParam:
+      name: country
+      in: query
+      x-oapi-codegen-extra-tags:
+        validate: alpha2
+        filter: trim|upper
+      schema:
+        type: string
+    SortQueryParam:
+      name: sort
+      in: query
+      description: The order to sort the results
+      schema:
+        type: string
+        example: asc
   schemas:
     Balance:
       type: object
@@ -1227,39 +915,34 @@ components:
         - profile_id
       properties:
         id:
-          $ref: '#/components/schemas/UuidID'
+          $ref: '#/components/schemas/ResourceUUID'
         user_id:
-          $ref: '#/components/schemas/PlatformID'
+          $ref: '#/components/schemas/ID'
         profile_id:
-          $ref: '#/components/schemas/PlatformID'
+          $ref: '#/components/schemas/ID'
         currency:
-          $ref: '#/components/schemas/Currency'
+          allOf:
+            - $ref: '#/components/schemas/Currency'
+          x-order: 6
         name:
           type: string
+          x-order: 7
           example: Bitcoin
         type:
           type: string
+          x-order: 8
           enum:
             - fiat
             - crypto
           example: crypto
         pending:
-          $ref: '#/components/schemas/Amount'
+          $ref: '#/components/schemas/AmountWithCurrency'
         available:
-          $ref: '#/components/schemas/Amount'
+          $ref: '#/components/schemas/AmountWithCurrency'
         total:
-          $ref: '#/components/schemas/Amount'
+          $ref: '#/components/schemas/AmountWithCurrency'
     Amount:
-      type: object
-      required:
-        - amount
-        - currency
-      properties:
-        amount:
-          type: string
-          example: '0.5432'
-        currency:
-          $ref: '#/components/schemas/Currency'
+      $ref: '#/components/schemas/AmountWithCurrency'
     BalanceListResponse:
       allOf:
         - $ref: '#/components/schemas/BaseSchema'
@@ -1282,6 +965,17 @@ components:
       properties:
         currency:
           $ref: '#/components/schemas/Currency'
+    Currency:
+      type: string
+      x-order: 20
+      example: BTC
+      format: string
+      maxLength: 10
+      minLength: 3
+      description: A valid currency
+      x-oapi-codegen-extra-tags:
+        validate: required|min_len:3|max_len:10
+        filter: trim|upper
     BaseSchema:
       description: General response Values
       type: object
@@ -1291,6 +985,7 @@ components:
       properties:
         status:
           type: string
+          x-order: 1
           x-go-type: string
           enum:
             - success
@@ -1298,6 +993,7 @@ components:
           example: success
         message:
           type: string
+          x-order: 2
           example: message for success
     CursorPagination:
       description: Cursor-based pagination values
@@ -1314,8 +1010,9 @@ components:
         previous_cursor:
           type: string
           example: MjAyNC0xMC0xNVQxMDowNTo1My45NTIxQjE3MDE6MDA=
-    UuidID:
+    ResourceUUID:
       type: string
+      x-order: 1
       example: 550e8400-e29b-41d4-a716-446655440000
       format: uuid
       description: A valid UUID
@@ -1325,23 +1022,33 @@ components:
       x-go-type-import:
         path: github.com/gofrs/uuid
         name: uuid
-    PlatformID:
+    ID:
       type: string
+      x-order: 4
       example: platform_123456
       format: nanoid
-      description: A valid platform id that supports uuid and nanoid
+      description: A valid id that supports uuid and nanoid
       x-oapi-codegen-extra-tags:
-        validate: required|string
-    Currency:
+        validate: required|nano|string
+    Decimal:
       type: string
-      example: BTC
-      format: string
-      maxLength: 10
-      minLength: 3
-      description: A valid currency
-      x-oapi-codegen-extra-tags:
-        validate: required|min_len:3|max_len:10
-        filter: trim|upper
+      description: string to decimal
+      example: '100'
+      x-go-type: decimal.Decimal
+      x-go-type-import:
+        path: github.com/shopspring/decimal
+        name: decimal
+    AmountWithCurrency:
+      type: object
+      description: Amount with currency
+      required:
+        - amount
+        - currency
+      properties:
+        amount:
+          $ref: '#/components/schemas/Decimal'
+        currency:
+          $ref: '#/components/schemas/Currency'
     ErrorResponse:
       type: object
       required:
@@ -1355,6 +1062,7 @@ components:
           properties:
             name:
               type: string
+              x-order: 40
               example: bad_request
             message:
               type: string
@@ -1379,46 +1087,73 @@ components:
         - default_network
         - supported_networks
       properties:
+        code:
+          allOf:
+            - $ref: '#/components/schemas/Currency'
+          x-order: 1
         name:
           type: string
+          x-order: 5
           example: Bitcoin
           description: The official name of the cryptocurrency.
         display_name:
           type: string
+          x-order: 6
           example: Bitcoin (BTC)
           description: The formatted display name of the cryptocurrency.
-        code:
-          $ref: '#/components/schemas/Currency'
-        icon:
-          $ref: '#/components/schemas/UrlField'
+        type:
+          type: string
+          x-order: 7
+          enum:
+            - fiat
+            - crypto
+            - stablecoin
+          description: Indicates whether the cryptocurrency is a stablecoin.
         decimals:
           type: string
+          x-order: 8
           example: '8'
           description: |
             The number of decimal places supported by the blockchain. Defines how the currency value is divided.
+        default_network:
+          type: string
+          x-order: 9
+          description: The identifier of the default network for this currency.
+          example: ethereum
+        deposit:
+          type: boolean
+          x-order: 10
+          description: Indicates if deposits are supported for this currency.
+        icon:
+          allOf:
+            - $ref: '#/components/schemas/UrlField'
+          x-order: 11
+        withdrawal:
+          type: boolean
+          x-order: 12
+          description: Indicates if withdrawals are supported for this currency.
         precision:
           type: string
+          x-order: 13
           example: '8'
           description: |
             The level of precision supported by this service. This may differ from blockchain-level precision in some cases.
-        is_stable_coin:
-          type: boolean
-          description: Indicates whether the cryptocurrency is a stablecoin.
-        deposit:
-          type: boolean
-          description: Indicates if deposits are supported for this currency.
-        withdrawal:
-          type: boolean
-          description: Indicates if withdrawals are supported for this currency.
-        default_network:
-          type: string
-          description: The identifier of the default network for this currency.
-          example: ethereum
         supported_networks:
           type: array
+          x-order: 14
           description: A list of networks supported by the currency, including details for each.
           items:
             $ref: '#/components/schemas/Network'
+        is_ramp_sell_supported:
+          type: boolean
+          x-order: 15
+          description: Indicates if ramp sell is supported for this currency.
+          example: true
+        is_ramp_buy_supported:
+          type: boolean
+          x-order: 16
+          description: Indicates if ramp buy is supported for this currency.
+          example: true
     Network:
       type: object
       required:
@@ -1428,6 +1163,7 @@ components:
       properties:
         id:
           type: string
+          x-order: 1
           example: ethereum
           description: The unique identifier for the blockchain network.
         name:
@@ -1625,6 +1361,7 @@ components:
           format: date-time
     NanoID:
       type: string
+      x-order: 2
       example: bus_123456789
       format: nanoid
       description: A valid id
@@ -1692,7 +1429,7 @@ components:
       type: string
       example: +234 8012345678
       format: phone
-      description: A valid phone number
+      description: A valid phone number. format `{{calling_code}} {{number}}`
       x-oapi-codegen-extra-tags:
         validate: phone
     BVNField:
@@ -2005,12 +1742,201 @@ components:
           properties:
             pagination:
               $ref: '#/components/schemas/Pagination'
+    UuidID:
+      type: string
+      x-order: 3
+      example: 550e8400-e29b-41d4-a716-446655440000
+      format: uuid
+      description: A valid UUID
+      x-oapi-codegen-extra-tags:
+        validate: required|uuid
+      x-go-type: uuid.UUID
+      x-go-type-import:
+        path: github.com/gofrs/uuid
+        name: uuid
+    ValidateDestinationResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseSchema'
+        - type: object
+          required:
+            - data
+          properties:
+            data:
+              $ref: '#/components/schemas/ValidateDestinationResponseObject'
+    ValidateDestinationResponseObject:
+      allOf:
+        - $ref: '#/components/schemas/ValidateDestinationRequest'
+        - type: object
+          properties:
+            valid:
+              type: boolean
+              example: true
+    ValidateDestinationRequest:
+      type: object
+      required:
+        - type
+        - currency
+      properties:
+        type:
+          type: string
+          example: address
+          enum:
+            - address
+        address:
+          type: string
+          example: tb1qj4263506wyu8khrz2dwce0agk8lhyjgy269rxr
+          description: |
+            This is the address for type `address`
+        currency:
+          $ref: '#/components/schemas/Currency'
+        network:
+          type: string
+          example: BTC
+          description: |
+            This specifies the blockchain network associated with the address receiving the payment, typically used with address type payouts.
+        memo:
+          type: string
+          example: memo
+          description: |
+            This refers to the memo required for blockchain networks that mandate a memo for cryptocurrency transactions.
+    ListBankResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseSchema'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/Bank'
+    Bank:
+      type: object
+      required:
+        - name
+        - code
+        - currency
+      properties:
+        name:
+          type: string
+          x-order: 1
+          example: Wema Bank
+        code:
+          type: string
+          example: '000017'
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/Currency'
+          example: NGN
+    CountriesListResponse:
+      allOf:
+        - $ref: '#/components/schemas/CursorPagination'
+        - type: object
+          properties:
+            data:
+              type: array
+              description: List of recipients
+              items:
+                $ref: '#/components/schemas/Country'
+          required:
+            - data
+    Country:
+      type: object
+      required:
+        - id
+        - name
+        - currency
+        - payment_methods
+        - payout_methods
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/CountryID'
+          x-order: 1
+        name:
+          type: string
+          x-order: 2
+          example: Bitcoin
+          description: The official name of the cryptocurrency.
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/CurrencyMini'
+        payment_methods:
+          type: array
+          items:
+            $ref: '#/components/schemas/PayObj'
+        payout_methods:
+          type: array
+          items:
+            $ref: '#/components/schemas/PayObj'
+    CurrencyMini:
+      type: object
+      required:
+        - code
+        - name
+        - symbol
+      properties:
+        code:
+          allOf:
+            - $ref: '#/components/schemas/Currency'
+        name:
+          type: string
+          example: Bitcoin
+          description: The official name of the cryptocurrency.
+        symbol:
+          type: string
+          example: $
+          description: The official symbol of the cryptocurrency.\
+    Provider:
+      type: string
+      description: A provider of a payment option
+      example: Airtel Money
+    PayObj:
+      type: object
+      required:
+        - id
+        - name
+        - min
+        - max
+        - providers
+        - currency
+        - processing_time
+        - enabled
+      properties:
+        id:
+          type: string
+          example: Bitcoin
+          description: The id of the payment option.
+        name:
+          type: string
+          example: Bitcoin
+          description: The name of the payment option.
+        min:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+        max:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+        providers:
+          type: array
+          description: List of providers supported by payment option.
+          items:
+            $ref: '#/components/schemas/Provider'
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/Currency'
+        processing_time:
+          type: string
+          example: 0-15 minutes
+          description: The average time to process via the payment option.
+        enabled:
+          type: boolean
+          example: true
+          description: This shows if the payment option is available for use
     Pairs:
       type: object
       required:
         - id
-        - source_currency
-        - target_currency
+        - base
+        - counter
         - type
         - is_buy_supported
         - is_sell_supported
@@ -2019,45 +1945,61 @@ components:
       properties:
         id:
           type: string
+          x-order: 1
           example: eth-btc
-        source_currency:
-          $ref: '#/components/schemas/Currency'
-        target_currency:
-          $ref: '#/components/schemas/Currency'
+        base:
+          allOf:
+            - $ref: '#/components/schemas/Currency'
+          x-order: 2
+        counter:
+          allOf:
+            - $ref: '#/components/schemas/Currency'
+          x-order: 3
         type:
           type: string
+          x-order: 4
           enum:
             - crypto
             - fiat
             - stablecoin
+        buy_price:
+          x-order: 5
+          allOf:
+            - $ref: '#/components/schemas/AmountWithCurrency'
+        sell_price:
+          allOf:
+            - $ref: '#/components/schemas/AmountWithCurrency'
+          x-order: 6
         is_buy_supported:
+          x-order: 7
           type: boolean
         is_sell_supported:
+          x-order: 8
           type: boolean
-        buy_price:
-          type: string
-          example: '0.07'
-        max_buy_amount:
-          type: string
-          example: '10'
         min_buy_amount:
-          type: string
-          example: '0.00006'
-        sell_price:
-          type: string
-          example: '0.07'
-        max_sell_amount:
-          type: string
-          example: '10'
+          x-order: 9
+          allOf:
+            - $ref: '#/components/schemas/AmountWithCurrency'
         min_sell_amount:
+          x-order: 10
+          allOf:
+            - $ref: '#/components/schemas/AmountWithCurrency'
+        max_buy_amount:
+          x-order: 11
+          allOf:
+            - $ref: '#/components/schemas/AmountWithCurrency'
+        max_sell_amount:
+          x-order: 12
+          allOf:
+            - $ref: '#/components/schemas/AmountWithCurrency'
+        base_decimal:
           type: string
-          example: '0.00006'
-        source_currency_decimal:
-          type: string
+          x-order: 13
           example: '6'
-        target_currency_decimal:
+        counter_decimal:
           type: string
-          example: '2'
+          x-order: 14
+          example: '6'
     PairsListResponse:
       allOf:
         - $ref: '#/components/schemas/BaseSchema'
@@ -2089,11 +2031,8 @@ components:
           example: address
           enum:
             - address
-            - bank_transfer
             - mobile_money
-            - email
-            - btag
-            - virtual_bank
+            - temporary_bank_account
         network:
           type: string
           example: BTC
@@ -2104,11 +2043,8 @@ components:
         - $ref: '#/components/schemas/UnAuthPayInObj'
         - type: object
           properties:
-            recipient_id:
-              type: string
-              example: 64ae8c26ea1033204c805a8a
-              description: |
-                This represents the recipient ID, used for `mobile_money` and `bank_transfer` types.
+            phone:
+              $ref: '#/components/schemas/PhoneField'
     RecipientDetails:
       type: object
       properties:
@@ -2128,28 +2064,40 @@ components:
           type: string
           example: sbsbs@busha.co
     PayOutObj:
-      allOf:
-        - $ref: '#/components/schemas/PayInObj'
-        - type: object
-          properties:
-            profile_id:
-              type: string
-              example: profile-id-1234
-            address:
-              type: string
-              example: tb1qj4263506wyu8khrz2dwce0agk8lhyjgy269rxr
-              description: |
-                This could be the address for type `address`, the btag for type `btag` or an email for type `email`
-            network:
-              type: string
-              example: BTC
-              description: |
-                This specifies the blockchain network associated with the address receiving the payment, typically used with address type payouts.
-            memo:
-              type: string
-              example: memo
-              description: |
-                This refers to the memo required for blockchain networks that mandate a memo for cryptocurrency transactions.
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          example: address
+          enum:
+            - address
+            - bank_transfer
+            - mobile_money
+        recipient_id:
+          type: string
+          example: 64ae8c26ea1033204c805a8a
+          description: |
+            This represents the recipient ID, used for `mobile_money` and `bank_transfer` types.
+        profile_id:
+          type: string
+          example: profile-id-1234
+        address:
+          type: string
+          example: tb1qj4263506wyu8khrz2dwce0agk8lhyjgy269rxr
+          description: |
+            This could be the address for type `address`.
+        network:
+          type: string
+          example: BTC
+          description: |
+            This specifies the blockchain network associated with the address receiving the payment, typically used with address type payouts.
+        memo:
+          type: string
+          example: memo
+          description: |
+            This refers to the memo required for blockchain networks that mandate a memo for cryptocurrency transactions.
     PaymentObj:
       allOf:
         - $ref: '#/components/schemas/PayOutObj'
@@ -2169,6 +2117,7 @@ components:
               example: '2023-10-15T12:15:30Z'
     QuoteReference:
       type: string
+      x-order: 2
       example: QUO_123456abc
       maxLength: 64
       minLength: 12
@@ -2264,56 +2213,98 @@ components:
         - fees
       properties:
         id:
-          $ref: '#/components/schemas/NanoID'
+          $ref: '#/components/schemas/ResourceID'
         source_currency:
-          $ref: '#/components/schemas/Currency'
+          allOf:
+            - $ref: '#/components/schemas/Currency'
+          x-order: 5
         target_currency:
-          $ref: '#/components/schemas/Currency'
+          allOf:
+            - $ref: '#/components/schemas/Currency'
+          x-order: 6
         source_amount:
-          $ref: '#/components/schemas/Decimal'
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          x-order: 7
         target_amount:
-          $ref: '#/components/schemas/Decimal'
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          x-order: 8
         profile_id:
           $ref: '#/components/schemas/NanoID'
         rate:
-          $ref: '#/components/schemas/QuoteRate'
+          allOf:
+            - $ref: '#/components/schemas/QuoteRate'
+          x-order: 9
         fees:
           type: array
+          x-order: 10
           items:
             $ref: '#/components/schemas/Fee'
         pay_in:
           allOf:
             - $ref: '#/components/schemas/PaymentObj'
+          x-order: 11
         pay_out:
           allOf:
             - $ref: '#/components/schemas/PaymentObj'
+          x-order: 12
         reference:
-          $ref: '#/components/schemas/QuoteReference'
+          allOf:
+            - $ref: '#/components/schemas/QuoteReference'
+          x-order: 12
         status:
           type: string
+          x-order: 13
           enum:
             - pending
           example: pending
         expires_at:
           type: string
+          x-order: 14
           format: date-time
           example: '2023-12-01T15:04:05Z'
         created_at:
           type: string
+          x-order: 15
           format: date-time
           example: '2023-10-15T12:15:30Z'
         updated_at:
           type: string
+          x-order: 16
           format: date-time
           example: '2023-10-15T12:20:45Z'
-    Decimal:
+        two_step:
+          $ref: '#/components/schemas/TwoStep'
+    TwoStep:
+      type: object
+      required:
+        - type
+        - message
+        - resend_allowed
+      x-order: 17
+      properties:
+        type:
+          type: string
+          enum:
+            - authenticator
+          example: authenticator
+          description: the type of two step verification required
+        message:
+          type: string
+          example: Enter your 2FA code to continue
+        resend_allowed:
+          type: boolean
+          example: false
+          description: If the code can be resent
+    ResourceID:
       type: string
-      description: string to decimal
-      example: '100'
-      x-go-type: decimal.Decimal
-      x-go-type-import:
-        path: github.com/shopspring/decimal
-        name: decimal
+      x-order: 1
+      example: bus_123456789
+      format: string
+      description: A valid id
+      x-oapi-codegen-extra-tags:
+        validate: required|nanoid
     QuoteRate:
       type: object
       properties:
@@ -2339,19 +2330,19 @@ components:
           example: FIXED
     Fee:
       type: object
+      x-order: 40
       required:
         - name
         - amount
-        - currency
         - type
       properties:
         name:
           type: string
           example: processing_fee
         amount:
-          $ref: '#/components/schemas/Decimal'
-        currency:
-          $ref: '#/components/schemas/Currency'
+          $ref: '#/components/schemas/AmountWithCurrency'
+        converted_amount:
+          $ref: '#/components/schemas/AmountWithCurrency'
         type:
           type: string
           example: FIXED
@@ -2405,9 +2396,11 @@ components:
           - name: bank_name
             value: Access Bank Nigeria
           - name: account_number
-            value: '0064244032'
+            value: '1234567890'
           - name: bank_code
             value: '000014'
+          - name: account_name
+            value: Joh Doe
     RecipientField:
       type: object
       required:
@@ -2442,6 +2435,42 @@ components:
           type: boolean
           description: Whether the field is required
           example: true
+    ResolveBankAccountRequest:
+      type: object
+      required:
+        - country_id
+        - currency_id
+        - channel
+        - bank_code
+        - account_number
+      properties:
+        currency_id:
+          $ref: '#/components/schemas/Currency'
+        country_id:
+          $ref: '#/components/schemas/CountryID'
+        channel:
+          $ref: '#/components/schemas/Channel'
+        bank_code:
+          type: string
+          description: Bank sort code
+          example: '000013'
+        account_number:
+          type: string
+          description: Account number for receiving bank
+          example: '0123456789'
+      example:
+        currency_id: NGN
+        country_id: NG
+        channel: mobile_money
+        bank_code: '000013'
+        account_number: '0123456789'
+    Channel:
+      type: string
+      description: Channel for the transfer
+      enum:
+        - mobile_money
+        - bank_transfer
+      example: bank_transfer
     Recipient:
       type: object
       required:
@@ -2449,8 +2478,6 @@ components:
         - id
         - user_id
         - profile_id
-        - currency_id
-        - country_id
         - type
         - legal_entity_type
         - owned_by_customer
@@ -2464,11 +2491,11 @@ components:
           description: Type of the object
           example: recipient
         id:
-          $ref: '#/components/schemas/PlatformID'
+          $ref: '#/components/schemas/ID'
         user_id:
-          $ref: '#/components/schemas/PlatformID'
+          $ref: '#/components/schemas/ID'
         profile_id:
-          $ref: '#/components/schemas/PlatformID'
+          $ref: '#/components/schemas/ID'
         currency_id:
           $ref: '#/components/schemas/Currency'
         country_id:
@@ -2573,8 +2600,8 @@ components:
       type: object
       required:
         - id
-        - country_id
-        - currency_id
+        - countries
+        - currencies
         - name
         - description
         - type
@@ -2584,39 +2611,33 @@ components:
       properties:
         id:
           type: string
-        country_id:
-          type: string
-        currency_id:
-          type: string
+          x-order: 1
+        currencies:
+          type: array
+          x-order: 5
+          items:
+            $ref: '#/components/schemas/Currency'
+        countries:
+          type: array
+          x-order: 6
+          items:
+            $ref: '#/components/schemas/CountryID'
         name:
           type: string
+          x-order: 2
         description:
           type: string
+          x-order: 7
         type:
           type: string
-        fields:
-          $ref: '#/components/schemas/RequirementFields'
-        active:
-          type: boolean
-        created_at:
-          type: string
-          format: date-time
-    RequirementFields:
-      type: object
-      required:
-        - id
-        - name
-        - fields
-        - created_at
-      properties:
-        id:
-          type: string
-        name:
-          type: string
+          x-order: 3
         fields:
           type: array
           items:
             $ref: '#/components/schemas/RequirementField'
+        active:
+          type: boolean
+          x-order: 4
         created_at:
           type: string
           format: date-time
@@ -2657,8 +2678,6 @@ components:
           type: integer
         description:
           type: string
-        requires_url_validation:
-          type: boolean
         options:
           type: array
           items:
@@ -2671,42 +2690,119 @@ components:
                 type: string
               value:
                 type: string
-        populate_target:
-          type: array
-          items:
-            type: string
-        populate_from:
+    ResolveBankAccountResponse:
+      type: object
+      required:
+        - country_id
+        - currency_id
+        - channel
+        - account_number
+        - bank_code
+        - account_name
+        - bank_name
+      properties:
+        country_id:
+          $ref: '#/components/schemas/CountryID'
+        currency_id:
+          $ref: '#/components/schemas/Currency'
+        channel:
+          $ref: '#/components/schemas/Channel'
+        bank_code:
           type: string
-        populate_from_value:
+          description: Bank sort code
+          example: '000013'
+        account_number:
           type: string
-        validator_field:
-          type: object
+          description: Account number for receiving bank
+          example: '0123456789'
+        account_name:
+          type: string
+          description: Name on receiving account
+          example: John Doe
+        bank_name:
+          type: string
+          description: Name of receiving bank
+          example: Trust Bank
+    TransactionsListResponse:
+      allOf:
+        - $ref: '#/components/schemas/CursorPagination'
+        - type: object
+          properties:
+            data:
+              type: array
+              description: List of recipients
+              items:
+                $ref: '#/components/schemas/Transaction'
           required:
-            - url
-            - params
-          properties:
-            url:
-              type: string
-            params:
-              type: array
-              items:
-                type: string
-        validation_rules:
-          type: object
-          properties:
-            conditions:
-              type: array
-              items:
-                type: object
-                properties:
-                  field:
-                    type: string
-                  rule:
-                    type: string
-                  value:
-                    type: string
-            message:
-              type: string
+            - data
+    Transaction:
+      type: object
+      required:
+        - object
+        - id
+        - user_id
+        - profile_id
+        - currency
+        - amount
+        - category
+        - reference
+        - description
+        - sub_description
+        - status
+        - status_description
+        - is_credit
+        - is_fiat
+        - created_at
+      properties:
+        object:
+          type: string
+          description: Type of the object
+          example: transaction
+        id:
+          $ref: '#/components/schemas/ID'
+        user_id:
+          $ref: '#/components/schemas/ID'
+        profile_id:
+          $ref: '#/components/schemas/ID'
+        currency:
+          $ref: '#/components/schemas/Currency'
+        amount:
+          $ref: '#/components/schemas/Decimal'
+        category:
+          type: string
+          description: transaction category
+          example: deposit
+        reference:
+          type: string
+          description: transaction reference
+          example: ORD_7ain6FEDWB
+        description:
+          type: string
+          description: transaction description
+          example: Bought US Dollar
+        sub_description:
+          type: string
+          description: transaction sub_description
+          example: With USD Token
+        status:
+          type: string
+          description: transaction status
+          example: completed
+        status_description:
+          type: string
+          description: transaction status_description
+          example: This has been processed by Busha
+        is_credit:
+          type: boolean
+          description: tells if transaction is a credit
+        is_fiat:
+          type: boolean
+          description: tells if transaction is in a fiat currency
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp when the transaction was created
+          example: '2024-05-16T13:06:31.409336+01:00'
     Transfer:
       type: object
       required:
@@ -2724,46 +2820,63 @@ components:
         - fees
       properties:
         id:
-          $ref: '#/components/schemas/NanoID'
+          $ref: '#/components/schemas/ResourceID'
         quote_id:
           $ref: '#/components/schemas/NanoID'
         source_currency:
-          $ref: '#/components/schemas/Currency'
+          allOf:
+            - $ref: '#/components/schemas/Currency'
+          x-order: 3
         target_currency:
-          $ref: '#/components/schemas/Currency'
+          allOf:
+            - $ref: '#/components/schemas/Currency'
+          x-order: 4
         source_amount:
-          $ref: '#/components/schemas/Decimal'
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          x-order: 5
         target_amount:
-          $ref: '#/components/schemas/Decimal'
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          x-order: 6
         profile_id:
           $ref: '#/components/schemas/NanoID'
         rate:
-          $ref: '#/components/schemas/QuoteRate'
+          allOf:
+            - $ref: '#/components/schemas/QuoteRate'
+          x-order: 7
         fees:
           type: array
+          x-order: 8
           items:
             $ref: '#/components/schemas/Fee'
         pay_in:
           allOf:
             - $ref: '#/components/schemas/PaymentObj'
+          x-order: 9
         pay_out:
           allOf:
             - $ref: '#/components/schemas/PaymentObj'
+          x-order: 10
         status:
           type: string
+          x-order: 11
           enum:
             - pending
           example: pending
         expires_at:
           type: string
+          x-order: 12
           format: date-time
           example: '2023-12-01T15:04:05Z'
         created_at:
           type: string
+          x-order: 13
           format: date-time
           example: '2023-10-15T12:15:30Z'
         updated_at:
           type: string
+          x-order: 14
           format: date-time
           example: '2023-10-15T12:20:45Z'
     CreateTransferRequest:
@@ -2904,6 +3017,29 @@ components:
               $ref: '#/components/examples/RequestValidationError'
             schema_validation_error:
               $ref: '#/components/examples/SchemaValidationError'
+    MiscellaneousError4XX:
+      description: Default
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            default:
+              $ref: '#/components/examples/DefaultError'
+            not_found_error:
+              $ref: '#/components/examples/NotFoundError'
+            unauthorized_error:
+              $ref: '#/components/examples/UnAuthorizedError'
+            request_validation_error:
+              $ref: '#/components/examples/RequestValidationError'
+            schema_validation_error:
+              $ref: '#/components/examples/SchemaValidationError'
+    InternalServerError:
+      description: Internal Server Error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
     PairError4XX:
       description: Default
       content:
@@ -2971,6 +3107,23 @@ components:
                       $ref: '#/components/schemas/Quote'
     RecipientError4XX:
       description: Recipient Error sample
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            default:
+              $ref: '#/components/examples/DefaultError'
+            not_found_error:
+              $ref: '#/components/examples/NotFoundError'
+            unauthorized_error:
+              $ref: '#/components/examples/UnAuthorizedError'
+            request_validation_error:
+              $ref: '#/components/examples/RequestValidationError'
+            schema_validation_error:
+              $ref: '#/components/examples/SchemaValidationError'
+    TransactionsError4XX:
+      description: Default
       content:
         application/json:
           schema:
