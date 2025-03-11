@@ -155,6 +155,8 @@ tags:
     x-displayName: Transactions
   - name: Transfers
     x-displayName: Transfers
+  - name: Deposit
+    x-displayName: Deposit
 paths:
   /v1/balances:
     post:
@@ -1154,6 +1156,16 @@ components:
           x-order: 16
           description: Indicates if ramp buy is supported for this currency.
           example: true
+        maximum_ramp_buy:
+          type: string
+          x-order: 17
+          description: The maximum amount that can be purchased through the ramp process for this currency.
+          example: '1000'
+        maximum_ramp_sell:
+          type: string
+          x-order: 18
+          description: The maximum amount that can be sold through the ramp process for this currency.
+          example: '1000'
     Network:
       type: object
       required:
@@ -1194,6 +1206,14 @@ components:
           type: string
           example: '12'
           description: Number of confirmations required for deposits to be recognized.
+        network:
+          type: string
+          example: ETH
+          description: The blockchain network for the currency.
+        withdrawal_fee:
+          type: string
+          example: '0.0001'
+          description: The withdrawal fee for the network in the currency.
         address_regex:
           $ref: '#/components/schemas/AddressRegexField'
         testnet_address_regex:
@@ -1202,6 +1222,14 @@ components:
           type: string
           example: '0xdac17f958d2ee523a2206206994597c13d831ec7'
           description: The contract address for tokens on this network.
+        is_ramp_sell_supported:
+          type: boolean
+          description: Indicates if ramp sell is supported for this currency.
+          example: true
+        is_ramp_buy_supported:
+          type: boolean
+          description: Indicates if ramp buy is supported for this currency.
+          example: true
     CurrenciesListResponse:
       allOf:
         - $ref: '#/components/schemas/BaseSchema'
@@ -2864,19 +2892,23 @@ components:
           enum:
             - pending
           example: pending
+        timeline:
+          allOf:
+            - $ref: '#/components/schemas/TransferTimeline'
+          x-order: 12
         expires_at:
           type: string
-          x-order: 12
+          x-order: 13
           format: date-time
           example: '2023-12-01T15:04:05Z'
         created_at:
           type: string
-          x-order: 13
+          x-order: 14
           format: date-time
           example: '2023-10-15T12:15:30Z'
         updated_at:
           type: string
-          x-order: 14
+          x-order: 15
           format: date-time
           example: '2023-10-15T12:20:45Z'
     CreateTransferRequest:
@@ -2886,6 +2918,81 @@ components:
       properties:
         quote_id:
           $ref: '#/components/schemas/NanoID'
+    TransferTimeline:
+      type: object
+      required:
+        - total_steps
+        - current_step
+        - transfer_status
+        - events
+      properties:
+        total_steps:
+          type: integer
+          x-order: 1
+        current_step:
+          type: integer
+          x-order: 2
+        transfer_status:
+          type: string
+          x-order: 3
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/Timeline'
+    SimulateDepositRequest:
+      type: object
+      required:
+        - transfer_id
+        - status
+      properties:
+        transfer_id:
+          $ref: '#/components/schemas/NanoID'
+        status:
+          type: string
+          enum:
+            - failed
+            - completed
+          example: completed
+          description: This is the status for simulated transaction.
+    Timeline:
+      type: object
+      required:
+        - step
+        - done
+        - status
+        - title
+        - description
+      properties:
+        step:
+          type: integer
+          x-order: 1
+          example: 1
+        done:
+          type: boolean
+          x-order: 2
+          example: true
+        status:
+          type: string
+          x-order: 3
+          enum:
+            - pending
+            - processing
+            - completed
+            - failed
+        title:
+          type: string
+          x-order: 4
+          example: Transfer started
+        description:
+          type: string
+          x-order: 5
+          example: Transfer started
+          description: Waiting for payment
+        timestamp:
+          type: string
+          x-order: 6
+          format: date-time
+          example: '2023-10-15T12:15:30Z'
   responses:
     BalanceError4XX:
       description: 409 error when a balance with the same currency already exists for a user
@@ -3156,6 +3263,21 @@ components:
               $ref: '#/components/examples/RequestValidationError'
             schema_validation_error:
               $ref: '#/components/examples/SchemaValidationError'
+    DepositError4XX:
+      description: Default
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            default:
+              $ref: '#/components/examples/DefaultError'
+            unauthorized_error:
+              $ref: '#/components/examples/UnAuthorizedError'
+            request_validation_error:
+              $ref: '#/components/examples/RequestValidationError'
+            schema_validation_error:
+              $ref: '#/components/examples/SchemaValidationError'
     TransferResponse:
       description: Transfer Response
       content:
@@ -3169,6 +3291,14 @@ components:
                 properties:
                   data:
                     $ref: '#/components/schemas/Transfer'
+    DepositResponse:
+      description: Deposit Response
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/BaseSchema'
+              - type: object
     TransferListResponse:
       description: Transfer List Response
       content:
