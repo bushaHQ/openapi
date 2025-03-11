@@ -775,6 +775,21 @@ paths:
           required: false
           schema:
             type: string
+        - name: ramp_referred
+          in: query
+          description: Get ramp transfer
+          required: false
+          schema:
+            type: boolean
+        - name: trade
+          in: query
+          description: Filter Transfers by "buy" or "sell" trades
+          required: false
+          schema:
+            type: string
+            enum:
+              - buy
+              - sell
         - $ref: '#/components/parameters/CursorQueryParams'
         - $ref: '#/components/parameters/SortQueryParam'
         - $ref: '#/components/parameters/LimitQueryParam'
@@ -2836,6 +2851,9 @@ components:
       required:
         - id
         - quote_id
+        - description
+        - sub_description
+        - trade
         - source_currency
         - target_currency
         - source_amount
@@ -2851,44 +2869,56 @@ components:
           $ref: '#/components/schemas/ResourceID'
         quote_id:
           $ref: '#/components/schemas/NanoID'
+        description:
+          type: string
+          example: Bought Bitcoin
+          x-order: 3
+        sub_description:
+          type: string
+          example: With Naira
+          x-order: 4
         source_currency:
           allOf:
             - $ref: '#/components/schemas/Currency'
-          x-order: 3
+          x-order: 5
         target_currency:
           allOf:
             - $ref: '#/components/schemas/Currency'
-          x-order: 4
+          x-order: 6
         source_amount:
           allOf:
             - $ref: '#/components/schemas/Decimal'
-          x-order: 5
+          x-order: 7
         target_amount:
           allOf:
             - $ref: '#/components/schemas/Decimal'
-          x-order: 6
+          x-order: 8
+        trade:
+          type: string
+          example: buy
+          x-order: 9
         profile_id:
           $ref: '#/components/schemas/NanoID'
         rate:
           allOf:
             - $ref: '#/components/schemas/QuoteRate'
-          x-order: 7
+          x-order: 10
         fees:
           type: array
-          x-order: 8
+          x-order: 11
           items:
             $ref: '#/components/schemas/Fee'
         pay_in:
           allOf:
             - $ref: '#/components/schemas/PaymentObj'
-          x-order: 9
+          x-order: 12
         pay_out:
           allOf:
             - $ref: '#/components/schemas/PaymentObj'
-          x-order: 10
+          x-order: 13
         status:
           type: string
-          x-order: 11
+          x-order: 14
           enum:
             - pending
           example: pending
@@ -2898,17 +2928,17 @@ components:
           x-order: 12
         expires_at:
           type: string
-          x-order: 13
+          x-order: 16
           format: date-time
           example: '2023-12-01T15:04:05Z'
         created_at:
           type: string
-          x-order: 14
+          x-order: 17
           format: date-time
           example: '2023-10-15T12:15:30Z'
         updated_at:
           type: string
-          x-order: 15
+          x-order: 18
           format: date-time
           example: '2023-10-15T12:20:45Z'
     CreateTransferRequest:
