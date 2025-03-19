@@ -155,8 +155,6 @@ tags:
     x-displayName: Transactions
   - name: Transfers
     x-displayName: Transfers
-  - name: Deposit
-    x-displayName: Deposit
 paths:
   /v1/balances:
     post:
@@ -401,26 +399,6 @@ paths:
         4XX:
           $ref: '#/components/responses/PairError4XX'
       security: []
-  /v1/quotes/unauthenticated:
-    post:
-      security: []
-      summary: Create Unauthenticated Quotes
-      description: Create Unauthenticated Quote
-      operationId: unauthenticatedCreateQuote
-      tags:
-        - Quotes
-      requestBody:
-        description: Create a unauthenticated Quote
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UnauthenticatedCreateQuote'
-      responses:
-        '201':
-          $ref: '#/components/responses/QuoteResponse'
-        4XX:
-          $ref: '#/components/responses/QuoteError4XX'
   /v1/quotes:
     post:
       security:
@@ -484,6 +462,26 @@ paths:
         - Auth:
             - quotes:read
             - api:read
+  /v1/quotes/unauthenticated:
+    post:
+      security: []
+      summary: Create Unauthenticated Quotes
+      description: Create Unauthenticated Quote
+      operationId: unauthenticatedCreateQuote
+      tags:
+        - Quotes
+      requestBody:
+        description: Create a unauthenticated Quote
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UnauthenticatedCreateQuote'
+      responses:
+        '201':
+          $ref: '#/components/responses/QuoteResponse'
+        4XX:
+          $ref: '#/components/responses/QuoteError4XX'
   /v1/recipients:
     post:
       security:
@@ -738,7 +736,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/ProfileHeader'
       requestBody:
-        description: Customer details needed to create a new customer
+        description: Transfer Request Body
         required: true
         content:
           application/json:
@@ -751,7 +749,7 @@ paths:
           $ref: '#/components/responses/TransferError4XX'
     get:
       summary: List transfers
-      description: Returns a simple greeting from the transfer service
+      description: Gets all transfers
       operationId: listTransfer
       tags:
         - Transfers
@@ -761,12 +759,18 @@ paths:
           in: query
           description: Filter by source_currency code
           required: false
+          x-oapi-codegen-extra-tags:
+            validate: min_len:3|max_len:10
+            filter: trim|upper
           schema:
             type: string
         - name: target_currency
           in: query
           description: Filter by target_currency code
           required: false
+          x-oapi-codegen-extra-tags:
+            validate: min_len:3|max_len:10
+            filter: trim|upper
           schema:
             type: string
         - name: status
@@ -796,6 +800,25 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/TransferListResponse'
+        4XX:
+          $ref: '#/components/responses/TransferError4XX'
+      security:
+        - Auth:
+            - transfers:read
+            - api:read
+  /v1/transfers/ramp/{id}:
+    get:
+      summary: Get Ramp Transfer
+      description: Retrieves a ramp transfer
+      operationId: getRampTransfer
+      tags:
+        - Transfers
+      parameters:
+        - $ref: '#/components/parameters/ParamNanoID'
+        - $ref: '#/components/parameters/ProfileHeader'
+      responses:
+        '200':
+          $ref: '#/components/responses/TransferResponse'
         4XX:
           $ref: '#/components/responses/TransferError4XX'
       security:
@@ -894,9 +917,18 @@ components:
         name: uuid.UUID
       x-oapi-codegen-extra-tags:
         validate: required|nanoid
+    SortQueryParam:
+      name: sort
+      in: query
+      description: The order to sort the results
+      schema:
+        type: string
+        example: asc
     CurrencyQueryParam:
       name: currency
       in: query
+      required: false
+      description: Filter by currency
       x-oapi-codegen-extra-tags:
         validate: min_len:3|max_len:10
         filter: trim|upper
@@ -910,13 +942,6 @@ components:
         filter: trim|upper
       schema:
         type: string
-    SortQueryParam:
-      name: sort
-      in: query
-      description: The order to sort the results
-      schema:
-        type: string
-        example: asc
   schemas:
     Balance:
       type: object
@@ -1049,7 +1074,7 @@ components:
         validate: required|nano|string
     Decimal:
       type: string
-      description: string to decimal
+      description: decimal value
       example: '100'
       x-go-type: decimal.Decimal
       x-go-type-import:
@@ -1797,6 +1822,289 @@ components:
       x-go-type-import:
         path: github.com/gofrs/uuid
         name: uuid
+    CreateLoanSummaryRequest:
+      type: object
+      required:
+        - collateral_currency
+        - collateral_amount
+        - loan_currency
+        - loan_amount
+      properties:
+        collateral_currency:
+          type: string
+          example: USDC
+          description: Collateral asset
+          allOf:
+            - $ref: '#/components/schemas/Currency'
+        collateral_amount:
+          $ref: '#/components/schemas/Decimal'
+        loan_currency:
+          type: string
+          example: NGN
+          description: fiat currency
+          allOf:
+            - $ref: '#/components/schemas/Currency'
+        loan_amount:
+          $ref: '#/components/schemas/Decimal'
+    CreateLoanRequest:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/CreateLoanSummaryRequest'
+        - type: object
+          required:
+            - code
+          properties:
+            code:
+              type: string
+              maxLength: 6
+              description: This is the auth code required for mfa
+              example: '123456'
+    LoanSummary:
+      type: object
+      required:
+        - collateral
+        - loan
+        - start_date
+        - next_interest_due
+      properties:
+        collateral:
+          $ref: '#/components/schemas/LoanCollateralInfo'
+        loan:
+          $ref: '#/components/schemas/LoanPrincipalInfo'
+        start_date:
+          type: string
+          format: date-time
+          description: Loan start date
+        next_interest_due:
+          type: string
+          format: date-time
+          description: Next interest payment due date
+    Loan:
+      allOf:
+        - $ref: '#/components/schemas/LoanSummary'
+        - type: object
+          required:
+            - id
+            - profile_id
+            - health_status
+            - status
+          properties:
+            id:
+              $ref: '#/components/schemas/ResourceID'
+            profile_id:
+              $ref: '#/components/schemas/NanoID'
+            collateral:
+              $ref: '#/components/schemas/LoanCollateralInfo'
+            loan:
+              $ref: '#/components/schemas/LoanPrincipalInfo'
+            start_date:
+              type: string
+              format: date-time
+              description: Loan start date
+            next_interest_due:
+              type: string
+              format: date-time
+              description: Next interest payment due date
+            last_interest_paid_date:
+              type: string
+              format: date-time
+              nullable: true
+              description: Last interest paid date
+            prices:
+              $ref: '#/components/schemas/LoanPrices'
+            health_status:
+              type: string
+              description: Current loan health status (e.g., GOOD, WARNING, CRITICAL)
+              enum:
+                - GOOD
+                - WARNING
+                - CRITICAL
+            liquidate_at:
+              type: string
+              format: date-time
+              nullable: true
+              description: Scheduled liquidation date if applicable
+            status:
+              $ref: '#/components/schemas/LoanStatus'
+            meta:
+              type: object
+              additionalProperties: true
+              description: Additional metadata
+            created_at:
+              type: string
+              format: date-time
+            updated_at:
+              type: string
+              format: date-time
+    LoanInterest:
+      type: object
+      required:
+        - id
+        - profile_id
+        - interest
+        - reference
+        - created_at
+        - due_date
+        - status
+      properties:
+        id:
+          $ref: '#/components/schemas/ResourceID'
+        profile_id:
+          $ref: '#/components/schemas/NanoID'
+        interest:
+          description: Interest paid for loan
+          allOf:
+            - $ref: '#/components/schemas/AmountWithCurrency'
+        liquidated_amount:
+          description: Amount liquidated if interest was not taken
+          allOf:
+            - $ref: '#/components/schemas/AmountWithCurrency'
+        liquidationPrice:
+          description: Price at which the liquidated amount was calculated
+          allOf:
+            - $ref: '#/components/schemas/AmountWithCurrency'
+        loan_liquidation_id:
+          $ref: '#/components/schemas/NanoID'
+        reference:
+          $ref: '#/components/schemas/LoanReference'
+        status:
+          $ref: '#/components/schemas/LoanInterestStatus'
+        created_at:
+          type: string
+          x-order: 17
+          format: date-time
+          example: '2023-10-15T12:15:30Z'
+        due_date:
+          type: string
+          x-order: 17
+          format: date-time
+          example: '2023-10-15T12:15:30Z'
+        collected_timestamp:
+          type: string
+          x-order: 17
+          format: date-time
+          example: '2023-10-15T12:15:30Z'
+    LoanRepaymentRequest:
+      type: object
+      required:
+        - amount
+      properties:
+        amount:
+          $ref: '#/components/schemas/Decimal'
+    LoanRepayment:
+      type: object
+      required:
+        - amount
+        - collateral_released
+        - loan_balance
+      properties:
+        id:
+          $ref: '#/components/schemas/ResourceID'
+        profile_id:
+          $ref: '#/components/schemas/NanoID'
+        amount:
+          description: Amount Repaid
+          allOf:
+            - $ref: '#/components/schemas/AmountWithCurrency'
+        collateral_released:
+          description: Collateral Released
+          allOf:
+            - $ref: '#/components/schemas/AmountWithCurrency'
+        loan_balance:
+          description: Balance left on loan
+          allOf:
+            - $ref: '#/components/schemas/AmountWithCurrency'
+        reference:
+          $ref: '#/components/schemas/LoanReference'
+        status:
+          $ref: '#/components/schemas/LoanInterestStatus'
+        created_at:
+          type: string
+          x-order: 17
+          format: date-time
+          example: '2023-10-15T12:15:30Z'
+    LoanCollateralInfo:
+      allOf:
+        - $ref: '#/components/schemas/AmountWithCurrency'
+        - type: object
+          required:
+            - value_in_loan_currency
+          properties:
+            value_in_loan_currency:
+              description: Value of collateral in loan currency
+              allOf:
+                - $ref: '#/components/schemas/AmountWithCurrency'
+    LoanPrincipalInfo:
+      allOf:
+        - $ref: '#/components/schemas/AmountWithCurrency'
+        - type: object
+          required:
+            - outstanding_amount
+            - monthly_interest_rate
+            - monthly_interest_amount
+            - loan_to_value
+          properties:
+            outstanding_amount:
+              description: Outstanding Amount
+              allOf:
+                - $ref: '#/components/schemas/Decimal'
+            monthly_interest_rate:
+              description: Monthly interest rate (as a string, e.g., "2.0" for 2%)
+              allOf:
+                - $ref: '#/components/schemas/Decimal'
+            monthly_interest_amount:
+              description: Monthly interest payment amount
+              allOf:
+                - $ref: '#/components/schemas/Decimal'
+            loan_to_value:
+              description: Current Loan-to-Value ratio (e.g., "90.0" for 90%)
+              allOf:
+                - $ref: '#/components/schemas/Decimal'
+    LoanPrices:
+      type: object
+      properties:
+        loan_price:
+          description: Price the Loan was collected at
+          allOf:
+            - $ref: '#/components/schemas/AmountWithCurrency'
+        critical_price:
+          description: Price that is considered critical
+          allOf:
+            - $ref: '#/components/schemas/AmountWithCurrency'
+        liquidation_price:
+          description: Liquidation price threshold
+          allOf:
+            - $ref: '#/components/schemas/AmountWithCurrency'
+    LoanStatus:
+      type: string
+      description: Current loan status
+      enum:
+        - active
+        - at_risk
+        - liquidated
+        - repaid
+    LoanInterestStatus:
+      type: string
+      description: Loan Interest Status
+      enum:
+        - pending
+        - paid
+        - missed
+        - liquidated
+    LoanReference:
+      type: string
+      x-order: 3
+      example: LON_123456abc
+      maxLength: 64
+      minLength: 12
+    ResourceID:
+      type: string
+      x-order: 1
+      example: bus_123456789
+      format: string
+      description: A valid id
+      x-oapi-codegen-extra-tags:
+        validate: required|nanoid
     ValidateDestinationResponse:
       allOf:
         - $ref: '#/components/schemas/BaseSchema'
@@ -1939,7 +2247,6 @@ components:
         - name
         - min
         - max
-        - providers
         - currency
         - processing_time
         - enabled
@@ -1958,11 +2265,6 @@ components:
         max:
           allOf:
             - $ref: '#/components/schemas/Decimal'
-        providers:
-          type: array
-          description: List of providers supported by payment option.
-          items:
-            $ref: '#/components/schemas/Provider'
         currency:
           allOf:
             - $ref: '#/components/schemas/Currency'
@@ -2154,6 +2456,18 @@ components:
               example: address memo
             recipient_details:
               $ref: '#/components/schemas/RecipientDetails'
+            blockchain_hash:
+              type: string
+              x-order: 16
+              example: 31b99c79e2fb7554d0a9421867a53a80e6810cdfd2b06826eec1b2a22974b171
+            blockchain_url:
+              type: string
+              x-order: 16
+              example: https://explorer.com/tx/31b99c79e2fb7554d0a9421867a53a80e6810cdfd2b06826eec1b2a22974b171
+            session_id:
+              type: string
+              x-order: 16
+              example: 31b99c79e2fb7554d0a9421867a53a80e6810cdfd2b06826eec1b2a22974b171
             expires_at:
               type: string
               format: date-time
@@ -2340,14 +2654,6 @@ components:
           type: boolean
           example: false
           description: If the code can be resent
-    ResourceID:
-      type: string
-      x-order: 1
-      example: bus_123456789
-      format: string
-      description: A valid id
-      x-oapi-codegen-extra-tags:
-        validate: required|nanoid
     QuoteRate:
       type: object
       properties:
@@ -2925,20 +3231,20 @@ components:
         timeline:
           allOf:
             - $ref: '#/components/schemas/TransferTimeline'
-          x-order: 12
+          x-order: 15
         expires_at:
           type: string
-          x-order: 16
+          x-order: 17
           format: date-time
           example: '2023-12-01T15:04:05Z'
         created_at:
           type: string
-          x-order: 17
+          x-order: 18
           format: date-time
           example: '2023-10-15T12:15:30Z'
         updated_at:
           type: string
-          x-order: 18
+          x-order: 19
           format: date-time
           example: '2023-10-15T12:20:45Z'
     CreateTransferRequest:
@@ -3154,6 +3460,110 @@ components:
               $ref: '#/components/examples/RequestValidationError'
             schema_validation_error:
               $ref: '#/components/examples/SchemaValidationError'
+    LoanError4XX:
+      description: Default
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            default:
+              $ref: '#/components/examples/DefaultError'
+            not_found_error:
+              $ref: '#/components/examples/NotFoundError'
+            unauthorized_error:
+              $ref: '#/components/examples/UnAuthorizedError'
+            request_validation_error:
+              $ref: '#/components/examples/RequestValidationError'
+            schema_validation_error:
+              $ref: '#/components/examples/SchemaValidationError'
+    LoanResponse:
+      description: Transfer Response
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/BaseSchema'
+              - type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Loan'
+    LoanListResponse:
+      description: Successful Response
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/CursorPagination'
+              - type: object
+                properties:
+                  data:
+                    type: array
+                    description: List of loans
+                    items:
+                      $ref: '#/components/schemas/Loan'
+                required:
+                  - data
+    LoanInterestResponse:
+      description: Transfer Response
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/BaseSchema'
+              - type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/LoanInterest'
+    LoanInterestListResponse:
+      description: Successful Response
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/CursorPagination'
+              - type: object
+                properties:
+                  data:
+                    type: array
+                    description: List of loans
+                    items:
+                      $ref: '#/components/schemas/LoanInterest'
+                required:
+                  - data
+    LoanRepaymentResponse:
+      description: Transfer Response
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/BaseSchema'
+              - type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/LoanRepayment'
+    LoanRepaymentListResponse:
+      description: Successful Response
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/CursorPagination'
+              - type: object
+                properties:
+                  data:
+                    type: array
+                    description: List of loans
+                    items:
+                      $ref: '#/components/schemas/LoanRepayment'
+                required:
+                  - data
     MiscellaneousError4XX:
       description: Default
       content:
@@ -3340,7 +3750,7 @@ components:
                 properties:
                   data:
                     type: array
-                    description: List of recipients
+                    description: List of transfers
                     items:
                       $ref: '#/components/schemas/Transfer'
                 required:
