@@ -487,6 +487,54 @@ paths:
           $ref: '#/components/responses/QuoteResponse'
         4XX:
           $ref: '#/components/responses/QuoteError4XX'
+  /v1/quote/payment_options:
+    get:
+      summary: List Payment Options
+      description: List Fiat Payment Options
+      operationId: listPaymentOptions
+      tags:
+        - Quotes
+      parameters:
+        - $ref: '#/components/parameters/ProfileHeader'
+        - name: currency
+          in: query
+          required: false
+          description: The currency to get payment options for.
+          schema:
+            type: string
+            example: USD
+        - name: support_conversion
+          in: query
+          required: false
+          description: This shows if the payment options is supported for conversions
+          schema:
+            type: boolean
+        - name: type
+          in: query
+          required: false
+          description: The type of payment options to retrieve.
+          schema:
+            type: string
+            example: withdraw
+            enum:
+              - withdraw
+              - deposit
+        - name: amount
+          in: query
+          required: false
+          description: The amount to get payment options for.
+          schema:
+            type: number
+            example: 1500
+      responses:
+        '200':
+          $ref: '#/components/responses/PaymentOptionsListResponse'
+        4XX:
+          $ref: '#/components/responses/QuoteError4XX'
+      security:
+        - Auth:
+            - quotes:read
+            - api:read
   /v1/recipients:
     post:
       security:
@@ -894,6 +942,16 @@ components:
     ParamNanoID:
       in: path
       name: id
+      required: true
+      schema:
+        type: string
+        format: nanoid
+        example: bus_123456789
+      x-oapi-codegen-extra-tags:
+        validate: required|nanoid
+    ParamNanoPlanID:
+      in: path
+      name: plan_id
       required: true
       schema:
         type: string
@@ -1503,63 +1561,19 @@ components:
       description: A valid country id
       x-oapi-codegen-extra-tags:
         validate: alpha2
-    Positions:
-      type: object
-      properties:
-        id:
-          $ref: '#/components/schemas/UuidID'
-        product:
-          type: string
-          format: uuid
-          example: 7fb2ba81-0e0a-45ec-b325-9edd4cad6014
-          description: ID of the product
-        effective_interest_rate:
-          type: string
-          example: '10'
-          description: The effective interest rate for the position
-        accruing_interest:
-          type: string
-          example: '110'
-          description: Amount currently accruing interest
-        subscribed_today:
-          type: string
-          example: '20'
-          description: Amount subscribed on the current day
-        pending_redemption:
-          type: string
-          example: '10'
-          description: Amount pending redemption
-        free_amount:
-          type: string
-          example: '120'
-          description: Available amount for withdrawal
-        total_amount:
-          type: string
-          example: '130'
-          description: Total amount in the position
-        cumulative_interest:
-          type: string
-          example: '0.02739726'
-          description: Total accumulated interest
     Earning:
       type: object
       properties:
         id:
-          type: string
-          example: 2dda9a1e-146b-4bd8-bf82-6f966083f2b8
-          format: uuid
-        product:
-          $ref: '#/components/schemas/Products'
+          $ref: '#/components/schemas/NanoID'
+        plan_id:
+          $ref: '#/components/schemas/NanoID'
         amount:
-          type: string
-          example: '900'
-          format: decimal
-          description: Amount being used for the earning model.
+          $ref: '#/components/schemas/Decimal'
         interest:
+          $ref: '#/components/schemas/Decimal'
+        reference:
           type: string
-          example: '900'
-          format: decimal
-          description: Interest rate associated with the earning model.
         created_at:
           type: string
           format: date-time
@@ -1569,24 +1583,23 @@ components:
       type: object
       properties:
         id:
-          type: string
-          example: 2dda9a1e-146b-4bd8-bf82-6f966083f2b8
-          description: ID that represents a redemption
-        subscription:
-          $ref: '#/components/schemas/SubscriptionExpanded'
-        product_id:
-          type: string
-          example: 2dda9a1e-146b-4bd8-bf82-6f966083f2b8
-          description: ID that represents a product
+          $ref: '#/components/schemas/NanoID'
+        plan_id:
+          $ref: '#/components/schemas/NanoID'
         amount:
-          type: string
-          example: '900'
-          format: decimal
-          description: The amount to redeem from the product
+          $ref: '#/components/schemas/Decimal'
         status:
           type: string
           example: pending
           description: The status of the redemption
+        penalty_fee:
+          $ref: '#/components/schemas/Decimal'
+        penalty_reason:
+          type: string
+        reference:
+          type: string
+        is_fast:
+          type: boolean
         created_at:
           type: string
           format: date-time
@@ -1600,10 +1613,8 @@ components:
     CreateRedemptionRequest:
       type: object
       properties:
-        product_id:
-          type: string
-          example: 2dda9a1e-146b-4bd8-bf82-6f966083f2b8
-          description: ID that represents a product
+        plan_id:
+          $ref: '#/components/schemas/NanoID'
         amount:
           type: string
           example: '900'
@@ -1613,68 +1624,38 @@ components:
           type: boolean
           example: true
           description: Whether the redemption is fast or not
-    SubscriptionExpanded:
+    Subscription:
       type: object
       properties:
         id:
           type: string
           example: 2dda9a1e-146b-4bd8-bf82-6f966083f2b8
           description: ID that represents a subscription
-        user:
+        profile_id:
           type: string
           example: 29af2d2d-e826-470b-a2f7-b476f3a99cf0
           description: Identifies the user who owns this subscription
-        product:
-          $ref: '#/components/schemas/Products'
+        plan_id:
+          $ref: '#/components/schemas/NanoID'
         amount:
+          $ref: '#/components/schemas/Decimal'
+        reference:
           type: string
-          example: '10'
-          description: string representation of the amount invested
-        active:
-          type: boolean
-          example: true
-          description: Shows whether the subscription is active or not
+        source:
+          type: string
         created_at:
-          type: string
-          format: date-time
-          example: '2022-02-11T15:08:27.132269Z'
-        accrue_started_at:
-          type: string
-          format: date-time
-          example: '2022-02-11T15:08:27.132269Z'
-        next_distribution_at:
           type: string
           format: date-time
           example: '2022-02-11T15:08:27.132269Z'
     CreateSubscriptionRequest:
       type: object
       properties:
-        product_id:
+        plan_id:
           type: string
           example: 7fb2ba81-0e0a-45ec-b325-9edd4cad6014
           description: Product ID to subscribe to earn
         amount:
-          type: string
-          example: '900'
-          format: decimal
-          description: The amount to invest in the chosen product
-    Tier:
-      type: object
-      properties:
-        minimum:
-          type: string
-          example: '0.9'
-          format: decimal
-          description: Minimum amount to invest in earn
-        maximum:
-          type: string
-          example: '900'
-          format: decimal
-          description: Maximum amount to invest in earn
-        apy:
-          type: number
-          example: 7.5
-          description: Annual Yield in %
+          $ref: '#/components/schemas/Decimal'
     EarnCurrency:
       type: object
       properties:
@@ -1690,32 +1671,43 @@ components:
           type: boolean
           example: false
           description: tells us if the currency is fiat or not
-    Products:
+    Product:
       type: object
       required:
         - id
-        - currency
+        - base_currency
         - name
-        - minimum
-        - maximum
         - active
         - flexible
-        - frequency
-        - tiers
-        - max_apy
+        - minimum
+        - maximum
+        - description
+        - penalty_fee_percentage
+        - apy
         - created_at
         - updated_at
+        - supported_assets
+        - term
+        - provider
       properties:
         id:
           type: string
           example: 874984-234n890-42389n-9983
           description: UUID of the specific product
-        currency:
+        base_currency:
           $ref: '#/components/schemas/EarnCurrency'
         name:
           type: string
           example: USDT
           description: Name of the earn product
+        active:
+          type: boolean
+          example: false
+          description: product is active for investment
+        flexible:
+          type: boolean
+          example: false
+          description: product can have flexible investment
         minimum:
           type: string
           example: '0.9'
@@ -1726,35 +1718,137 @@ components:
           example: '900'
           format: decimal
           description: Maximum amount to invest in earn
-        active:
-          type: boolean
-          example: false
-          description: product is active for investment
-        flexible:
-          type: boolean
-          example: false
-          description: product can have flexible investment
-        frequency:
-          type: number
-          example: 5
-          description: Frequency
-        tiers:
+        description:
+          type: string
+          example: Earn up to 7.5% APY
+          description: Description of the earn product
+        apy:
+          type: string
+          example: '0.1'
+          format: decimal
+          description: Annual percentage yield
+        supported_assets:
           type: array
           items:
-            $ref: '#/components/schemas/Tier'
-        max_apy:
+            $ref: '#/components/schemas/Currency'
+        term:
           type: string
-          example: '0.7'
+          example: 3 months
+          description: The duration for holding plan
+        provider:
+          type: object
+          properties:
+            name:
+              type: string
+              example: Nexo
+              description: Name of the provider
+            url:
+              type: string
+              format: url
+              example: https://nexo.io
+    CreatePlanRequest:
+      type: object
+      required:
+        - name
+        - product_id
+        - currency
+        - amount
+      properties:
+        name:
+          type: string
+        product_id:
+          $ref: '#/components/schemas/NanoID'
+        currency:
+          type: string
+          example: USDT
+          description: Name of the currency for the product
+        amount:
+          $ref: '#/components/schemas/Decimal'
+    UpdatePlanRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          example: 874984-234n890-42389n-9983
+          description: UUID of the specific product
+    Plan:
+      type: object
+      required:
+        - id
+        - profile_id
+        - product
+        - name
+        - is_compound
+        - accruing_interest
+        - fiat
+        - summary
+        - matured
+        - recurring
+        - recurring_amount
+        - status
+        - created_at
+        - updated_at
+      properties:
+        id:
+          $ref: '#/components/schemas/NanoID'
+        profile_id:
+          $ref: '#/components/schemas/NanoID'
+        product:
+          $ref: '#/components/schemas/Product'
+        name:
+          type: string
+        is_compound:
+          type: boolean
+        accruing_interest:
+          $ref: '#/components/schemas/Decimal'
+        target_amount:
+          $ref: '#/components/schemas/Decimal'
+        fiat:
+          type: object
+          properties:
+            amount:
+              $ref: '#/components/schemas/Decimal'
+            currency:
+              type: string
+        summary:
+          type: object
+          properties:
+            subscribed:
+              $ref: '#/components/schemas/Decimal'
+            redeemed:
+              $ref: '#/components/schemas/Decimal'
+            earned:
+              $ref: '#/components/schemas/Decimal'
+            interest:
+              $ref: '#/components/schemas/Decimal'
+        locked_until:
+          type: string
+          format: date-time
+        matured:
+          type: boolean
+        recurring:
+          type: boolean
+        recurring_amount:
+          $ref: '#/components/schemas/Decimal'
+        recurring_frequency:
+          type: string
           format: decimal
-          description: Annual Yield in %
+        recurring_frequency_period:
+          type: string
+          format: decimal
+        next_subscription_date:
+          type: string
+          format: date-time
+        status:
+          type: string
         created_at:
           type: string
           format: date-time
-          example: '2024-03-19T10:30:00Z'
-        updated_at:
+          example: '2022-02-11T15:08:27.132269Z'
+        update_at:
           type: string
           format: date-time
-          example: '2024-03-19T10:30:00Z'
+          example: '2022-02-11T15:08:27.132269Z'
     Pagination:
       type: object
       required:
@@ -1797,18 +1891,6 @@ components:
           properties:
             pagination:
               $ref: '#/components/schemas/Pagination'
-    UuidID:
-      type: string
-      x-order: 3
-      example: 550e8400-e29b-41d4-a716-446655440000
-      format: uuid
-      description: A valid UUID
-      x-oapi-codegen-extra-tags:
-        validate: required|uuid
-      x-go-type: uuid.UUID
-      x-go-type-import:
-        path: github.com/gofrs/uuid
-        name: uuid
     ResourceID:
       type: string
       x-order: 1
@@ -2113,6 +2195,10 @@ components:
           type: string
         country:
           type: string
+        provider:
+          type: string
+        currency:
+          type: string
         phone_number:
           type: string
         name:
@@ -2345,6 +2431,53 @@ components:
           example: '2023-10-15T12:20:45Z'
         two_step:
           $ref: '#/components/schemas/TwoStep'
+    PaymentOptionObj:
+      type: object
+      required:
+        - channel
+        - name
+        - description
+        - currency
+        - payment_method_ids
+        - minimum_fee
+        - maximum_fee
+        - minimum_amount
+        - maximum_amount
+        - recommended
+        - new
+        - support_conversion
+      properties:
+        channel:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/Currency'
+        payment_method_ids:
+          type: array
+          items:
+            $ref: '#/components/schemas/NanoID'
+        maximum_fee:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+        minimum_fee:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+        maximum_amount:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+        minimum_amount:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+        recommended:
+          type: boolean
+        new:
+          type: boolean
+        support_conversion:
+          type: boolean
     TwoStep:
       type: object
       required:
@@ -3148,7 +3281,7 @@ components:
           schema:
             allOf:
               - $ref: '#/components/schemas/BaseSchema'
-    EarnError4XX:
+    Error4XX:
       description: Default
       content:
         application/json:
@@ -3259,6 +3392,21 @@ components:
                     type: array
                     items:
                       $ref: '#/components/schemas/Quote'
+    PaymentOptionsListResponse:
+      description: Payment Options List Response
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/BaseSchema'
+              - type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PaymentOptionObj'
     RecipientError4XX:
       description: Recipient Error sample
       content:
