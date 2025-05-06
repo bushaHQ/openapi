@@ -1565,65 +1565,93 @@ components:
       type: object
       properties:
         id:
-          $ref: '#/components/schemas/NanoID'
+          allOf:
+            - $ref: '#/components/schemas/NanoID'
+          x-order: 1
         plan_id:
-          $ref: '#/components/schemas/NanoID'
+          allOf:
+            - $ref: '#/components/schemas/NanoID'
+          x-order: 2
         amount:
-          $ref: '#/components/schemas/Decimal'
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          x-order: 3
         interest:
-          $ref: '#/components/schemas/Decimal'
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          x-order: 4
         reference:
           type: string
+          x-order: 5
         created_at:
           type: string
           format: date-time
           example: '2022-02-11T15:08:27.132269Z'
           description: The date and time the earning was created
+          x-order: 6
     Redemption:
       type: object
       properties:
         id:
-          $ref: '#/components/schemas/NanoID'
+          allOf:
+            - $ref: '#/components/schemas/NanoID'
+          x-order: 1
         plan_id:
-          $ref: '#/components/schemas/NanoID'
+          allOf:
+            - $ref: '#/components/schemas/NanoID'
+          x-order: 2
         amount:
-          $ref: '#/components/schemas/Decimal'
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          x-order: 3
         status:
           type: string
           example: pending
           description: The status of the redemption
+          x-order: 4
         penalty_fee:
-          $ref: '#/components/schemas/Decimal'
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          x-order: 5
         penalty_reason:
           type: string
+          x-order: 6
         reference:
           type: string
+          x-order: 7
         is_fast:
           type: boolean
+          x-order: 8
         created_at:
           type: string
           format: date-time
           example: '2022-02-11T15:08:27.132269Z'
           description: The date and time the redemption was created
+          x-order: 9
         updated_at:
           type: string
           format: date-time
           example: '2022-02-11T15:08:27.132269Z'
           description: The date and time the redemption was updated
+          x-order: 10
     CreateRedemptionRequest:
       type: object
       properties:
         plan_id:
-          $ref: '#/components/schemas/NanoID'
+          allOf:
+            - $ref: '#/components/schemas/NanoID'
+          x-order: 1
         amount:
           type: string
           example: '900'
           format: decimal
           description: The amount to redeem from the product
+          x-order: 2
         fast:
           type: boolean
           example: true
           description: Whether the redemption is fast or not
+          x-order: 3
     Subscription:
       type: object
       properties:
@@ -1631,22 +1659,31 @@ components:
           type: string
           example: 2dda9a1e-146b-4bd8-bf82-6f966083f2b8
           description: ID that represents a subscription
+          x-order: 1
         profile_id:
           type: string
           example: 29af2d2d-e826-470b-a2f7-b476f3a99cf0
           description: Identifies the user who owns this subscription
+          x-order: 2
         plan_id:
-          $ref: '#/components/schemas/NanoID'
+          allOf:
+            - $ref: '#/components/schemas/NanoID'
+          x-order: 3
         amount:
-          $ref: '#/components/schemas/Decimal'
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          x-order: 4
         reference:
           type: string
+          x-order: 5
         source:
           type: string
+          x-order: 6
         created_at:
           type: string
           format: date-time
           example: '2022-02-11T15:08:27.132269Z'
+          x-order: 7
     CreateSubscriptionRequest:
       type: object
       properties:
@@ -1654,23 +1691,11 @@ components:
           type: string
           example: 7fb2ba81-0e0a-45ec-b325-9edd4cad6014
           description: Product ID to subscribe to earn
+          x-order: 1
         amount:
-          $ref: '#/components/schemas/Decimal'
-    EarnCurrency:
-      type: object
-      properties:
-        name:
-          type: string
-          example: USDT
-          description: name of the currency for the product
-        asset:
-          type: string
-          example: USDT
-          description: Asset...
-        is_fiat:
-          type: boolean
-          example: false
-          description: tells us if the currency is fiat or not
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          x-order: 2
     Product:
       type: object
       required:
@@ -1680,7 +1705,6 @@ components:
         - active
         - flexible
         - minimum
-        - maximum
         - description
         - penalty_fee_percentage
         - apy
@@ -1694,76 +1718,96 @@ components:
           type: string
           example: 874984-234n890-42389n-9983
           description: UUID of the specific product
+          x-order: 1
         base_currency:
-          $ref: '#/components/schemas/EarnCurrency'
+          $ref: '#/components/schemas/Currency'
         name:
           type: string
           example: USDT
           description: Name of the earn product
+          x-order: 3
         active:
           type: boolean
           example: false
           description: product is active for investment
+          x-order: 4
         flexible:
           type: boolean
           example: false
           description: product can have flexible investment
+          x-order: 5
         minimum:
-          type: string
-          example: '0.9'
-          format: decimal
-          description: Minimum amount to invest in earn
+          allOf:
+            - $ref: '#/components/schemas/AmountWithCurrency'
+          x-order: 6
         maximum:
-          type: string
-          example: '900'
-          format: decimal
-          description: Maximum amount to invest in earn
+          allOf:
+            - $ref: '#/components/schemas/AmountWithCurrency'
+          x-order: 7
         description:
           type: string
           example: Earn up to 7.5% APY
           description: Description of the earn product
         apy:
-          type: string
-          example: '0.1'
-          format: decimal
-          description: Annual percentage yield
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          x-order: 9
         supported_assets:
           type: array
           items:
-            $ref: '#/components/schemas/Currency'
+            allOf:
+              - $ref: '#/components/schemas/Currency'
+          x-order: 10
         term:
           type: string
           example: 3 months
           description: The duration for holding plan
+          x-order: 11
         provider:
           type: object
           properties:
             name:
               type: string
-              example: Nexo
+              example: Provider
               description: Name of the provider
+              x-order: 1
             url:
               type: string
               format: url
               example: https://nexo.io
-    CreatePlanRequest:
+              x-order: 2
+          x-order: 12
+    CreatePlanSummaryRequest:
       type: object
       required:
-        - name
         - product_id
         - currency
         - amount
       properties:
         name:
           type: string
+          minLength: 3
+          maxLength: 50
+          example: My Savings Plan
+          description: Name of the earn plan
+          x-oapi-codegen-extra-tags:
+            validate: min_len:3|max_len:50
+            filter: trim|ucWord|escapeHtml
+          x-order: 1
         product_id:
-          $ref: '#/components/schemas/NanoID'
+          allOf:
+            - $ref: '#/components/schemas/NanoID'
+          x-order: 2
         currency:
-          type: string
+          allOf:
+            - $ref: '#/components/schemas/Currency'
           example: USDT
-          description: Name of the currency for the product
+          description: Plan Currency
+          x-order: 3
         amount:
-          $ref: '#/components/schemas/Decimal'
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          x-order: 4
     UpdatePlanRequest:
       type: object
       properties:
@@ -1771,6 +1815,7 @@ components:
           type: string
           example: 874984-234n890-42389n-9983
           description: UUID of the specific product
+          x-order: 1
     Plan:
       type: object
       required:
@@ -1780,75 +1825,90 @@ components:
         - name
         - is_compound
         - accruing_interest
-        - fiat
         - summary
-        - matured
         - recurring
         - recurring_amount
+        - term
         - status
         - created_at
         - updated_at
       properties:
         id:
-          $ref: '#/components/schemas/NanoID'
+          allOf:
+            - $ref: '#/components/schemas/NanoID'
+          x-order: 1
         profile_id:
-          $ref: '#/components/schemas/NanoID'
-        product:
-          $ref: '#/components/schemas/Product'
+          allOf:
+            - $ref: '#/components/schemas/NanoID'
+          x-order: 2
         name:
           type: string
+          x-order: 3
         is_compound:
           type: boolean
+          x-order: 4
         accruing_interest:
-          $ref: '#/components/schemas/Decimal'
+          allOf:
+            - $ref: '#/components/schemas/AmountWithCurrency'
+          x-order: 5
+        amount:
+          allOf:
+            - $ref: '#/components/schemas/AmountWithCurrency'
+          x-order: 6
         target_amount:
-          $ref: '#/components/schemas/Decimal'
+          allOf:
+            - $ref: '#/components/schemas/AmountWithCurrency'
+          x-order: 7
         fiat:
-          type: object
-          properties:
-            amount:
-              $ref: '#/components/schemas/Decimal'
-            currency:
-              type: string
+          allOf:
+            - $ref: '#/components/schemas/AmountWithCurrency'
+          x-order: 8
         summary:
           type: object
           properties:
             subscribed:
-              $ref: '#/components/schemas/Decimal'
+              allOf:
+                - $ref: '#/components/schemas/AmountWithCurrency'
+              x-order: 1
             redeemed:
-              $ref: '#/components/schemas/Decimal'
+              allOf:
+                - $ref: '#/components/schemas/AmountWithCurrency'
+              x-order: 2
             earned:
-              $ref: '#/components/schemas/Decimal'
-            interest:
-              $ref: '#/components/schemas/Decimal'
+              allOf:
+                - $ref: '#/components/schemas/AmountWithCurrency'
+              x-order: 3
+          x-order: 9
         locked_until:
           type: string
           format: date-time
-        matured:
-          type: boolean
+          x-order: 10
         recurring:
           type: boolean
+          x-order: 11
         recurring_amount:
-          $ref: '#/components/schemas/Decimal'
-        recurring_frequency:
+          allOf:
+            - $ref: '#/components/schemas/AmountWithCurrency'
+          x-order: 12
+        term:
           type: string
-          format: decimal
-        recurring_frequency_period:
-          type: string
-          format: decimal
+          x-order: 13
         next_subscription_date:
           type: string
           format: date-time
+          x-order: 14
         status:
-          type: string
+          x-order: 15
         created_at:
           type: string
           format: date-time
           example: '2022-02-11T15:08:27.132269Z'
-        update_at:
+          x-order: 16
+        updated_at:
           type: string
           format: date-time
           example: '2022-02-11T15:08:27.132269Z'
+          x-order: 17
     Pagination:
       type: object
       required:
