@@ -1734,6 +1734,8 @@ components:
         - supported_assets
         - term
         - provider
+        - risk_score
+        - ideal_for
       properties:
         id:
           type: string
@@ -1798,6 +1800,15 @@ components:
               example: https://nexo.io
               x-order: 2
           x-order: 12
+        risk_score:
+          type: string
+          example: LOW
+          x-order: 13
+        ideal_for:
+          type: string
+          format: url
+          example: Conservative investors seeking higher yields with balanced risk and reliable returns.
+          x-order: 14
     CreatePlanRequest:
       type: object
       required:
@@ -1856,6 +1867,7 @@ components:
         - recurring_amount
         - term
         - status
+        - daily_estimated_amount
         - created_at
         - updated_at
       properties:
@@ -1925,16 +1937,20 @@ components:
           x-order: 14
         status:
           x-order: 15
+        daily_estimated_amount:
+          allOf:
+            - $ref: '#/components/schemas/AmountWithCurrency'
+          x-order: 16
         created_at:
           type: string
           format: date-time
           example: '2022-02-11T15:08:27.132269Z'
-          x-order: 16
+          x-order: 17
         updated_at:
           type: string
           format: date-time
           example: '2022-02-11T15:08:27.132269Z'
-          x-order: 17
+          x-order: 18
     ResourceID:
       type: string
       x-order: 1
