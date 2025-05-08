@@ -1563,6 +1563,13 @@ components:
         validate: alpha2
     Earning:
       type: object
+      required:
+        - id
+        - plan_id
+        - amount
+        - interest
+        - reference
+        - created_at
       properties:
         id:
           allOf:
@@ -1574,11 +1581,11 @@ components:
           x-order: 2
         amount:
           allOf:
-            - $ref: '#/components/schemas/Decimal'
+            - $ref: '#/components/schemas/AmountWithCurrency'
           x-order: 3
         interest:
           allOf:
-            - $ref: '#/components/schemas/Decimal'
+            - $ref: '#/components/schemas/AmountWithCurrency'
           x-order: 4
         reference:
           type: string
@@ -1591,6 +1598,15 @@ components:
           x-order: 6
     Redemption:
       type: object
+      required:
+        - id
+        - plan_id
+        - amount
+        - status
+        - reference
+        - is_fast
+        - created_at
+        - updated_at
       properties:
         id:
           allOf:
@@ -1602,7 +1618,7 @@ components:
           x-order: 2
         amount:
           allOf:
-            - $ref: '#/components/schemas/Decimal'
+            - $ref: '#/components/schemas/AmountWithCurrency'
           x-order: 3
         status:
           type: string
@@ -1611,7 +1627,7 @@ components:
           x-order: 4
         penalty_fee:
           allOf:
-            - $ref: '#/components/schemas/Decimal'
+            - $ref: '#/components/schemas/AmountWithCurrency'
           x-order: 5
         penalty_reason:
           type: string
@@ -1636,16 +1652,13 @@ components:
           x-order: 10
     CreateRedemptionRequest:
       type: object
+      required:
+        - amount
+        - fast
       properties:
-        plan_id:
-          allOf:
-            - $ref: '#/components/schemas/NanoID'
-          x-order: 1
         amount:
-          type: string
-          example: '900'
-          format: decimal
-          description: The amount to redeem from the product
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
           x-order: 2
         fast:
           type: boolean
@@ -1654,6 +1667,14 @@ components:
           x-order: 3
     Subscription:
       type: object
+      required:
+        - id
+        - profile_id
+        - plan_id
+        - amount
+        - reference
+        - source
+        - created_at
       properties:
         id:
           type: string
@@ -1671,7 +1692,7 @@ components:
           x-order: 3
         amount:
           allOf:
-            - $ref: '#/components/schemas/Decimal'
+            - $ref: '#/components/schemas/AmountWithCurrency'
           x-order: 4
         reference:
           type: string
@@ -1777,12 +1798,13 @@ components:
               example: https://nexo.io
               x-order: 2
           x-order: 12
-    CreatePlanSummaryRequest:
+    CreatePlanRequest:
       type: object
       required:
         - product_id
         - currency
         - amount
+        - is_compounding
       properties:
         name:
           type: string
@@ -1808,6 +1830,10 @@ components:
           allOf:
             - $ref: '#/components/schemas/Decimal'
           x-order: 4
+        is_compounding:
+          type: boolean
+          description: Should the plan compound the interest to the compound interest
+          example: true
     UpdatePlanRequest:
       type: object
       properties:
@@ -1909,48 +1935,6 @@ components:
           format: date-time
           example: '2022-02-11T15:08:27.132269Z'
           x-order: 17
-    Pagination:
-      type: object
-      required:
-        - total_count
-        - page
-        - per_page
-        - offset
-        - total_entries_size
-        - current_entries_size
-        - total_pages
-      properties:
-        total_count:
-          type: integer
-          example: 100
-        page:
-          type: integer
-          example: 1
-        per_page:
-          type: integer
-          example: 10
-        offset:
-          type: integer
-          example: 0
-        total_entries_size:
-          type: integer
-          example: 100
-        current_entries_size:
-          type: integer
-          example: 10
-        total_pages:
-          type: integer
-          example: 10
-    PaginatedResponse:
-      description: Paginated response values
-      allOf:
-        - $ref: '#/components/schemas/BaseSchema'
-        - type: object
-          required:
-            - pagination
-          properties:
-            pagination:
-              $ref: '#/components/schemas/Pagination'
     ResourceID:
       type: string
       x-order: 1
@@ -3341,6 +3325,19 @@ components:
           schema:
             allOf:
               - $ref: '#/components/schemas/BaseSchema'
+    RedemptionResponse:
+      description: Successful Response
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/BaseSchema'
+              - type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Redemption'
     Error4XX:
       description: Default
       content:
