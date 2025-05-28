@@ -1347,12 +1347,8 @@ components:
     BaseCustomerRequest:
       type: object
       properties:
-        first_name:
-          $ref: '#/components/schemas/NameField'
-        middle_name:
-          $ref: '#/components/schemas/NameField'
-        last_name:
-          $ref: '#/components/schemas/NameField'
+        name:
+          $ref: '#/components/schemas/CustomerName'
         phone:
           $ref: '#/components/schemas/PhoneField'
         birth_date:
@@ -1388,12 +1384,10 @@ components:
           required:
             - email
             - has_accepted_terms
-            - first_name
-            - middle_name
-            - last_name
             - phone
             - address
             - birth_date
+            - type
             - tax_identification_number
             - signed_agreement_id
             - gov_id_country
@@ -1404,59 +1398,118 @@ components:
             has_accepted_terms:
               type: boolean
               description: has the customer accepted the terms and conditions
+            type:
+              $ref: '#/components/schemas/BusinessCustomerType'
+    CustomerName:
+      type: object
+      oneOf:
+        - type: object
+          required:
+            - first_name
+            - last_name
+          properties:
+            first_name:
+              $ref: '#/components/schemas/NameField'
+            middle_name:
+              $ref: '#/components/schemas/NameField'
+            last_name:
+              $ref: '#/components/schemas/NameField'
+          description: Name for individual customers
+        - type: object
+          required:
+            - business_name
+          properties:
+            business_name:
+              type: string
+              description: Name of the business
+              maxLength: 100
+              x-oapi-codegen-extra-tags:
+                validate: required|maxlen:100
+                filter: trim|lower|ucFirst
+          description: Name for business customers
     Customer:
       type: object
       required:
         - id
-        - first_name
-        - last_name
         - status
         - type
         - email
         - business_id
         - has_accepted_terms_of_service
+        - display_currency
+        - deposit
+        - payout
+        - phone
         - address
         - created_at
         - updated_at
       properties:
         id:
-          $ref: '#/components/schemas/NanoID'
+          allOf:
+            - $ref: '#/components/schemas/NanoID'
+          x-order: 1
         business_id:
-          $ref: '#/components/schemas/NanoID'
-        first_name:
-          type: string
-        middle_name:
-          type: string
-        last_name:
-          type: string
+          allOf:
+            - $ref: '#/components/schemas/NanoID'
+          x-order: 2
+        email:
+          allOf:
+            - $ref: '#/components/schemas/EmailField'
+          x-order: 3
+        name:
+          allOf:
+            - $ref: '#/components/schemas/CustomerName'
+          x-order: 3
         status:
           type: string
           enum:
             - active
             - inactive
+            - submitted
+            - in_review
+          x-order: 9
         type:
-          type: string
-          enum:
-            - individual
-            - business
-        email:
-          $ref: '#/components/schemas/EmailField'
+          allOf:
+            - $ref: '#/components/schemas/BusinessCustomerType'
+          x-order: 8
+        phone:
+          allOf:
+            - $ref: '#/components/schemas/PhoneField'
+          x-order: 8
+        address:
+          allOf:
+            - $ref: '#/components/schemas/Address'
+          x-order: 7
+        display_currency:
+          allOf:
+            - $ref: '#/components/schemas/Currency'
+          x-order: 7
+        deposit:
+          type: boolean
+          description: User can deposit
+          x-order: 8
+        payout:
+          type: boolean
+          description: User can payout
+          x-order: 8
         has_accepted_terms_of_service:
           type: boolean
-        address:
-          $ref: '#/components/schemas/Address'
+          x-order: 10
         rejection_reasons:
           type: array
           items:
             type: string
+          x-order: 11
         requirements_due:
           type: array
           items:
             type: string
+          x-order: 12
         future_requirements_due:
           type: array
           items:
             type: string
+          x-order: 13
         beneficial_owners:
           type: array
           items:
@@ -1466,12 +1519,20 @@ components:
                 type: string
               email:
                 $ref: '#/components/schemas/EmailField'
+          x-order: 14
         created_at:
           type: string
           format: date-time
+          x-order: 15
         updated_at:
           type: string
           format: date-time
+          x-order: 16
+    BusinessCustomerType:
+      type: string
+      enum:
+        - individual
+        - business
     NanoID:
       type: string
       x-order: 2
@@ -1489,6 +1550,22 @@ components:
         validate: required|email|check_temp_email
         filter: trim|lower
       x-go-type: string
+    NameField:
+      type: string
+      example: John
+      description: A valid name
+      minLength: 3
+      maxLength: 70
+      x-oapi-codegen-extra-tags:
+        validate: regex:^[-a-zA-Z0-9]+$|minLen:3|maxLen:70
+        filter: trim|lower|ucFirst
+    PhoneField:
+      type: string
+      example: +234 8012345678
+      format: phone
+      description: A valid phone number. format `{{calling_code}} {{number}}`
+      x-oapi-codegen-extra-tags:
+        validate: phone
     Address:
       type: object
       description: Address of the business.
@@ -1531,20 +1608,6 @@ components:
           example: '12345'
           x-oapi-codegen-extra-tags:
             mapstructure: postal_code
-    NameField:
-      type: string
-      example: John
-      description: A valid name
-      x-oapi-codegen-extra-tags:
-        validate: regex:^[-a-zA-Z0-9]+$|minLen:3|maxLen:70
-        filter: trim|lower|ucFirst
-    PhoneField:
-      type: string
-      example: +234 8012345678
-      format: phone
-      description: A valid phone number. format `{{calling_code}} {{number}}`
-      x-oapi-codegen-extra-tags:
-        validate: phone
     BVNField:
       type: string
       description: Bank Verification Number (BVN)
@@ -1569,6 +1632,7 @@ components:
         - amount
         - interest
         - reference
+        - title
         - created_at
       properties:
         id:
@@ -1581,21 +1645,24 @@ components:
           x-order: 2
         amount:
           allOf:
-            - $ref: '#/components/schemas/AmountWithCurrency'
+            - $ref: '#/components/schemas/EarnAmountType'
           x-order: 3
         interest:
           allOf:
-            - $ref: '#/components/schemas/AmountWithCurrency'
+            - $ref: '#/components/schemas/EarnAmountType'
           x-order: 4
         reference:
           type: string
           x-order: 5
+        title:
+          type: string
+          x-order: 6
         created_at:
           type: string
           format: date-time
           example: '2022-02-11T15:08:27.132269Z'
           description: The date and time the earning was created
-          x-order: 6
+          x-order: 7
     Redemption:
       type: object
       required:
@@ -1605,6 +1672,7 @@ components:
         - status
         - reference
         - is_fast
+        - title
         - created_at
         - updated_at
       properties:
@@ -1618,7 +1686,7 @@ components:
           x-order: 2
         amount:
           allOf:
-            - $ref: '#/components/schemas/AmountWithCurrency'
+            - $ref: '#/components/schemas/EarnAmountType'
           x-order: 3
         status:
           type: string
@@ -1627,7 +1695,7 @@ components:
           x-order: 4
         penalty_fee:
           allOf:
-            - $ref: '#/components/schemas/AmountWithCurrency'
+            - $ref: '#/components/schemas/EarnAmountType'
           x-order: 5
         penalty_reason:
           type: string
@@ -1638,33 +1706,36 @@ components:
         is_fast:
           type: boolean
           x-order: 8
+        title:
+          type: string
+          x-order: 9
         created_at:
           type: string
           format: date-time
           example: '2022-02-11T15:08:27.132269Z'
           description: The date and time the redemption was created
-          x-order: 9
+          x-order: 10
         updated_at:
           type: string
           format: date-time
           example: '2022-02-11T15:08:27.132269Z'
           description: The date and time the redemption was updated
-          x-order: 10
+          x-order: 11
     CreateRedemptionRequest:
       type: object
       required:
         - amount
-        - fast
+        - full_redemption
       properties:
         amount:
           allOf:
             - $ref: '#/components/schemas/Decimal'
-          x-order: 2
-        fast:
+          x-order: 1
+        full_redemption:
           type: boolean
           example: true
-          description: Whether the redemption is fast or not
-          x-order: 3
+          description: if true it will remove the amount left on the plan. It takes pending withdrawals into account
+          x-order: 2
     Subscription:
       type: object
       required:
@@ -1674,6 +1745,7 @@ components:
         - amount
         - reference
         - source
+        - title
         - created_at
       properties:
         id:
@@ -1692,27 +1764,33 @@ components:
           x-order: 3
         amount:
           allOf:
-            - $ref: '#/components/schemas/AmountWithCurrency'
+            - $ref: '#/components/schemas/EarnAmountType'
           x-order: 4
+        new_estimated_term_amount:
+          allOf:
+            - $ref: '#/components/schemas/EarnAmountType'
+          x-order: 5
+        new_plan_amount:
+          allOf:
+            - $ref: '#/components/schemas/EarnAmountType'
+          x-order: 5
         reference:
           type: string
-          x-order: 5
+          x-order: 6
         source:
           type: string
-          x-order: 6
+          x-order: 7
+        title:
+          type: string
+          x-order: 8
         created_at:
           type: string
           format: date-time
           example: '2022-02-11T15:08:27.132269Z'
-          x-order: 7
+          x-order: 9
     CreateSubscriptionRequest:
       type: object
       properties:
-        plan_id:
-          type: string
-          example: 7fb2ba81-0e0a-45ec-b325-9edd4cad6014
-          description: Product ID to subscribe to earn
-          x-order: 1
         amount:
           allOf:
             - $ref: '#/components/schemas/Decimal'
@@ -1727,7 +1805,6 @@ components:
         - flexible
         - minimum
         - description
-        - penalty_fee_percentage
         - apy
         - created_at
         - updated_at
@@ -1761,11 +1838,11 @@ components:
           x-order: 5
         minimum:
           allOf:
-            - $ref: '#/components/schemas/AmountWithCurrency'
+            - $ref: '#/components/schemas/EarnAmountType'
           x-order: 6
         maximum:
           allOf:
-            - $ref: '#/components/schemas/AmountWithCurrency'
+            - $ref: '#/components/schemas/EarnAmountType'
           x-order: 7
         description:
           type: string
@@ -1858,16 +1935,18 @@ components:
       required:
         - id
         - profile_id
-        - product
+        - product_id
         - name
         - is_compound
         - accruing_interest
+        - amount
         - summary
+        - flexible
         - recurring
         - recurring_amount
         - term
         - status
-        - daily_estimated_amount
+        - estimated_term_amount
         - created_at
         - updated_at
       properties:
@@ -1879,6 +1958,11 @@ components:
           allOf:
             - $ref: '#/components/schemas/NanoID'
           x-order: 2
+        product_id:
+          allOf:
+            - $ref: '#/components/schemas/NanoID'
+          description: ID that identifies the earn product associated with this plan
+          x-order: 2
         name:
           type: string
           x-order: 3
@@ -1887,34 +1971,30 @@ components:
           x-order: 4
         accruing_interest:
           allOf:
-            - $ref: '#/components/schemas/AmountWithCurrency'
+            - $ref: '#/components/schemas/EarnAmountType'
           x-order: 5
         amount:
           allOf:
-            - $ref: '#/components/schemas/AmountWithCurrency'
+            - $ref: '#/components/schemas/EarnAmountType'
           x-order: 6
         target_amount:
           allOf:
-            - $ref: '#/components/schemas/AmountWithCurrency'
+            - $ref: '#/components/schemas/EarnAmountType'
           x-order: 7
-        fiat:
-          allOf:
-            - $ref: '#/components/schemas/AmountWithCurrency'
-          x-order: 8
         summary:
           type: object
           properties:
             subscribed:
               allOf:
-                - $ref: '#/components/schemas/AmountWithCurrency'
+                - $ref: '#/components/schemas/EarnAmountType'
               x-order: 1
             redeemed:
               allOf:
-                - $ref: '#/components/schemas/AmountWithCurrency'
+                - $ref: '#/components/schemas/EarnAmountType'
               x-order: 2
             earned:
               allOf:
-                - $ref: '#/components/schemas/AmountWithCurrency'
+                - $ref: '#/components/schemas/EarnAmountType'
               x-order: 3
           x-order: 9
         locked_until:
@@ -1926,20 +2006,29 @@ components:
           x-order: 11
         recurring_amount:
           allOf:
-            - $ref: '#/components/schemas/AmountWithCurrency'
+            - $ref: '#/components/schemas/EarnAmountType'
           x-order: 12
+        flexible:
+          type: boolean
+          description: True if the plan is a flexible plan and false if fixed
+          x-order: 13
         term:
           type: string
           x-order: 13
+        next_distribution_date:
+          type: string
+          description: The next date interest will be paid
+          format: date-time
+          x-order: 14
         next_subscription_date:
           type: string
           format: date-time
           x-order: 14
         status:
           x-order: 15
-        daily_estimated_amount:
+        estimated_term_amount:
           allOf:
-            - $ref: '#/components/schemas/AmountWithCurrency'
+            - $ref: '#/components/schemas/EarnAmountType'
           x-order: 16
         created_at:
           type: string
@@ -1951,6 +2040,16 @@ components:
           format: date-time
           example: '2022-02-11T15:08:27.132269Z'
           x-order: 18
+    EarnAmountType:
+      allOf:
+        - $ref: '#/components/schemas/AmountWithCurrency'
+        - type: object
+          properties:
+            fiat:
+              allOf:
+                - $ref: '#/components/schemas/AmountWithCurrency'
+              description: amount in fiat
+              x-order: 3
     ResourceID:
       type: string
       x-order: 1
@@ -3316,31 +3415,6 @@ components:
                     type: array
                     items:
                       $ref: '#/components/schemas/Customer'
-    CustomerCreateResponse:
-      description: Customer Create Response
-      content:
-        application/json:
-          schema:
-            allOf:
-              - $ref: '#/components/schemas/BaseSchema'
-              - type: object
-                required:
-                  - data
-                properties:
-                  data:
-                    type: object
-                    required:
-                      - id
-                    properties:
-                      id:
-                        $ref: '#/components/schemas/NanoID'
-    GeneralResponse:
-      description: Customer successfully created
-      content:
-        application/json:
-          schema:
-            allOf:
-              - $ref: '#/components/schemas/BaseSchema'
     RedemptionResponse:
       description: Successful Response
       content:
