@@ -414,6 +414,8 @@ paths:
       summary: List Business Industries
       description: List all business industries
       operationId: listIndustries
+      parameters:
+        - $ref: '#/components/parameters/ProfileHeader'
       tags:
         - Customers
       responses:
@@ -2267,11 +2269,11 @@ components:
         - apy
         - created_at
         - updated_at
-        - supported_assets
         - term
         - provider
         - risk_score
         - ideal_for
+        - type
       properties:
         id:
           type: string
@@ -2279,7 +2281,9 @@ components:
           description: UUID of the specific product
           x-order: 1
         base_currency:
-          $ref: '#/components/schemas/Currency'
+          allOf:
+            - $ref: '#/components/schemas/Currency'
+          x-order: 2
         name:
           type: string
           example: USDT
@@ -2307,21 +2311,16 @@ components:
           type: string
           example: Earn up to 7.5% APY
           description: Description of the earn product
+          x-order: 8
         apy:
           allOf:
             - $ref: '#/components/schemas/Decimal'
           x-order: 9
-        supported_assets:
-          type: array
-          items:
-            allOf:
-              - $ref: '#/components/schemas/Currency'
-          x-order: 10
         term:
           type: string
           example: 3 months
           description: The duration for holding plan
-          x-order: 11
+          x-order: 10
         provider:
           type: object
           properties:
@@ -2335,15 +2334,22 @@ components:
               format: url
               example: https://nexo.io
               x-order: 2
-          x-order: 12
+          x-order: 11
         risk_score:
           type: string
           example: LOW
-          x-order: 13
+          x-order: 12
         ideal_for:
           type: string
           format: url
           example: Conservative investors seeking higher yields with balanced risk and reliable returns.
+          x-order: 13
+        type:
+          type: string
+          example: savings
+          enum:
+            - savings
+            - investments
           x-order: 14
     CreatePlanRequest:
       type: object
