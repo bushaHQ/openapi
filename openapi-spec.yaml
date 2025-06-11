@@ -140,6 +140,10 @@ tags:
     description: |
       Endpoints to manage supported currencies, their properties, and network details.
     x-displayName: Currencies
+  - name: Customers
+    x-internal: false
+    description: Handle customer requests and responses
+    x-displayName: Customers
   - name: Miscellaneous
     description: Provides auxiliary APIs to complement and enhance other services.
     x-displayName: Miscellaneous
@@ -292,6 +296,135 @@ paths:
         4XX:
           $ref: '#/components/responses/CurrenciesError4XX'
       security: []
+  /v1/customers:
+    post:
+      x-internal: false
+      security:
+        - Auth:
+            - customers:write
+            - api:write
+      summary: Create a new customer
+      description: Creates a new customer entry in the system
+      operationId: createCustomer
+      tags:
+        - Customers
+      parameters:
+        - $ref: '#/components/parameters/ProfileHeader'
+      requestBody:
+        description: Customer details needed to create a new customer
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCustomerRequest'
+      responses:
+        '201':
+          $ref: '#/components/responses/CustomerResponse'
+        4XX:
+          $ref: '#/components/responses/CustomerError4XX'
+    get:
+      x-internal: false
+      summary: List Customers
+      description: List all customers in created for the business
+      operationId: listCustomers
+      tags:
+        - Customers
+      parameters:
+        - $ref: '#/components/parameters/ProfileHeader'
+        - $ref: '#/components/parameters/CursorQueryParams'
+        - $ref: '#/components/parameters/LimitQueryParam'
+      responses:
+        '200':
+          $ref: '#/components/responses/CustomerListResponse'
+        4XX:
+          $ref: '#/components/responses/CustomerError4XX'
+      security:
+        - Auth:
+            - customers:read
+            - api:read
+  /v1/customers/{id}:
+    get:
+      x-internal: false
+      summary: Get a customer by ID
+      description: Retrieve a specific customer by their unique ID
+      operationId: getCustomerByID
+      tags:
+        - Customers
+      parameters:
+        - $ref: '#/components/parameters/ParamNanoID'
+        - $ref: '#/components/parameters/ProfileHeader'
+      responses:
+        '200':
+          $ref: '#/components/responses/CustomerResponse'
+        4XX:
+          $ref: '#/components/responses/CustomerError4XX'
+      security:
+        - Auth:
+            - customers:read
+            - api:read
+    put:
+      x-internal: false
+      security:
+        - Auth:
+            - customers:write
+            - api:write
+      summary: Update a customer
+      description: Update the details of an existing customer
+      operationId: updateCustomer
+      tags:
+        - Customers
+      parameters:
+        - $ref: '#/components/parameters/ParamNanoID'
+        - $ref: '#/components/parameters/ProfileHeader'
+      requestBody:
+        description: Customer details to be updated
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCustomerRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/CustomerResponse'
+        4XX:
+          $ref: '#/components/responses/CustomerError4XX'
+  /v1/customers/{id}/verify:
+    post:
+      x-internal: false
+      security:
+        - Auth:
+            - customers:write
+            - api:write
+      summary: Verify a customer
+      description: Verify the identity and information provided by a customer
+      operationId: verifyCustomer
+      tags:
+        - Customers
+      parameters:
+        - $ref: '#/components/parameters/ParamNanoID'
+        - $ref: '#/components/parameters/ProfileHeader'
+      responses:
+        '200':
+          $ref: '#/components/responses/GeneralResponse'
+        4XX:
+          $ref: '#/components/responses/CustomerError4XX'
+  /v1/customers/industries:
+    get:
+      x-internal: false
+      summary: List Business Industries
+      description: List all business industries
+      operationId: listIndustries
+      tags:
+        - Customers
+      responses:
+        '200':
+          $ref: '#/components/responses/CustomerBusinessIndustries'
+        4XX:
+          $ref: '#/components/responses/CustomerError4XX'
+      security:
+        - Auth:
+            - customers:read
+            - api:read
   /v1/validate:
     post:
       tags:
@@ -358,6 +491,49 @@ paths:
                 $ref: '#/components/schemas/CountriesListResponse'
         '500':
           $ref: '#/components/responses/InternalServerError'
+      security: []
+  /v1/pay/{username}:
+    get:
+      tags:
+        - Miscellaneous
+      summary: Look up users addresses
+      description: Returns a user's addresses based on currency and network
+      operationId: lookupUserAddresses
+      parameters:
+        - name: username
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Username to lookup addresses for
+          x-oapi-codegen-extra-tags:
+            validate: min_len:3|max_len:50|ends_with:busha
+            filter: trim|lower
+        - name: currency
+          in: query
+          required: true
+          description: Filter by currency
+          x-oapi-codegen-extra-tags:
+            validate: required|min_len:3|max_len:10
+          schema:
+            type: string
+            example: USDT
+        - name: networks
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/Currency'
+          description: Filter addresses by network
+          style: form
+          x-oapi-codegen-extra-tags:
+            filter: slice_upper|slice_trim
+      responses:
+        '200':
+          $ref: '#/components/responses/LookupResponses'
+        4XX:
+          $ref: '#/components/responses/MiscellaneousError4XX'
       security: []
   /v1/pairs:
     get:
@@ -1345,194 +1521,476 @@ components:
       x-oapi-codegen-extra-tags:
         validate: required|regex
     BaseCustomerRequest:
-      type: object
-      properties:
-        name:
-          $ref: '#/components/schemas/CustomerName'
-        phone:
-          $ref: '#/components/schemas/PhoneField'
-        birth_date:
-          type: string
-          example: 24-12-2000
-          description: date of birth of the user
-        tax_identification_number:
-          type: string
-        signed_agreement_id:
-          type: string
-        address:
-          $ref: '#/components/schemas/Address'
-        bvn:
-          $ref: '#/components/schemas/BVNField'
-        gov_id_country:
-          $ref: '#/components/schemas/CountryID'
-        gov_id_number:
-          type: string
-          description: Gov ID number
-          maxLength: 20
-          x-oapi-codegen-extra-tags:
-            validate: alphaNum|maxlen:20
-        proof_of_address_document:
-          type: string
-          format: base64
-          description: Proof of address document in base64 format
+      allOf:
+        - type: object
+          properties:
+            phone:
+              $ref: '#/components/schemas/PhoneField'
+            birth_date:
+              type: string
+              example: 24-12-2000
+              description: date of birth of the user
+            address:
+              $ref: '#/components/schemas/Address'
+            identifying_information:
+              type: array
+              description: List of identification documents provided by the customer
+              minItems: 0
+              maxItems: 5
+              items:
+                $ref: '#/components/schemas/CustomerIdentifyingInformation'
+            documents:
+              type: array
+              description: Additional supporting documents provided by the customer
+              minItems: 0
+              maxItems: 10
+              uniqueItems: true
+              items:
+                $ref: '#/components/schemas/CustomerDocument'
     UpdateCustomerRequest:
-      $ref: '#/components/schemas/BaseCustomerRequest'
-    CreateCustomerRequest:
       allOf:
         - $ref: '#/components/schemas/BaseCustomerRequest'
+        - oneOf:
+            - $ref: '#/components/schemas/CustomerCreateIndividual'
+            - $ref: '#/components/schemas/CustomerCreateBusiness'
+    CreateCustomerRequest:
+      allOf:
         - type: object
           required:
             - email
             - has_accepted_terms
+            - country_id
             - phone
             - address
             - birth_date
             - type
-            - tax_identification_number
-            - signed_agreement_id
-            - gov_id_country
-            - gov_id_number
           properties:
             email:
               $ref: '#/components/schemas/EmailField'
             has_accepted_terms:
               type: boolean
-              description: has the customer accepted the terms and conditions
+              description: Indicates whether the customer has explicitly accepted the terms and conditions
             type:
               $ref: '#/components/schemas/BusinessCustomerType'
-    CustomerName:
+            country_id:
+              $ref: '#/components/schemas/CountryID'
+        - $ref: '#/components/schemas/BaseCustomerRequest'
+        - oneOf:
+            - $ref: '#/components/schemas/CustomerCreateIndividual'
+            - $ref: '#/components/schemas/CustomerCreateBusiness'
+    CustomerIdentifyingInformation:
       type: object
-      oneOf:
-        - type: object
-          required:
-            - first_name
-            - last_name
-          properties:
-            first_name:
-              $ref: '#/components/schemas/NameField'
-            middle_name:
-              $ref: '#/components/schemas/NameField'
-            last_name:
-              $ref: '#/components/schemas/NameField'
-          description: Name for individual customers
+      required:
+        - type
+        - number
+        - country
+      description: Contains identification document details and related images for customer verification
+      properties:
+        type:
+          type: string
+          enum:
+            - passport
+            - national_id
+            - drivers_license
+          description: The category of identification document provided by the customer
+        number:
+          type: string
+          maxLength: 50
+          description: The unique identifier or serial number on the identification document
+        country:
+          $ref: '#/components/schemas/CountryID'
+        expiry_date:
+          type: string
+          format: date
+          description: The date when the identification document becomes invalid or expires
+        image_front:
+          type: string
+          format: base64
+          description: Base64 encoded image of the front side of the identification document
+        image_back:
+          type: string
+          format: base64
+          description: Base64 encoded image of the reverse side of the identification document
+    CustomerDocument:
+      type: object
+      required:
+        - purposes
+        - file
+      properties:
+        purposes:
+          type: array
+          items:
+            type: string
+            enum:
+              - certificate_of_incorporation
+              - corporate_registry_extract
+              - memart
+              - corporate_structure_chart
+              - board_resolution
+              - aml_policy
+              - regulatory_licenses
+              - proof_of_funds
+              - proof_of_wealth
+              - proof_of_address
+          description: Purposes for which the document is being submitted
+        file:
+          type: string
+          description: Document file content in base64 format
+    CustomerBusinessOwner:
+      type: object
+      required:
+        - first_name
+        - last_name
+        - role
+        - nationality
+        - percentage_ownership
+        - is_pep
+      properties:
+        first_name:
+          type: string
+          maxLength: 100
+        last_name:
+          type: string
+          maxLength: 100
+        role:
+          type: array
+          items:
+            type: string
+            enum:
+              - director
+              - owner
+              - shareholder
+        percentage_ownership:
+          type: number
+          minimum: 0
+          maximum: 100
+        is_pep:
+          type: boolean
+          default: false
+        pep_type:
+          type: string
+        nationality:
+          $ref: '#/components/schemas/CountryID'
+        address:
+          $ref: '#/components/schemas/Address'
+        proof_of_address:
+          type: string
+          x-oapi-codegen-extra-tag: null
+        bvn:
+          $ref: '#/components/schemas/BVNField'
+        proof_of_id:
+          type: string
+          x-oapi-codegen-extra-tag: null
+    CustomerBusinessTransaction:
+      type: object
+      required:
+        - purpose
+        - monthly_transaction_value
+        - monthly_transaction_count
+        - client_transaction_status
+        - api_access_needed
+      properties:
+        purpose:
+          type: string
+          minLength: 3
+          maxLength: 100
+          description: The purpose of the customer's transactions
+        monthly_transaction_value:
+          type: string
+          enum:
+            - 100_usd_or_less
+            - 100_usd_to_500_usd
+            - 500_usd_to_1m_usd
+            - above_1m_usd
+          description: Expected monthly value of transactions in USD
+        monthly_transaction_count:
+          type: string
+          enum:
+            - 10_or_less
+            - 10_to_50
+            - 50_to_100
+            - 100_to_200
+            - above_200
+          description: Expected number of transactions per month
+        client_transaction_status:
+          type: string
+          enum:
+            - self-owned
+            - on-behalf
+          description: Whether transactions are self-owned or on behalf of clients
+        api_access_needed:
+          type: boolean
+          description: Whether API access is required for transactions
+        api_integration_url:
+          type: string
+          format: uri
+          description: Required when api_access_needed is true. URL for API integration
+    CustomerBusinessRegistration:
+      type: object
+      required:
+        - business_type
+        - business_structure
+        - business_regulation_status
+        - registration_number
+        - tax_identification_number
+        - corporate_group_status
+        - exchange_listing_status
+        - license_number
+      properties:
+        business_type:
+          type: string
+          enum:
+            - type_sole_proprietorship
+            - type_registered_company
+            - type_sole_proprietorship
+          description: Type of business organization
+        business_structure:
+          type: string
+          enum:
+            - public_limited_company
+            - registered_business_name
+            - other
+            - limited_liability_company
+            - limited_liability_partnership
+          description: Legal structure of the business
+        business_regulation_status:
+          type: string
+          enum:
+            - regulated
+            - unregulated
+          description: Whether business is regulated or not
+        registration_number:
+          type: string
+          maxLength: 20
+          description: Business registration number
+        tax_identification_number:
+          type: string
+          maxLength: 20
+          description: Tax ID number of business
+        corporate_group_status:
+          type: string
+          enum:
+            - standalone_company
+            - subsidiary
+            - holding_company
+          description: Status within corporate group structure
+        exchange_listing_status:
+          type: string
+          enum:
+            - listed_on_exchange
+            - not_listed_on_exchange
+            - owned_by_listed_company
+          description: Whether business is listed on stock exchange
+        license_number:
+          type: string
+          maxLength: 30
+          description: Business license number if applicable
+    CustomerCreateIndividual:
+      type: object
+      x-order: 2
+      required:
+        - first_name
+        - last_name
+      description: Individual name requirements
+      properties:
+        first_name:
+          $ref: '#/components/schemas/NameField'
+        middle_name:
+          $ref: '#/components/schemas/NameField'
+        last_name:
+          $ref: '#/components/schemas/NameField'
+    CustomerCreateBusiness:
+      allOf:
+        - $ref: '#/components/schemas/CustomerBusinessBase'
         - type: object
           required:
             - business_name
+            - business_industry
+          description: Business name requirements
+          x-order: 2
           properties:
-            business_name:
-              type: string
-              description: Name of the business
-              maxLength: 100
-              x-oapi-codegen-extra-tags:
-                validate: required|maxlen:100
-                filter: trim|lower|ucFirst
-          description: Name for business customers
-    Customer:
+            business_owners:
+              type: array
+              items:
+                $ref: '#/components/schemas/CustomerBusinessOwner'
+            business_transaction:
+              $ref: '#/components/schemas/CustomerBusinessTransaction'
+            business_registration:
+              $ref: '#/components/schemas/CustomerBusinessRegistration'
+    CustomerBusinessIndustry:
       type: object
       required:
         - id
-        - status
-        - type
-        - email
-        - business_id
-        - has_accepted_terms_of_service
-        - display_currency
-        - deposit
-        - payout
-        - phone
-        - address
-        - created_at
-        - updated_at
+        - name
+        - description
+        - category
+        - sector
       properties:
         id:
           allOf:
             - $ref: '#/components/schemas/NanoID'
           x-order: 1
-        business_id:
-          allOf:
-            - $ref: '#/components/schemas/NanoID'
-          x-order: 2
-        email:
-          allOf:
-            - $ref: '#/components/schemas/EmailField'
-          x-order: 3
         name:
-          allOf:
-            - $ref: '#/components/schemas/CustomerName'
+          type: string
+          description: Name of the industry
+          x-order: 2
+        description:
+          type: string
+          description: Description of the industry
           x-order: 3
-        status:
+        category:
           type: string
-          enum:
-            - active
-            - inactive
-            - submitted
-            - in_review
-          x-order: 9
-        type:
-          allOf:
-            - $ref: '#/components/schemas/BusinessCustomerType'
-          x-order: 8
-        phone:
-          allOf:
-            - $ref: '#/components/schemas/PhoneField'
-          x-order: 8
-        address:
-          allOf:
-            - $ref: '#/components/schemas/Address'
-          x-order: 7
-        display_currency:
-          allOf:
-            - $ref: '#/components/schemas/Currency'
-          x-order: 7
-        deposit:
-          type: boolean
-          description: User can deposit
-          x-order: 8
-        payout:
-          type: boolean
-          description: User can payout
-          x-order: 8
-        has_accepted_terms_of_service:
-          type: boolean
-          x-order: 10
-        rejection_reasons:
-          type: array
-          items:
-            type: string
-          x-order: 11
-        requirements_due:
-          type: array
-          items:
-            type: string
-          x-order: 12
-        future_requirements_due:
-          type: array
-          items:
-            type: string
-          x-order: 13
-        beneficial_owners:
-          type: array
-          items:
-            type: object
-            properties:
-              id:
+          description: Category of the industry
+          x-order: 4
+        sector:
+          type: string
+          description: Sector of the industry
+          x-order: 5
+    CustomerBusinessBase:
+      type: object
+      required:
+        - business_name
+        - business_industry
+        - business_incorporation_date
+      description: Business name requirements
+      x-order: 2
+      properties:
+        business_name:
+          type: string
+          description: Name of the business
+          maxLength: 100
+          x-oapi-codegen-extra-tags:
+            validate: required|maxlen:100
+            filter: trim|lower|ucFirst
+        business_industry:
+          type: string
+          minLength: 16
+          maxLength: 24
+          description: ID Industry or sector the business operates in
+        business_incorporation_date:
+          type: string
+          format: date
+          description: Business incorporation date
+    Customer:
+      allOf:
+        - oneOf:
+            - $ref: '#/components/schemas/CustomerCreateIndividual'
+            - $ref: '#/components/schemas/CustomerBusinessBase'
+        - type: object
+          x-order: 1
+          required:
+            - id
+            - status
+            - type
+            - email
+            - country_id
+            - business_id
+            - has_accepted_terms_of_service
+            - display_currency
+            - deposit
+            - payout
+            - phone
+            - address
+            - created_at
+            - updated_at
+          properties:
+            id:
+              allOf:
+                - $ref: '#/components/schemas/NanoID'
+              x-order: 1
+            business_id:
+              allOf:
+                - $ref: '#/components/schemas/NanoID'
+              x-order: 2
+            email:
+              allOf:
+                - $ref: '#/components/schemas/EmailField'
+              x-order: 3
+            status:
+              type: string
+              enum:
+                - active
+                - inactive
+                - submitted
+                - in_review
+                - rejected
+              x-order: 9
+            country_id:
+              $ref: '#/components/schemas/CountryID'
+            type:
+              allOf:
+                - $ref: '#/components/schemas/BusinessCustomerType'
+              x-order: 8
+            phone:
+              allOf:
+                - $ref: '#/components/schemas/PhoneField'
+              x-order: 8
+            address:
+              allOf:
+                - $ref: '#/components/schemas/Address'
+              x-order: 7
+            display_currency:
+              allOf:
+                - $ref: '#/components/schemas/Currency'
+              x-order: 7
+            deposit:
+              type: boolean
+              description: User can deposit
+              x-order: 8
+            payout:
+              type: boolean
+              description: User can payout
+              x-order: 8
+            has_accepted_terms_of_service:
+              type: boolean
+              x-order: 10
+            rejection_reasons:
+              type: array
+              items:
                 type: string
-              email:
-                $ref: '#/components/schemas/EmailField'
-          x-order: 14
-        created_at:
-          type: string
-          format: date-time
-          x-order: 15
-        updated_at:
-          type: string
-          format: date-time
-          x-order: 16
+              x-order: 11
+            requirements_due:
+              type: array
+              items:
+                type: string
+              x-order: 12
+            future_requirements_due:
+              type: array
+              items:
+                type: string
+              x-order: 13
+            beneficial_owners:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  email:
+                    $ref: '#/components/schemas/EmailField'
+              x-order: 14
+            created_at:
+              type: string
+              format: date-time
+              x-order: 15
+            updated_at:
+              type: string
+              format: date-time
+              x-order: 16
     BusinessCustomerType:
       type: string
       enum:
         - individual
         - business
+    NameField:
+      type: string
+      example: John
+      description: A valid name
+      minLength: 3
+      maxLength: 70
+      x-oapi-codegen-extra-tags:
+        validate: regex:^[-a-zA-Z0-9]+$|minLen:3|maxLen:70
+        filter: trim|lower|ucFirst
     NanoID:
       type: string
       x-order: 2
@@ -1550,15 +2008,15 @@ components:
         validate: required|email|check_temp_email
         filter: trim|lower
       x-go-type: string
-    NameField:
+    CountryID:
       type: string
-      example: John
-      description: A valid name
-      minLength: 3
-      maxLength: 70
+      example: NG
+      format: alpha2
+      description: A valid country id
+      minLength: 2
+      maxLength: 2
       x-oapi-codegen-extra-tags:
-        validate: regex:^[-a-zA-Z0-9]+$|minLen:3|maxLen:70
-        filter: trim|lower|ucFirst
+        validate: alpha2
     PhoneField:
       type: string
       example: +234 8012345678
@@ -1569,6 +2027,9 @@ components:
     Address:
       type: object
       description: Address of the business.
+      required:
+        - address_line_1
+        - country_id
       properties:
         city:
           type: string
@@ -1580,6 +2041,11 @@ components:
           example: Lagos
           x-oapi-codegen-extra-tags:
             mapstructure: state
+        county:
+          type: string
+          example: Mombasa
+          x-oapi-codegen-extra-tags:
+            mapstructure: county
         country_id:
           type: string
           example: NG
@@ -1617,13 +2083,6 @@ components:
       maxLength: 11
       x-oapi-codegen-extra-tags:
         validate: num|len:11
-    CountryID:
-      type: string
-      example: NG
-      format: alpha2
-      description: A valid country id
-      x-oapi-codegen-extra-tags:
-        validate: alpha2
     Earning:
       type: object
       required:
@@ -2058,6 +2517,29 @@ components:
       description: A valid id
       x-oapi-codegen-extra-tags:
         validate: required|nanoid
+    LookUpResponseObject:
+      type: object
+      required:
+        - username
+        - currency
+        - network
+        - address
+      properties:
+        username:
+          type: string
+          example: john_doe@busha
+        currency:
+          type: string
+          example: BTC
+        network:
+          type: string
+          example: BTC
+        address:
+          type: string
+          example: tb1qj4263506wyu8khrz2dwce0agk8lhyjgy269rxr
+        memo:
+          type: string
+          example: memo123
     ValidateDestinationResponse:
       allOf:
         - $ref: '#/components/schemas/BaseSchema'
@@ -3397,6 +3879,21 @@ components:
                 properties:
                   data:
                     $ref: '#/components/schemas/Customer'
+    CustomerBusinessIndustries:
+      description: Successful response
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/BaseSchema'
+              - type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CustomerBusinessIndustry'
     CustomerListResponse:
       description: Customer List Response
       content:
@@ -3415,6 +3912,13 @@ components:
                     type: array
                     items:
                       $ref: '#/components/schemas/Customer'
+    GeneralResponse:
+      description: A general response
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/BaseSchema'
     RedemptionResponse:
       description: Successful Response
       content:
@@ -3451,6 +3955,22 @@ components:
               $ref: '#/components/examples/RequestValidationError'
             schema_validation_error:
               $ref: '#/components/examples/SchemaValidationError'
+    LookupResponses:
+      description: Successful Response
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/BaseSchema'
+              - type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    type: array
+                    description: List of Plans
+                    items:
+                      $ref: '#/components/schemas/LookUpResponseObject'
     MiscellaneousError4XX:
       description: Default
       content:
