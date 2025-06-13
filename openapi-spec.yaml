@@ -2266,14 +2266,13 @@ components:
         - flexible
         - minimum
         - description
-        - apy
         - created_at
         - updated_at
-        - term
         - provider
         - risk_score
         - ideal_for
         - type
+        - terms
       properties:
         id:
           type: string
@@ -2312,15 +2311,6 @@ components:
           example: Earn up to 7.5% APY
           description: Description of the earn product
           x-order: 8
-        apy:
-          allOf:
-            - $ref: '#/components/schemas/Decimal'
-          x-order: 9
-        term:
-          type: string
-          example: 3 months
-          description: The duration for holding plan
-          x-order: 10
         provider:
           type: object
           properties:
@@ -2334,23 +2324,41 @@ components:
               format: url
               example: https://nexo.io
               x-order: 2
-          x-order: 11
+          x-order: 9
         risk_score:
           type: string
           example: LOW
-          x-order: 12
+          x-order: 10
         ideal_for:
           type: string
-          format: url
           example: Conservative investors seeking higher yields with balanced risk and reliable returns.
-          x-order: 13
+          x-order: 11
         type:
           type: string
           example: savings
           enum:
             - savings
             - investments
-          x-order: 14
+          x-order: 12
+        terms:
+          type: array
+          items:
+            $ref: '#/components/schemas/BaseTermsSchema'
+          x-order: 13
+    BaseTermsSchema:
+      type: object
+      required:
+        - apy
+        - duration_in_days
+      properties:
+        duration_in_days:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          x-order: 1
+        apy:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          x-order: 2
     CreatePlanRequest:
       type: object
       required:
@@ -2387,6 +2395,10 @@ components:
           type: boolean
           description: Should the plan compound the interest to the compound interest
           example: true
+        duration_in_days:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          x-order: 6
     UpdatePlanRequest:
       type: object
       properties:
@@ -2409,7 +2421,7 @@ components:
         - flexible
         - recurring
         - recurring_amount
-        - term
+        - terms
         - status
         - estimated_term_amount
         - created_at
@@ -2477,8 +2489,9 @@ components:
           type: boolean
           description: True if the plan is a flexible plan and false if fixed
           x-order: 13
-        term:
-          type: string
+        terms:
+          allOf:
+            - $ref: '#/components/schemas/BaseTermsSchema'
           x-order: 13
         next_distribution_date:
           type: string
