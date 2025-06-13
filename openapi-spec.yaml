@@ -2543,6 +2543,7 @@ components:
         - currency
         - network
         - address
+        - country_id
       properties:
         username:
           type: string
@@ -2550,6 +2551,8 @@ components:
         currency:
           type: string
           example: BTC
+        country_id:
+          $ref: '#/components/schemas/CountryID'
         network:
           type: string
           example: BTC
