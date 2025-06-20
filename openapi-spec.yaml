@@ -2207,6 +2207,8 @@ components:
         - reference
         - source
         - title
+        - rate
+        - source_amount
         - created_at
       properties:
         id:
@@ -2244,18 +2246,49 @@ components:
         title:
           type: string
           x-order: 8
+        rate:
+          allOf:
+            - $ref: '#/components/schemas/QuoteRate'
+          x-order: 9
+        source_amount:
+          allOf:
+            - $ref: '#/components/schemas/AmountWithCurrency'
+          x-order: 10
         created_at:
           type: string
           format: date-time
           example: '2022-02-11T15:08:27.132269Z'
-          x-order: 9
+          x-order: 11
     CreateSubscriptionRequest:
       type: object
+      required:
+        - source_currency
+        - target_currency
       properties:
-        amount:
-          allOf:
-            - $ref: '#/components/schemas/Decimal'
-          x-order: 2
+        source_currency:
+          $ref: '#/components/schemas/Currency'
+        target_currency:
+          $ref: '#/components/schemas/Currency'
+        source_amount:
+          type: string
+          description: Source Amount. Either `source_amount` or `target_amount` must be set.
+          example: '100'
+          x-go-type: decimal.Decimal
+          x-go-type-import:
+            path: github.com/shopspring/decimal
+            name: decimal
+            x-oapi-codegen-extra-tags:
+              validate: requiredWithout:target_amount|num
+        target_amount:
+          type: string
+          description: Target Amount. Either `source_amount` or `target_amount` must be set.
+          example: '100'
+          x-go-type: decimal.Decimal
+          x-go-type-import:
+            path: github.com/shopspring/decimal
+            name: decimal
+            x-oapi-codegen-extra-tags:
+              validate: requiredWithout:source_amount|num
     Product:
       type: object
       required:
@@ -2363,8 +2396,8 @@ components:
       type: object
       required:
         - product_id
-        - currency
-        - amount
+        - source_currency
+        - target_currency
         - is_compounding
       properties:
         name:
@@ -2381,16 +2414,30 @@ components:
           allOf:
             - $ref: '#/components/schemas/NanoID'
           x-order: 2
-        currency:
-          allOf:
-            - $ref: '#/components/schemas/Currency'
-          example: USDT
-          description: Plan Currency
-          x-order: 3
-        amount:
-          allOf:
-            - $ref: '#/components/schemas/Decimal'
-          x-order: 4
+        source_currency:
+          $ref: '#/components/schemas/Currency'
+        target_currency:
+          $ref: '#/components/schemas/Currency'
+        source_amount:
+          type: string
+          description: Source Amount. Either `source_amount` or `target_amount` must be set.
+          example: '100'
+          x-go-type: decimal.Decimal
+          x-go-type-import:
+            path: github.com/shopspring/decimal
+            name: decimal
+            x-oapi-codegen-extra-tags:
+              validate: requiredWithout:target_amount|num
+        target_amount:
+          type: string
+          description: Target Amount. Either `source_amount` or `target_amount` must be set.
+          example: '100'
+          x-go-type: decimal.Decimal
+          x-go-type-import:
+            path: github.com/shopspring/decimal
+            name: decimal
+            x-oapi-codegen-extra-tags:
+              validate: requiredWithout:source_amount|num
         is_compounding:
           type: boolean
           description: Should the plan compound the interest to the compound interest
@@ -2424,6 +2471,8 @@ components:
         - terms
         - status
         - estimated_term_amount
+        - rate
+        - source_amount
         - created_at
         - updated_at
       properties:
@@ -2508,16 +2557,24 @@ components:
           allOf:
             - $ref: '#/components/schemas/EarnAmountType'
           x-order: 16
+        rate:
+          allOf:
+            - $ref: '#/components/schemas/QuoteRate'
+          x-order: 17
+        source_amount:
+          allOf:
+            - $ref: '#/components/schemas/AmountWithCurrency'
+          x-order: 18
         created_at:
           type: string
           format: date-time
           example: '2022-02-11T15:08:27.132269Z'
-          x-order: 17
+          x-order: 19
         updated_at:
           type: string
           format: date-time
           example: '2022-02-11T15:08:27.132269Z'
-          x-order: 18
+          x-order: 20
     EarnAmountType:
       allOf:
         - $ref: '#/components/schemas/AmountWithCurrency'
@@ -2528,6 +2585,29 @@ components:
                 - $ref: '#/components/schemas/AmountWithCurrency'
               description: amount in fiat
               x-order: 3
+    QuoteRate:
+      type: object
+      properties:
+        product:
+          type: string
+          example: BTCUSDT
+        source_currency:
+          $ref: '#/components/schemas/Currency'
+        target_currency:
+          $ref: '#/components/schemas/Currency'
+        rate:
+          $ref: '#/components/schemas/Decimal'
+        side:
+          type: string
+          enum:
+            - buy
+            - sell
+          example: sell
+        type:
+          type: string
+          enum:
+            - FIXED
+          example: FIXED
     ResourceID:
       type: string
       x-order: 1
@@ -3162,29 +3242,6 @@ components:
           type: boolean
           example: false
           description: If the code can be resent
-    QuoteRate:
-      type: object
-      properties:
-        product:
-          type: string
-          example: BTCUSDT
-        source_currency:
-          $ref: '#/components/schemas/Currency'
-        target_currency:
-          $ref: '#/components/schemas/Currency'
-        rate:
-          $ref: '#/components/schemas/Decimal'
-        side:
-          type: string
-          enum:
-            - buy
-            - sell
-          example: sell
-        type:
-          type: string
-          enum:
-            - FIXED
-          example: FIXED
     Fee:
       type: object
       x-order: 40
