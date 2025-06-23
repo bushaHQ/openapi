@@ -907,6 +907,13 @@ paths:
           required: false
           schema:
             type: boolean
+        - name: history_id
+          in: query
+          description: Filter by history ID
+          required: false
+          schema:
+            type: string
+            example: EPL_FjgpvrhBW2VF
         - $ref: '#/components/parameters/CursorQueryParams'
         - $ref: '#/components/parameters/LimitQueryParam'
         - $ref: '#/components/parameters/ProfileHeader'
@@ -1592,8 +1599,8 @@ components:
           type: string
           enum:
             - passport
-            - national_id
-            - drivers_license
+            - national-id
+            - drivers-license
           description: The category of identification document provided by the customer
         number:
           type: string
@@ -1634,6 +1641,7 @@ components:
               - proof_of_funds
               - proof_of_wealth
               - proof_of_address
+              - selfie_video
           description: Purposes for which the document is being submitted
         file:
           type: string
@@ -3877,8 +3885,12 @@ components:
           enum:
             - pending
             - processing
-            - completed
+            - funds_converted
+            - funds_received
+            - outgoing_payment_sent
+            - funds_delivered
             - failed
+            - completed
         title:
           type: string
           x-order: 4
