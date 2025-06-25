@@ -1601,6 +1601,7 @@ components:
             - passport
             - national-id
             - drivers-license
+            - selfie_video
           description: The category of identification document provided by the customer
         number:
           type: string
@@ -1750,7 +1751,6 @@ components:
         business_type:
           type: string
           enum:
-            - type_sole_proprietorship
             - type_registered_company
             - type_sole_proprietorship
           description: Type of business organization
@@ -2407,6 +2407,7 @@ components:
         - source_currency
         - target_currency
         - is_compounding
+        - goal
       properties:
         name:
           type: string
@@ -2450,6 +2451,13 @@ components:
           type: boolean
           description: Should the plan compound the interest to the compound interest
           example: true
+        goal:
+          type: string
+          description: Goal for the plan, e.g. 'vacation', 'home', 'car'
+          example: home
+          x-oapi-codegen-extra-tags:
+            validate: max_len:100
+            filter: trim|ucWord|escapeHtml
         duration_in_days:
           allOf:
             - $ref: '#/components/schemas/Decimal'
@@ -2469,6 +2477,7 @@ components:
         - profile_id
         - product_id
         - name
+        - goal
         - is_compound
         - accruing_interest
         - amount
@@ -2515,6 +2524,14 @@ components:
           allOf:
             - $ref: '#/components/schemas/EarnAmountType'
           x-order: 7
+        goal:
+          type: string
+          description: Goal for the plan, e.g. 'vacation', 'home', 'car'
+          example: home
+          x-oapi-codegen-extra-tags:
+            validate: max_len:100
+            filter: trim|ucWord|escapeHtml
+          x-order: 8
         summary:
           type: object
           properties:
@@ -3799,6 +3816,12 @@ components:
           x-order: 14
           enum:
             - pending
+            - processing
+            - cancelled
+            - funds_converted
+            - funds_received
+            - outgoing_payment_sent
+            - funds_delivered
           example: pending
         timeline:
           allOf:
