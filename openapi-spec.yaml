@@ -2991,14 +2991,11 @@ components:
           example: 64ae8c26ea1033204c805a8a
           description: |
             This represents the recipient ID, used for `mobile_money` and `bank_transfer` types.
-        profile_id:
-          type: string
-          example: profile-id-1234
         address:
           type: string
           example: tb1qj4263506wyu8khrz2dwce0agk8lhyjgy269rxr
           description: |
-            This could be the address for type `address`.
+            This could be the address, user email or username for type `address`.
         network:
           type: string
           example: BTC
@@ -3014,9 +3011,9 @@ components:
         - $ref: '#/components/schemas/PayOutObj'
         - type: object
           properties:
-            address:
+            profile_id:
               type: string
-              example: tb1qj4263506wyu8khrz2dwce0agk8lhyjgy269rxr
+              example: profile-id-1234
             memo:
               type: string
               example: address memo
