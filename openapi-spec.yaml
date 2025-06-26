@@ -859,6 +859,7 @@ paths:
       tags:
         - Recipients
       operationId: resolveBankAccount
+      x-rate-limit: 5
       summary: Resolves a bank account
       description: Resolves a bank account for bank transfers
       parameters:
