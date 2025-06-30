@@ -955,13 +955,13 @@ paths:
           required: false
           schema:
             type: boolean
-        - name: history_id
+        - name: type
           in: query
-          description: Filter by history ID
+          description: Filter transactions by type
           required: false
           schema:
             type: string
-            example: EPL_FjgpvrhBW2VF
+            example: savings
         - $ref: '#/components/parameters/CursorQueryParams'
         - $ref: '#/components/parameters/LimitQueryParam'
         - $ref: '#/components/parameters/ProfileHeader'
@@ -3760,6 +3760,7 @@ components:
         - currency
         - amount
         - category
+        - type
         - reference
         - description
         - sub_description
@@ -3787,6 +3788,22 @@ components:
           type: string
           description: transaction category
           example: deposit
+        type:
+          type: string
+          description: transaction type
+          enum:
+            - buys
+            - sells
+            - converts
+            - utilities
+            - rewards
+            - loans
+            - savings
+            - deposits
+            - withdrawals
+            - sends
+            - receives
+          example: buys
         reference:
           type: string
           description: transaction reference
