@@ -162,6 +162,7 @@ tags:
 paths:
   /v1/balances:
     post:
+      x-rate-limit: 20
       security:
         - Auth:
             - balances:write
@@ -298,25 +299,63 @@ paths:
       security: []
   /v1/customers:
     post:
+      x-rate-limit: 20
       x-internal: false
       security:
         - Auth:
             - customers:write
             - api:write
       summary: Create a new customer
-      description: Creates a new customer entry in the system
+      description: Creates a new customer entry in the system. The required fields depend on the `type` of customer being created ('individual' or 'business').
       operationId: createCustomer
       tags:
         - Customers
       parameters:
         - $ref: '#/components/parameters/ProfileHeader'
       requestBody:
-        description: Customer details needed to create a new customer
+        description: Customer details needed to create a new customer.
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateCustomerRequest'
+            examples:
+              individual_customer:
+                summary: Individual Customer
+                description: An example of a request payload to create an **individual** customer profile.
+                value:
+                  email: johninu@busha.co
+                  has_accepted_terms: true
+                  type: individual
+                  country_id: NG
+                  phone: '+2348012345678'
+                  birth_date: 24-12-1990
+                  first_name: John
+                  last_name: Doe
+                  address:
+                    street: 123 Main Street
+                    city: Lagos
+                    state: Lagos
+                    postal_code: '100211'
+                    country: NG
+              business_customer:
+                summary: Business Customer
+                description: An example of a request payload to create a **business** customer profile. Note the additional `business_*` fields.
+                value:
+                  email: johninu@busha.co
+                  has_accepted_terms: true
+                  type: business
+                  country_id: NG
+                  phone: '+2348098765432'
+                  address:
+                    street: 456 Corporate Avenue
+                    city: Abuja
+                    state: FCT
+                    postal_code: '900288'
+                    country: NG
+                  business_name: ABC Corporation
+                  business_industry: BIN_C4UvTYR5V8jsOx5LmwQ
+                  business_incorporation_date: '2015-06-15'
       responses:
         '201':
           $ref: '#/components/responses/CustomerResponse'
@@ -363,6 +402,7 @@ paths:
             - customers:read
             - api:read
     put:
+      x-rate-limit: 20
       x-internal: false
       security:
         - Auth:
@@ -390,6 +430,7 @@ paths:
           $ref: '#/components/responses/CustomerError4XX'
   /v1/customers/{id}/verify:
     post:
+      x-rate-limit: 20
       x-internal: false
       security:
         - Auth:
@@ -429,6 +470,7 @@ paths:
             - api:read
   /v1/validate:
     post:
+      x-rate-limit: 20
       tags:
         - Miscellaneous
       summary: Validate payment destination
@@ -453,6 +495,7 @@ paths:
       security: []
   /v1/banks:
     get:
+      x-rate-limit: 20
       tags:
         - Miscellaneous
       summary: List banks resource
@@ -496,6 +539,7 @@ paths:
       security: []
   /v1/pay/{username}:
     get:
+      x-rate-limit: 20
       tags:
         - Miscellaneous
       summary: Look up users addresses
@@ -583,6 +627,7 @@ paths:
       security: []
   /v1/quotes:
     post:
+      x-rate-limit: 20
       security:
         - Auth:
             - quotes:write
@@ -647,6 +692,7 @@ paths:
             - api:read
   /v1/quotes/unauthenticated:
     post:
+      x-rate-limit: 20
       security: []
       summary: Create Unauthenticated Quotes
       description: Create Unauthenticated Quote
@@ -715,6 +761,7 @@ paths:
             - api:read
   /v1/recipients:
     post:
+      x-rate-limit: 20
       security:
         - Auth:
             - recipients:write
@@ -963,6 +1010,7 @@ paths:
             - api:read
   /v1/transfers:
     post:
+      x-rate-limit: 20
       security:
         - Auth:
             - transfers:write
@@ -1617,11 +1665,11 @@ components:
         image_front:
           type: string
           format: base64
-          description: Base64 encoded image of the front side of the identification document
+          description: Base64 encoded image of the front side of the identification document. The maximum file size is 4MB.
         image_back:
           type: string
           format: base64
-          description: Base64 encoded image of the reverse side of the identification document
+          description: Base64 encoded image of the reverse side of the identification document. The maximum file size is 4MB.
     CustomerDocument:
       type: object
       required:
@@ -1647,7 +1695,7 @@ components:
           description: Purposes for which the document is being submitted
         file:
           type: string
-          description: Document file content in base64 format
+          description: Document file content in base64 format. The maximum file size is 4MB.
     CustomerBusinessOwner:
       type: object
       required:
@@ -3052,6 +3100,21 @@ components:
           $ref: '#/components/schemas/Currency'
         target_currency:
           $ref: '#/components/schemas/Currency'
+        quote_currency:
+          allOf:
+            - $ref: '#/components/schemas/Currency'
+          description: This optional field specifies the fiat currency to display amounts in, which is converted from the source amount
+          example: NGN
+        quote_amount:
+          type: string
+          description: The amount in the quote currency. Required when quote_currency is provided
+          example: '100'
+          x-go-type: decimal.Decimal
+          x-go-type-import:
+            path: github.com/shopspring/decimal
+            name: decimal
+            x-oapi-codegen-extra-tags:
+              validate: requiredWith:quote_currency|num
         source_amount:
           type: string
           description: Source Amount. Either `source_amount` or `target_amount` must be set.
@@ -3086,6 +3149,21 @@ components:
           $ref: '#/components/schemas/Currency'
         target_currency:
           $ref: '#/components/schemas/Currency'
+        quote_currency:
+          allOf:
+            - $ref: '#/components/schemas/Currency'
+          description: This optional field specifies the fiat currency to display amounts in, which is converted from the source amount
+          example: NGN
+        quote_amount:
+          type: string
+          description: The amount in the quote currency. Required when quote_currency is provided
+          example: '100'
+          x-go-type: decimal.Decimal
+          x-go-type-import:
+            path: github.com/shopspring/decimal
+            name: decimal
+            x-oapi-codegen-extra-tags:
+              validate: requiredWith:quote_currency|num
         reference:
           $ref: '#/components/schemas/QuoteReference'
         source_amount:
