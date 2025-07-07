@@ -573,6 +573,7 @@ paths:
               $ref: '#/components/schemas/Currency'
           description: Filter addresses by network
           style: form
+          explode: false
           x-oapi-codegen-extra-tags:
             filter: slice_upper|slice_trim
       responses:
@@ -960,8 +961,12 @@ paths:
           description: Filter transactions by type
           required: false
           schema:
-            type: string
+            type: array
+            items:
+              type: string
             example: savings
+          style: form
+          explode: false
         - $ref: '#/components/parameters/CursorQueryParams'
         - $ref: '#/components/parameters/LimitQueryParam'
         - $ref: '#/components/parameters/ProfileHeader'
@@ -1148,6 +1153,7 @@ components:
             - stablecoin
       style: form
       example: fiat
+      explode: false
     CurrencyCodePathParam:
       name: code
       in: path
@@ -1208,11 +1214,15 @@ components:
       in: query
       required: false
       description: Filter by currency
-      x-oapi-codegen-extra-tags:
-        validate: min_len:3|max_len:10
-        filter: trim|upper
       schema:
-        type: string
+        type: array
+        items:
+          type: string
+          x-oapi-codegen-extra-tags:
+            validate: min_len:3|max_len:10
+            filter: trim|upper
+      style: form
+      explode: false
     CountryQueryParam:
       name: country
       in: query
@@ -1350,7 +1360,7 @@ components:
       format: nanoid
       description: A valid id that supports uuid and nanoid
       x-oapi-codegen-extra-tags:
-        validate: required|nano|string
+        validate: required|nanoid|string
     Decimal:
       type: string
       description: decimal value
@@ -2989,6 +2999,7 @@ components:
             - address
             - mobile_money
             - temporary_bank_account
+            - balance
         network:
           type: string
           example: BTC
@@ -3035,6 +3046,7 @@ components:
             - address
             - bank_transfer
             - mobile_money
+            - balance
         recipient_id:
           type: string
           example: 64ae8c26ea1033204c805a8a
@@ -3661,26 +3673,16 @@ components:
       required:
         - display_name
         - name
-        - hint_word
         - type
-        - is_copyable
-        - is_visible
         - required
-        - order
         - unique
       properties:
         display_name:
           type: string
         name:
           type: string
-        hint_word:
-          type: string
         type:
           type: string
-        is_copyable:
-          type: boolean
-        is_visible:
-          type: boolean
         validator:
           type: string
         required:
@@ -3689,8 +3691,6 @@ components:
           type: string
         unique:
           type: boolean
-        order:
-          type: integer
         description:
           type: string
         options:
@@ -3753,42 +3753,63 @@ components:
     Transaction:
       type: object
       required:
-        - object
         - id
+        - object
+        - status
+        - created_at
+        - reference
         - user_id
         - profile_id
-        - currency
-        - amount
-        - category
         - type
-        - reference
         - description
         - sub_description
-        - status
-        - status_description
-        - is_credit
+        - amount
+        - currency
         - is_fiat
-        - created_at
+        - is_credit
+        - status_description
       properties:
+        id:
+          x-order: 1
+          allOf:
+            - $ref: '#/components/schemas/ID'
         object:
+          x-order: 2
           type: string
           description: Type of the object
           example: transaction
-        id:
-          $ref: '#/components/schemas/ID'
-        user_id:
-          $ref: '#/components/schemas/ID'
-        profile_id:
-          $ref: '#/components/schemas/ID'
-        currency:
-          $ref: '#/components/schemas/Currency'
-        amount:
-          $ref: '#/components/schemas/Decimal'
-        category:
+        status:
+          x-order: 3
           type: string
-          description: transaction category
-          example: deposit
+          description: transaction status
+          enum:
+            - pending
+            - completed
+            - failed
+            - cancelled
+            - processing
+          example: completed
+        created_at:
+          x-order: 4
+          type: string
+          format: date-time
+          description: Timestamp when the transaction was created
+          example: '2024-05-16T13:06:31.409336+01:00'
+        reference:
+          x-order: 5
+          type: string
+          description: transaction reference
+          example: ORD_7ain6FEDWB
+        user_id:
+          x-order: 6
+          allOf:
+            - $ref: '#/components/schemas/ID'
+        profile_id:
+          x-order: 7
+          allOf:
+            - $ref: '#/components/schemas/ID'
         type:
+          x-order: 8
           type: string
           description: transaction type
           enum:
@@ -3804,37 +3825,391 @@ components:
             - sends
             - receives
           example: buys
-        reference:
-          type: string
-          description: transaction reference
-          example: ORD_7ain6FEDWB
         description:
+          x-order: 9
           type: string
           description: transaction description
           example: Bought US Dollar
         sub_description:
+          x-order: 10
           type: string
           description: transaction sub_description
           example: With USD Token
-        status:
-          type: string
-          description: transaction status
-          example: completed
+        amount:
+          x-order: 11
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+        currency:
+          x-order: 12
+          allOf:
+            - $ref: '#/components/schemas/Currency'
+        is_fiat:
+          x-order: 13
+          type: boolean
+          description: tells if transaction is in a fiat currency
+        is_credit:
+          x-order: 14
+          type: boolean
+          description: tells if transaction is a credit
+        meta:
+          x-order: 15
+          allOf:
+            - $ref: '#/components/schemas/TransactionMeta'
         status_description:
+          x-order: 16
           type: string
           description: transaction status_description
           example: This has been processed by Busha
-        is_credit:
-          type: boolean
-          description: tells if transaction is a credit
-        is_fiat:
-          type: boolean
-          description: tells if transaction is in a fiat currency
-        created_at:
+    TransactionMeta:
+      type: object
+      description: Additional transaction metadata
+      required:
+        - price
+        - balance
+      properties:
+        conversion:
+          $ref: '#/components/schemas/TxnMetaConversion'
+        price:
+          type: object
+          properties:
+            amount:
+              $ref: '#/components/schemas/Decimal'
+            currency:
+              type: string
+              description: Fiat currency of user
+        balance:
+          type: object
+          properties:
+            total:
+              $ref: '#/components/schemas/Decimal'
+            available:
+              $ref: '#/components/schemas/Decimal'
+        source:
+          type: object
+          description: Source details (for deposits, receives)
+          oneOf:
+            - $ref: '#/components/schemas/TxnMetaBankTransferSource'
+            - $ref: '#/components/schemas/TxnMetaMobileMoneySource'
+            - $ref: '#/components/schemas/TxnMetaUsernameSource'
+            - $ref: '#/components/schemas/TxnMetaEmailSource'
+            - $ref: '#/components/schemas/TxnMetaCryptoWalletSource'
+        destination:
+          type: object
+          description: Destination details (for withdraws, sends)
+          oneOf:
+            - $ref: '#/components/schemas/TxnMetaBankTransferDestination'
+            - $ref: '#/components/schemas/TxnMetaWireTransferDestination'
+            - $ref: '#/components/schemas/TxnMetaMobileMoneyDestination'
+            - $ref: '#/components/schemas/TxnMetaUsernameDestination'
+            - $ref: '#/components/schemas/TxnMetaEmailDestination'
+            - $ref: '#/components/schemas/TxnMetaCryptoWalletDestination'
+        savings:
+          $ref: '#/components/schemas/TxnMetaSaving'
+        service:
+          $ref: '#/components/schemas/TxnMetaService'
+        fee:
+          $ref: '#/components/schemas/TxnMetaFee'
+    TxnMetaFee:
+      type: object
+      description: Fee details
+      properties:
+        amount:
+          $ref: '#/components/schemas/Decimal'
+        currency:
           type: string
-          format: date-time
-          description: Timestamp when the transaction was created
-          example: '2024-05-16T13:06:31.409336+01:00'
+          description: Currency of fee
+    TxnMetaSaving:
+      type: object
+      description: Savings details
+      properties:
+        action:
+          type: string
+          description: Savings action type
+          enum:
+            - deposit
+            - withdrawal
+            - interest
+        id:
+          type: string
+          description: Savings plan identifier
+    TxnMetaService:
+      type: object
+      description: Service details (for utility transactions)
+      properties:
+        type:
+          type: string
+          description: Service type
+          enum:
+            - airtime
+            - data
+            - bills
+            - voucher
+            - bet
+        provider:
+          type: string
+          description: Service provider
+        phone_number:
+          type: string
+          description: Phone number (for airtime)
+        network:
+          type: string
+          description: Network provider
+        merchant:
+          type: string
+          description: Merchant name (for vouchers)
+        amount:
+          $ref: '#/components/schemas/Decimal'
+    TxnMetaConversion:
+      type: object
+      properties:
+        source_currency:
+          type: string
+          description: Currency being converted from
+        source_amount:
+          $ref: '#/components/schemas/Decimal'
+        target_currency:
+          type: string
+          description: Currency being converted to
+        target_amount:
+          $ref: '#/components/schemas/Decimal'
+        rate:
+          $ref: '#/components/schemas/Decimal'
+        rate_explained:
+          type: string
+          description: Human readable rate explanation
+    TxnMetaBankTransferSource:
+      type: object
+      description: Bank Transfer Source
+      properties:
+        type:
+          type: string
+          enum:
+            - bank_transfer
+        bank_name:
+          type: string
+          description: Bank name
+        account_number:
+          type: string
+          description: Account number
+        account_name:
+          type: string
+          description: Account name
+        session_id:
+          type: string
+          description: Session ID
+    TxnMetaMobileMoneySource:
+      type: object
+      description: Mobile Money Source
+      properties:
+        type:
+          type: string
+          enum:
+            - mobile_money
+        provider:
+          type: string
+          description: Provider Name
+        phone_number:
+          type: string
+          description: Phone number
+        account_name:
+          type: string
+          description: Account name
+    TxnMetaUsernameSource:
+      type: object
+      description: Username Source
+      properties:
+        type:
+          type: string
+          enum:
+            - username
+        username:
+          type: string
+          description: Username
+        first_name:
+          type: string
+          description: First name
+        last_name:
+          type: string
+          description: Last name
+    TxnMetaEmailSource:
+      type: object
+      description: Email Source
+      properties:
+        type:
+          type: string
+          enum:
+            - email
+        email:
+          type: string
+          description: Email
+        first_name:
+          type: string
+          description: First name
+        last_name:
+          type: string
+          description: Last name
+    TxnMetaCryptoWalletSource:
+      type: object
+      description: Crypto Wallet Source
+      properties:
+        type:
+          type: string
+          enum:
+            - wallet
+        network_name:
+          type: string
+          description: Network name
+        network_currency:
+          type: string
+          description: Network currency
+        address:
+          type: string
+          description: Wallet address
+        destination_tag:
+          type: string
+          description: Destination tag
+        confirmations:
+          type: string
+          format: integer
+          description: Number of confirmations
+        hash:
+          type: string
+          description: Transaction hash
+        blockchain_url:
+          type: string
+          description: Blockchain URL
+        address_url:
+          type: string
+          description: Address URL
+    TxnMetaBankTransferDestination:
+      type: object
+      description: Bank Transfer Destination
+      properties:
+        type:
+          type: string
+          enum:
+            - bank_transfer
+        bank_name:
+          type: string
+          description: Bank name
+        account_number:
+          type: string
+          description: Account number
+        account_name:
+          type: string
+          description: Account name
+        session_id:
+          type: string
+          description: Session ID
+    TxnMetaWireTransferDestination:
+      type: object
+      description: Wire transfer Destination
+      properties:
+        type:
+          type: string
+          enum:
+            - wire_transfer
+        bank_name:
+          type: string
+          description: Bank name
+        swift_code:
+          type: string
+          description: SWIFT code
+        account_number:
+          type: string
+          description: Account number
+        account_name:
+          type: string
+          description: Account name
+        imad:
+          type: string
+          description: IMAD
+        routing_number:
+          type: string
+          description: Routing number
+        address:
+          type: string
+          description: Address
+    TxnMetaMobileMoneyDestination:
+      type: object
+      description: Mobile Money Destination
+      properties:
+        type:
+          type: string
+          enum:
+            - mobile_money
+        provider:
+          type: string
+          description: Provider Name
+        phone_number:
+          type: string
+          description: Phone number
+        account_name:
+          type: string
+          description: Account name
+    TxnMetaUsernameDestination:
+      type: object
+      description: Username Destination
+      properties:
+        type:
+          type: string
+          enum:
+            - username
+        username:
+          type: string
+          description: Username
+        first_name:
+          type: string
+          description: First name
+        last_name:
+          type: string
+          description: Last name
+    TxnMetaEmailDestination:
+      type: object
+      description: Email Destination
+      properties:
+        type:
+          type: string
+          enum:
+            - email
+        email:
+          type: string
+          description: Email
+        first_name:
+          type: string
+          description: First name
+        last_name:
+          type: string
+          description: Last name
+    TxnMetaCryptoWalletDestination:
+      type: object
+      description: Crypto Wallet Destination
+      properties:
+        type:
+          type: string
+          enum:
+            - wallet
+        network_name:
+          type: string
+          description: Network name
+        network_currency:
+          type: string
+          description: Network currency
+        address:
+          type: string
+          description: Wallet address
+        destination_tag:
+          type: string
+          description: Destination tag
+        hash:
+          type: string
+          description: Transaction hash
+        blockchain_url:
+          type: string
+          description: Blockchain URL
+        address_url:
+          type: string
+          description: Address URL
     Transfer:
       type: object
       required:
