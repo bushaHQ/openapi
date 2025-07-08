@@ -815,12 +815,18 @@ paths:
           required: false
           schema:
             type: string
-        - name: category
+        - name: recipient_requirement_id
           in: query
-          description: Filter by recipient the requirement category
+          description: Filter recipient by the requirement ids
           required: false
           schema:
-            type: string
+            type: array
+            items:
+              type: string
+              x-oapi-codegen-extra-tags:
+                validate: nanoid
+          style: form
+          explode: false
       responses:
         '200':
           description: Recipients retrieved successfully
@@ -931,7 +937,7 @@ paths:
                   - type: object
                     properties:
                       data:
-                        $ref: '#/components/schemas/ResolveBankAccountResponse'
+                        $ref: '#/components/schemas/ResolveBankAccountResp'
         4XX:
           $ref: '#/components/responses/RecipientError4XX'
   /v1/transactions:
@@ -1199,6 +1205,17 @@ components:
         example: bus_123456789
       x-oapi-codegen-extra-tags:
         validate: required|nanoid
+    PlatformIDInQueryParam:
+      in: query
+      name: id
+      description: uuid and nano_id
+      schema:
+        type: array
+        items:
+          type: string
+      style: form
+      explode: false
+      example: platform_123456
     SortQueryParam:
       name: sort
       in: query
@@ -2864,18 +2881,17 @@ components:
     PayObj:
       type: object
       required:
-        - id
+        - category
         - name
         - min
         - max
         - currency
         - processing_time
-        - enabled
       properties:
-        id:
+        category:
           type: string
-          example: Bitcoin
-          description: The id of the payment option.
+          example: bank-transfer
+          description: The category of the payment option.
         name:
           type: string
           example: Bitcoin
@@ -2893,10 +2909,6 @@ components:
           type: string
           example: 0-15 minutes
           description: The average time to process via the payment option.
-        enabled:
-          type: boolean
-          example: true
-          description: This shows if the payment option is available for use
     Pairs:
       type: object
       required:
@@ -3705,7 +3717,7 @@ components:
                 type: string
               value:
                 type: string
-    ResolveBankAccountResponse:
+    ResolveBankAccountResp:
       type: object
       required:
         - country_id
@@ -4750,7 +4762,6 @@ components:
           schema:
             allOf:
               - $ref: '#/components/schemas/BaseSchema'
-              - $ref: '#/components/schemas/CursorPagination'
               - type: object
                 properties:
                   data:
@@ -4758,6 +4769,8 @@ components:
                     description: List of transfers
                     items:
                       $ref: '#/components/schemas/Transfer'
+                  pagination:
+                    $ref: '#/components/schemas/CursorPagination'
                 required:
                   - data
   securitySchemes:
