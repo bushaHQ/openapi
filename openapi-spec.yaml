@@ -157,6 +157,8 @@ tags:
     x-displayName: Recipients
   - name: Transactions
     x-displayName: Transactions
+  - name: Transaction
+    x-displayName: Transaction
   - name: Transfers
     x-displayName: Transfers
 paths:
@@ -527,6 +529,18 @@ paths:
         - $ref: '#/components/parameters/LimitQueryParam'
         - $ref: '#/components/parameters/CountryQueryParam'
         - $ref: '#/components/parameters/ProfileHeader'
+        - name: withdrawal
+          in: query
+          required: false
+          description: Filter countries by withdrawal support
+          schema:
+            type: boolean
+        - name: deposit
+          in: query
+          required: false
+          description: Filter countries by deposit support
+          schema:
+            type: boolean
       responses:
         '200':
           description: Successful response
@@ -1013,6 +1027,26 @@ paths:
                     properties:
                       data:
                         $ref: '#/components/schemas/Transaction'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+        - Auth:
+            - transactions:read
+            - api:read
+  /v1/transaction_types:
+    get:
+      tags:
+        - Transaction
+      summary: Returns a list of transaction types
+      description: Returns a list of available transaction types
+      operationId: listTransactionTypes
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionTypesListResponse'
         '500':
           $ref: '#/components/responses/InternalServerError'
       security:
@@ -2874,17 +2908,17 @@ components:
     PayObj:
       type: object
       required:
-        - category
+        - channel
         - name
         - min
         - max
         - currency
         - processing_time
       properties:
-        category:
+        channel:
           type: string
           example: bank-transfer
-          description: The category of the payment option.
+          description: The channel of the payment option.
         name:
           type: string
           example: Bitcoin
@@ -4215,6 +4249,27 @@ components:
         address_url:
           type: string
           description: Address URL
+    TransactionType:
+      type: object
+      x-go-name: CustomTransactionType
+      properties:
+        display_name:
+          type: string
+          example: Send
+          description: Transaction type display name
+        type:
+          type: string
+          example: send
+          description: Transaction type name
+    TransactionTypesListResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseSchema'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/TransactionType'
     Transfer:
       type: object
       required:
