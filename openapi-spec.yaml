@@ -884,40 +884,6 @@ paths:
         - Auth:
             - recipients:read
             - api:read
-  /v1/recipient-requirements:
-    get:
-      tags:
-        - Recipients
-      summary: List recipient requirements
-      description: Retrieve recipient requirements for specific currency and country combinations
-      operationId: listRecipientRequirements
-      parameters:
-        - name: currency_id
-          in: query
-          description: Filter by currency code (e.g., KES, NGN)
-          required: false
-          schema:
-            $ref: '#/components/schemas/Currency'
-        - name: country_id
-          in: query
-          description: Filter by country code (e.g., KE, NG)
-          required: false
-          schema:
-            $ref: '#/components/schemas/CountryID'
-        - $ref: '#/components/parameters/ProfileHeader'
-      responses:
-        '200':
-          description: Recipient requirements retrieved successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/RecipientRequirementListResponse'
-        4XX:
-          $ref: '#/components/responses/RecipientError4XX'
-      security:
-        - Auth:
-            - recipients:read
-            - api:read
   /v1/recipients/resolve-bank-account:
     post:
       security:
@@ -1124,10 +1090,9 @@ paths:
           schema:
             type: string
             enum:
-              - buy
-              - sell
-              - exchange
-              - non_exchange
+              - deposit
+              - withdrawal
+              - conversion
         - $ref: '#/components/parameters/CursorQueryParams'
         - $ref: '#/components/parameters/SortQueryParam'
         - $ref: '#/components/parameters/LimitQueryParam'
@@ -3654,6 +3619,7 @@ components:
                 is_visible: true
                 required: true
     RecipientRequirementListResponse:
+      x-interal: true
       allOf:
         - $ref: '#/components/schemas/BaseSchema'
         - type: object
@@ -3663,6 +3629,7 @@ components:
               items:
                 $ref: '#/components/schemas/RecipientRequirement'
     RecipientRequirement:
+      x-interal: true
       type: object
       required:
         - id
@@ -3674,6 +3641,7 @@ components:
         - fields
         - active
         - created_at
+        - entity_type
       properties:
         id:
           type: string
@@ -3699,51 +3667,16 @@ components:
           x-order: 3
         fields:
           type: array
-          items:
-            $ref: '#/components/schemas/RequirementField'
+          x-order: 9
         active:
           type: boolean
           x-order: 4
+        entity_type:
+          type: boolean
+          x-order: 8
         created_at:
           type: string
           format: date-time
-    RequirementField:
-      type: object
-      required:
-        - display_name
-        - name
-        - type
-        - required
-        - unique
-      properties:
-        display_name:
-          type: string
-        name:
-          type: string
-        type:
-          type: string
-        validator:
-          type: string
-        required:
-          type: boolean
-        message:
-          type: string
-        unique:
-          type: boolean
-        description:
-          type: string
-        options:
-          type: array
-          items:
-            type: object
-            required:
-              - label
-              - value
-            properties:
-              label:
-                type: string
-              value:
-                type: string
     ResolveBankAccountResp:
       type: object
       required:
