@@ -3155,6 +3155,20 @@ components:
           $ref: '#/components/schemas/UnAuthPayInObj'
         pay_out:
           $ref: '#/components/schemas/PayOutObj'
+    CreateQuoteConversionRequest:
+      type: object
+      required:
+        - source_currency
+        - target_currency
+      properties:
+        source_currency:
+          $ref: '#/components/schemas/Currency'
+        target_currency:
+          $ref: '#/components/schemas/Currency'
+        source_amount:
+          $ref: '#/components/schemas/Decimal'
+        target_amount:
+          $ref: '#/components/schemas/Decimal'
     CreateQuoteRequest:
       type: object
       required:
@@ -3211,6 +3225,55 @@ components:
                   $ref: '#/components/schemas/PhoneField'
         pay_out:
           $ref: '#/components/schemas/PayOutObj'
+    QuoteConversion:
+      type: object
+      required:
+        - source_currency
+        - target_currency
+        - source_amount
+        - target_amount
+        - rate
+        - maximum_sale
+        - minimum_sale
+        - minimum_purchase
+        - maximum_purchase
+      properties:
+        source_currency:
+          allOf:
+            - $ref: '#/components/schemas/Currency'
+          x-order: 1
+        target_currency:
+          allOf:
+            - $ref: '#/components/schemas/Currency'
+          x-order: 2
+        source_amount:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          x-order: 3
+        target_amount:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          x-order: 4
+        rate:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          x-order: 5
+        maximum_sale:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          x-order: 6
+        minimum_sale:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          x-order: 7
+        minimum_purchase:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          x-order: 8
+        maximum_purchase:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          x-order: 9
     Quote:
       type: object
       required:
@@ -3632,18 +3695,18 @@ components:
       x-interal: true
       type: object
       required:
-        - id
+        - type
         - countries
         - currencies
         - name
         - description
-        - type
+        - category
         - fields
         - active
         - created_at
         - entity_type
       properties:
-        id:
+        type:
           type: string
           x-order: 1
         currencies:
@@ -3662,7 +3725,7 @@ components:
         description:
           type: string
           x-order: 7
-        type:
+        category:
           type: string
           x-order: 3
         fields:
@@ -4601,6 +4664,19 @@ components:
               $ref: '#/components/examples/RequestValidationError'
             schema_validation_error:
               $ref: '#/components/examples/SchemaValidationError'
+    QuoteConversionResponse:
+      description: Quote Conversion Response
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/BaseSchema'
+              - type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/QuoteConversion'
     QuoteResponse:
       description: Quote Response
       content:
