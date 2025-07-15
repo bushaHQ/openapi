@@ -785,8 +785,9 @@ paths:
         - Recipients
       operationId: createRecipient
       summary: Creates a recipient
-      description: Create a new recipient for transfers
+      description: Create a new recipient for transfers.
       parameters:
+        - $ref: '#/components/parameters/X-BU-Version'
         - $ref: '#/components/parameters/ProfileHeader'
       requestBody:
         required: true
@@ -794,20 +795,279 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateRecipientRequest'
+            examples:
+              legacy_response:
+                summary: Recipient creation - Legacy
+                value:
+                  currency_id: NGN
+                  country_id: NG
+                  type: ngn_bank_transfer
+                  legal_entity_type: business
+                  fields:
+                    - name: bank_name
+                      value: Access Bank Nigeria
+                    - name: account_number
+                      value: '1234567890'
+                    - name: bank_code
+                      value: '000014'
+                    - name: account_name
+                      value: John Doe
+              ngn:
+                summary: Recipient creation NGN (2025-07-11)
+                value:
+                  currency: NGN
+                  country_code: NG
+                  type: ngn_bank
+                  bank_name: UNITED BANK FOR AFRICA
+                  bank_code: '000004'
+                  account_number: '2134211381'
+                  account_name: John Doe
+              usd_ach:
+                summary: Recipient creation USD - ACH (2025-07-11)
+                value:
+                  type: usd_bank
+                  entity_type: personal
+                  transfer_type: ach
+                  account_name: Jane Smith
+                  bank_name: Chase Bank
+                  routing_number: '021000021'
+                  account_number: '9876543210'
+              usd_wire:
+                summary: Recipient creation USD - Wire (2025-07-11)
+                value:
+                  type: usd_bank
+                  entity_type: business
+                  transfer_type: wire
+                  account_name: Tech Corp LLC
+                  bank_name: Bank of America
+                  routing_number: '026009593'
+                  account_number: '1122334455'
+              usd_swift:
+                summary: Recipient creation USD - SWIFT (2025-07-11)
+                value:
+                  type: usd_bank
+                  entity_type: business
+                  transfer_type: swift
+                  account_name: Global Corp Ltd
+                  iban: GB29NWBK60161331926819
+                  swift_code: CHASUS33XXX
+                  bank_name: Bank of International Transfers
+                  recipient_address: 123 Hauptstrasse, Berlin, 10115, Germany
+                  intermediary_bank_name: Intermediary Global Bank
+                  intermediary_bank_address: 456 Avenue of Banks, Zurich
+                  intermediary_swift_code: CHASUS33XXX
+              kes:
+                summary: Recipient creation MPESA MOBILE MONEY (2025-07-11)
+                value:
+                  currency: KES
+                  country_code: KE
+                  type: mpesa_mobile_money
+                  phone_number: +254 712345678
+                  account_name: Samuel Kiprotich
+              crypto_btc:
+                summary: Recipient creation BTC (2025-07-11)
+                value:
+                  type: crypto
+                  account_name: My Bitcoin Wallet
+                  network: BTC
+                  address: bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh
+              crypto_usdt_on_eth:
+                summary: Recipient creation USDT ON ETH NETWORK (2025-07-11)
+                value:
+                  type: crypto
+                  account_name: My Ethereum Wallet
+                  network: ETH
+                  address: '0x742d35Cc6543C4532f5D2b8d9a2b2A1234567890'
+              crypto_stellar_lumens_with_memo:
+                summary: Recipient creation STELLAR LUMENS (2025-07-11)
+                value:
+                  type: crypto
+                  account_name: My Stellar Wallet
+                  network: XLM
+                  address: GAHK7EEG2WWHVKDNT4CEQFZGKF2LGDSW2IVM4S5DP42RBW3K6BTODB4A
+                  memo: '123456789'
       responses:
         '201':
           description: Recipient created successfully
           content:
             application/json:
               schema:
-                required:
-                  - data
-                allOf:
-                  - $ref: '#/components/schemas/BaseSchema'
-                  - type: object
-                    properties:
-                      data:
-                        $ref: '#/components/schemas/Recipient'
+                $ref: '#/components/schemas/RecipientResponse'
+              examples:
+                legacy_response:
+                  summary: Recipient response - Legacy
+                  value:
+                    status: success
+                    message: Recipient created successfully
+                    data:
+                      object: recipient
+                      id: 8014c2ee-c70f-4c72-8d9f-c8b9d708a688
+                      user_id: b8277d1c-1bde-46ef-92ce-ebb4752eede5
+                      profile_id: b8277d1c-1bde-46ef-92ce-ebb4752eede5
+                      currency_id: NGN
+                      country_id: NG
+                      type: ngn_bank_transfer
+                      legal_entity_type: business
+                      owned_by_customer: true
+                      active: true
+                      created_at: '2024-05-16T13:06:31.409336+01:00'
+                      updated_at: '2024-05-16T13:06:31.409336+01:00'
+                      fields:
+                        - value: Access Bank Nigeria
+                          display_name: Bank Name
+                          name: bank_name
+                          is_copyable: false
+                          is_visible: true
+                          required: true
+                        - value: '0013246052'
+                          display_name: Account Number
+                          name: account_number
+                          is_copyable: false
+                          is_visible: true
+                          required: true
+                ngn:
+                  summary: Recipient response NGN (2025-07-11)
+                  value:
+                    status: success
+                    message: Recipient created successfully
+                    data:
+                      id: 687560e1255ff9424db5e4c5
+                      profile_id: aa909417-099c-429a-9d74-89e9b5e8891c
+                      account_name: INU JOHN
+                      account_number: '2134211381'
+                      active: true
+                      bank_code: '000004'
+                      bank_name: 9 PAYMENT SOLUTIONS BANK
+                      category: bank
+                      country_code: NG
+                      currency: NGN
+                      object: recipients
+                      owned_by_customer: true
+                      type: ngn_bank
+                usd_ach:
+                  summary: Recipient response USD - ACH (2025-07-11)
+                  value:
+                    status: success
+                    message: Recipient created successfully
+                    data:
+                      id: 687564c9255ff9424db5e4c6
+                      profile_id: aa909417-099c-429a-9d74-89e9b5e8891c
+                      account_name: Jane Smith
+                      account_number: '9876543210'
+                      active: true
+                      bank_name: Chase Bank
+                      category: bank
+                      entity_type: personal
+                      object: recipients
+                      owned_by_customer: true
+                      routing_number: '021000021'
+                      transfer_type: ach
+                      type: usd_bank
+                usd_wire:
+                  summary: Recipient response USD - WIRE (2025-07-11)
+                  value:
+                    status: success
+                    message: Recipient created successfully
+                    data:
+                      id: 687564c9255ff9424db5e4c7
+                      profile_id: aa909417-099c-429a-9d74-89e9b5e8891c
+                      account_name: Tech Corp LLC
+                      account_number: '1122334455'
+                      active: true
+                      bank_name: Bank of America
+                      category: bank
+                      entity_type: business
+                      object: recipients
+                      owned_by_customer: true
+                      routing_number: '026009593'
+                      transfer_type: wire
+                      type: usd_bank
+                usd_swift:
+                  summary: Recipient response USD - SWIFT (2025-07-11)
+                  value:
+                    status: success
+                    message: Recipient created successfully
+                    data:
+                      id: 68756991255ff9424db5e4e0
+                      profile_id: aa909417-099c-429a-9d74-89e9b5e8891c
+                      account_name: Global Corp Ltd
+                      active: true
+                      bank_name: Bank of International Transfers
+                      category: bank
+                      entity_type: business
+                      iban: GB29NWBK60161331926819
+                      intermediary_bank_address: 456 Avenue of Banks, Zurich
+                      intermediary_bank_name: Intermediary Global Bank
+                      intermediary_swift_code: CHASUS33XXX
+                      object: recipients
+                      owned_by_customer: true
+                      recipient_address: 123 Hauptstrasse, Berlin, 10115, Germany
+                      swift_code: CHASUS33XXX
+                      transfer_type: swift
+                      type: usd_bank
+                kes:
+                  summary: Recipient response MPESA MOBILE MONEY (2025-07-11)
+                  value:
+                    status: success
+                    message: Recipient created successfully
+                    data:
+                      id: 68756bbc255ff9424db5e4e2
+                      profile_id: aa909417-099c-429a-9d74-89e9b5e8891c
+                      account_name: Samuel Kiprotich
+                      active: true
+                      category: mpesa_mobile_money
+                      country_code: KE
+                      currency: KES
+                      object: recipients
+                      owned_by_customer: true
+                      phone_number: +254 712345678
+                      type: mpesa_mobile_money
+                crypto_btc:
+                  summary: Recipient response BTC (2025-07-11)
+                  value:
+                    status: success
+                    message: Recipient created successfully
+                    data:
+                      id: 68756cd6255ff9424db5e4e3
+                      profile_id: aa909417-099c-429a-9d74-89e9b5e8891c
+                      active: true
+                      address: bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh
+                      category: crypto
+                      network: BTC
+                      object: recipients
+                      owned_by_customer: true
+                      type: crypto
+                crypto_usdt_on_eth:
+                  summary: Recipient response USDT ON ETH NETWORK (2025-07-11)
+                  value:
+                    status: success
+                    message: Recipient created successfully
+                    data:
+                      id: 68756df6255ff9424db5e4e5
+                      profile_id: aa909417-099c-429a-9d74-89e9b5e8891c
+                      active: true
+                      address: '0x742d35Cc6543C4532f5D2b8d9a2b2A1234567890'
+                      category: crypto
+                      network: ETH
+                      object: recipients
+                      owned_by_customer: true
+                      type: crypto
+                crypto_stellar_lumens_with_memo:
+                  summary: Recipient response STELLAR LUMENS (2025-07-11)
+                  value:
+                    status: success
+                    message: Recipient created successfully
+                    data:
+                      id: 68756eb4255ff9424db5e4e7
+                      profile_id: aa909417-099c-429a-9d74-89e9b5e8891c
+                      active: true
+                      address: GAHK7EEG2WWHVKDNT4CEQFZGKF2LGDSW2IVM4S5DP42RBW3K6BTODB4A
+                      category: crypto
+                      memo: '123456789'
+                      network: XLM
+                      object: recipients
+                      owned_by_customer: true
+                      type: crypto
         4XX:
           $ref: '#/components/responses/RecipientError4XX'
     get:
@@ -822,6 +1082,7 @@ paths:
         - $ref: '#/components/parameters/CursorQueryParams'
         - $ref: '#/components/parameters/LimitQueryParam'
         - $ref: '#/components/parameters/CountryQueryParam'
+        - $ref: '#/components/parameters/X-BU-Version'
         - $ref: '#/components/parameters/ProfileHeader'
         - name: type
           in: query
@@ -848,6 +1109,112 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RecipientListResponse'
+              examples:
+                legacy_response:
+                  summary: Recipient list response - Legacy
+                  value:
+                    status: success
+                    message: Recipients retrieved successfully
+                    data:
+                      - object: recipient
+                        id: 8014c2ee-c70f-4c72-8d9f-c8b9d708a688
+                        user_id: b8277d1c-1bde-46ef-92ce-ebb4752eede5
+                        profile_id: b8277d1c-1bde-46ef-92ce-ebb4752eede5
+                        currency_id: NGN
+                        country_id: NG
+                        type: ngn_bank_transfer
+                        legal_entity_type: business
+                        owned_by_customer: true
+                        active: true
+                        created_at: '2024-05-16T13:06:31.409336+01:00'
+                        updated_at: '2024-05-16T13:06:31.409336+01:00'
+                        fields:
+                          - value: Access Bank Nigeria
+                            display_name: Bank Name
+                            name: bank_name
+                            is_copyable: false
+                            is_visible: true
+                            required: true
+                          - value: '0013246052'
+                            display_name: Account Number
+                            name: account_number
+                            is_copyable: false
+                            is_visible: true
+                            required: true
+                response_2025_07_11:
+                  summary: Recipient list response (2025-07-11)
+                  value:
+                    status: success
+                    message: Recipients retrieved successfully
+                    pagination:
+                      next_cursor: MjAyNC0xMC0xNVQxMTowNTo1My45NTkxNDErMDE6MDA=
+                      current_entries_size: 20
+                      previous_cursor: MjAyNC0xMC0xNVQxMTowNTo1My45NTkxNDErMDE6MDA=
+                    data:
+                      - id: 68756eb4255ff9424db5e4e7
+                        profile_id: aa909417-099c-429a-9d74-89e9b5e8891c
+                        active: true
+                        address: GAHK7EEG2WWHVKDNT4CEQFZGKF2LGDSW2IVM4S5DP42RBW3K6BTODB4A
+                        category: crypto
+                        memo: '123456789'
+                        network: XLM
+                        object: recipients
+                        owned_by_customer: true
+                        type: crypto
+                      - id: 68756bbc255ff9424db5e4e2
+                        profile_id: aa909417-099c-429a-9d74-89e9b5e8891c
+                        account_name: Samuel Kiprotich
+                        active: true
+                        category: mpesa_mobile_money
+                        country_code: KE
+                        currency: KES
+                        object: recipients
+                        owned_by_customer: true
+                        phone_number: +254 712345678
+                        type: mpesa_mobile_money
+                      - id: 68756991255ff9424db5e4e0
+                        profile_id: aa909417-099c-429a-9d74-89e9b5e8891c
+                        account_name: Global Corp Ltd
+                        active: true
+                        bank_name: Bank of International Transfers
+                        category: bank
+                        entity_type: business
+                        iban: GB29NWBK60161331926819
+                        intermediary_bank_address: 456 Avenue of Banks, Zurich
+                        intermediary_bank_name: Intermediary Global Bank
+                        intermediary_swift_code: CHASUS33XXX
+                        object: recipients
+                        owned_by_customer: true
+                        recipient_address: 123 Hauptstrasse, Berlin, 10115, Germany
+                        swift_code: CHASUS33XXX
+                        transfer_type: swift
+                        type: usd_bank
+                      - id: 687564c9255ff9424db5e4c6
+                        profile_id: aa909417-099c-429a-9d74-89e9b5e8891c
+                        account_name: Jane Smith
+                        account_number: '9876543210'
+                        active: true
+                        bank_name: Chase Bank
+                        category: bank
+                        entity_type: personal
+                        object: recipients
+                        owned_by_customer: true
+                        routing_number: '021000021'
+                        transfer_type: ach
+                        type: usd_bank
+                      - id: 687560e1255ff9424db5e4c5
+                        profile_id: aa909417-099c-429a-9d74-89e9b5e8891c
+                        account_name: INU JOHN OSHIOGIEMHE
+                        account_number: '2134211381'
+                        active: true
+                        bank_code: '000004'
+                        bank_name: 9 PAYMENT SOLUTIONS BANK
+                        category: bank
+                        country_code: NG
+                        currency: NGN
+                        object: recipients
+                        owned_by_customer: true
+                        type: ngn_bank
         4XX:
           $ref: '#/components/responses/RecipientError4XX'
       security:
@@ -864,20 +1231,65 @@ paths:
       parameters:
         - $ref: '#/components/parameters/ParamUUID'
         - $ref: '#/components/parameters/ProfileHeader'
+        - $ref: '#/components/parameters/X-BU-Version'
       responses:
         '200':
           description: Recipient retrieved successfully
           content:
             application/json:
               schema:
-                required:
-                  - data
-                allOf:
-                  - $ref: '#/components/schemas/BaseSchema'
-                  - type: object
-                    properties:
-                      data:
-                        $ref: '#/components/schemas/Recipient'
+                $ref: '#/components/schemas/RecipientResponse'
+              examples:
+                legacy_response:
+                  summary: Recipient response - Legacy
+                  value:
+                    status: success
+                    message: Recipient retrieved successfully
+                    data:
+                      object: recipient
+                      id: 8014c2ee-c70f-4c72-8d9f-c8b9d708a688
+                      user_id: b8277d1c-1bde-46ef-92ce-ebb4752eede5
+                      profile_id: b8277d1c-1bde-46ef-92ce-ebb4752eede5
+                      currency_id: NGN
+                      country_id: NG
+                      type: ngn_bank
+                      legal_entity_type: personal
+                      owned_by_customer: true
+                      active: true
+                      created_at: '2024-05-16T13:06:31.409336+01:00'
+                      updated_at: '2024-05-16T13:06:31.409336+01:00'
+                      fields:
+                        - value: Access Bank Nigeria
+                          display_name: Bank Name
+                          name: bank_name
+                          is_copyable: false
+                          is_visible: true
+                          required: true
+                        - value: '0013246052'
+                          display_name: Account Number
+                          name: account_number
+                          is_copyable: false
+                          is_visible: true
+                          required: true
+                response_2025_07_11:
+                  summary: Recipient response (2025-07-11)
+                  value:
+                    status: success
+                    message: Recipient retrieved successfully
+                    data:
+                      id: 687560e1255ff9424db5e4c5
+                      profile_id: aa909417-099c-429a-9d74-89e9b5e8891c
+                      account_name: INU JOHN OSHIOGIEMHE
+                      account_number: '2134211381'
+                      active: true
+                      bank_code: '000004'
+                      bank_name: 9 PAYMENT SOLUTIONS BANK
+                      category: bank
+                      country_code: NG
+                      currency: NGN
+                      object: recipients
+                      owned_by_customer: true
+                      type: ngn_bank
         4XX:
           $ref: '#/components/responses/RecipientError4XX'
       security:
@@ -993,26 +1405,6 @@ paths:
                     properties:
                       data:
                         $ref: '#/components/schemas/Transaction'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-      security:
-        - Auth:
-            - transactions:read
-            - api:read
-  /v1/transaction_types:
-    get:
-      tags:
-        - Transaction
-      summary: Returns a list of transaction types
-      description: Returns a list of available transaction types
-      operationId: listTransactionTypes
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/TransactionTypesListResponse'
         '500':
           $ref: '#/components/responses/InternalServerError'
       security:
@@ -1247,6 +1639,18 @@ components:
         filter: trim|upper
       schema:
         type: string
+    X-BU-Version:
+      in: header
+      name: X-BU-Version
+      description: The API version to use for this request.
+      required: false
+      schema:
+        type: string
+        default: '2025-07-11'
+        example: '2025-07-11'
+        enum:
+          - '2025-06-01'
+          - '2025-07-11'
   schemas:
     Balance:
       type: object
@@ -3441,60 +3845,49 @@ components:
           type: string
           example: FIXED
     CreateRecipientRequest:
-      type: object
-      required:
-        - currency_id
-        - country_id
-        - type
-        - legal_entity_type
-        - fields
-      properties:
-        currency_id:
-          $ref: '#/components/schemas/Currency'
-        country_id:
-          $ref: '#/components/schemas/CountryID'
-        type:
-          type: string
-          description: Type of recipient account
-          example: ngn_bank_transfer
-        legal_entity_type:
-          type: string
-          description: Type of legal entity
-          enum:
-            - business
-            - personal
-          example: business
-        fields:
-          type: array
-          description: List of fields containing recipient details
-          items:
-            type: object
-            required:
-              - name
-              - value
-            properties:
-              name:
-                type: string
-                description: Field identifier
-                example: bank_name
-              value:
-                type: string
-                description: Field value
-                example: Access Bank Nigeria
-      example:
-        currency_id: NGN
-        country_id: NG
-        type: ngn_bank_transfer
-        legal_entity_type: business
-        fields:
-          - name: bank_name
-            value: Access Bank Nigeria
-          - name: account_number
-            value: '1234567890'
-          - name: bank_code
-            value: '000014'
-          - name: account_name
-            value: Joh Doe
+      oneOf:
+        - $ref: '#/components/schemas/RecipientCreate-2025-07-11'
+        - type: object
+          deprecated: true
+          required:
+            - currency_id
+            - country_id
+            - type
+            - legal_entity_type
+            - fields
+          properties:
+            currency_id:
+              $ref: '#/components/schemas/Currency'
+            country_id:
+              $ref: '#/components/schemas/CountryID'
+            type:
+              type: string
+              description: Type of recipient account
+              example: ngn_bank_transfer
+            legal_entity_type:
+              type: string
+              description: Type of legal entity
+              enum:
+                - business
+                - personal
+              example: business
+            fields:
+              type: array
+              description: List of fields containing recipient details
+              items:
+                type: object
+                required:
+                  - name
+                  - value
+                properties:
+                  name:
+                    type: string
+                    description: Field identifier
+                    example: bank_name
+                  value:
+                    type: string
+                    description: Field value
+                    example: Access Bank Nigeria
     RecipientField:
       type: object
       required:
@@ -3566,6 +3959,7 @@ components:
         - bank_transfer
       example: bank_transfer
     Recipient:
+      deprecated: true
       type: object
       required:
         - object
@@ -3628,6 +4022,181 @@ components:
           description: List of fields containing recipient details
           items:
             $ref: '#/components/schemas/RecipientField'
+    RecipientBase-2025-07-11:
+      type: object
+      required:
+        - type
+      properties:
+        currency:
+          type: string
+          description: Currency code for the recipient
+          x-oapi-codegen-extra-tags:
+            mapstructure: currency,omitempty
+        country_code:
+          type: string
+          description: Country code for the recipient
+          x-oapi-codegen-extra-tags:
+            mapstructure: country_code,omitempty
+        type:
+          type: string
+          description: Type of recipient account
+          enum:
+            - ngn_bank
+            - usd_bank
+            - gbp_bank
+            - mpesa_mobile_money
+            - mtn_mobile_money
+            - crypto
+          x-oapi-codegen-extra-tags:
+            mapstructure: ',omitempty'
+        entity_type:
+          type: string
+          additionalProperties: true
+          description: Type of legal entity (for US, GB)
+          enum:
+            - personal
+            - business
+          x-oapi-codegen-extra-tags:
+            mapstructure: entity_type,omitempty
+        transfer_type:
+          type: string
+          additionalProperties: true
+          description: Type of transfer (for US)
+          enum:
+            - ach
+            - wire
+            - swift
+          x-oapi-codegen-extra-tags:
+            mapstructure: transfer_type,omitempty
+        account_name:
+          type: string
+          description: Name on the account
+          x-oapi-codegen-extra-tags:
+            mapstructure: account_name,omitempty
+        bank_name:
+          type: string
+          description: Name of the bank (for NG, US, GB)
+          x-oapi-codegen-extra-tags:
+            mapstructure: bank_name,omitempty
+        bank_code:
+          type: string
+          description: Bank code (for NG only)
+          x-oapi-codegen-extra-tags:
+            mapstructure: bank_code,omitempty
+        sort_code:
+          type: string
+          description: Sort code (for GB only)
+          x-oapi-codegen-extra-tags:
+            mapstructure: sort_code,omitempty
+        routing_number:
+          type: string
+          description: Routing number (for US domestic ACH/Wire)
+          x-oapi-codegen-extra-tags:
+            mapstructure: routing_number,omitempty
+        swift_code:
+          type: string
+          description: SWIFT/BIC code (for international transfers)
+          x-oapi-codegen-extra-tags:
+            mapstructure: swift_code,omitempty
+        account_number:
+          type: string
+          description: Account number (for domestic transfers)
+          x-oapi-codegen-extra-tags:
+            mapstructure: account_number,omitempty
+        iban:
+          type: string
+          description: IBAN (for international transfers)
+          x-oapi-codegen-extra-tags:
+            mapstructure: iban,omitempty
+        phone_number:
+          type: string
+          description: Phone number (for mobile money transfers)
+          x-oapi-codegen-extra-tags:
+            mapstructure: phone_number,omitempty
+        network:
+          type: string
+          description: Blockchain network (for crypto transfers)
+          x-oapi-codegen-extra-tags:
+            mapstructure: network,omitempty
+        address:
+          type: string
+          description: Wallet address (for crypto transfers)
+          x-oapi-codegen-extra-tags:
+            mapstructure: address,omitempty
+        memo:
+          type: string
+          description: Tag/memo (for crypto transfers)
+          x-oapi-codegen-extra-tags:
+            mapstructure: memo,omitempty
+        recipient_address:
+          type: string
+          description: Address details (for international transfers)
+          x-oapi-codegen-extra-tags:
+            mapstructure: recipient_address,omitempty
+        intermediary_bank_name:
+          type: string
+          example: JPMorgan Chase Bank
+          x-oapi-codegen-extra-tags:
+            mapstructure: intermediary_bank_name,omitempty
+        intermediary_bank_address:
+          type: string
+          example: 270 Park Avenue, New York, NY 10017
+          x-oapi-codegen-extra-tags:
+            mapstructure: intermediary_bank_address,omitempty
+        intermediary_swift_code:
+          type: string
+          example: CHASUS33
+          x-oapi-codegen-extra-tags:
+            mapstructure: intermediary_swift_code,omitempty
+    RecipientCreate-2025-07-11:
+      allOf:
+        - $ref: '#/components/schemas/RecipientBase-2025-07-11'
+        - type: object
+    Recipient-2025-07-11:
+      allOf:
+        - $ref: '#/components/schemas/RecipientBase-2025-07-11'
+        - type: object
+          required:
+            - object
+            - id
+            - profile_id
+            - active
+            - owned_by_customer
+            - type
+            - category
+          properties:
+            object:
+              type: string
+              description: Type of object
+              example: recipient
+            id:
+              $ref: '#/components/schemas/ResourceID'
+            profile_id:
+              $ref: '#/components/schemas/NanoID'
+            active:
+              type: boolean
+              description: Whether the recipient is active
+            owned_by_customer:
+              type: boolean
+              description: Whether the recipient is owned by the customer
+            category:
+              type: string
+              description: Category of recipient
+              enum:
+                - bank
+                - mobile_money
+                - crypto
+    RecipientResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseSchema'
+        - type: object
+          required:
+            - data
+          properties:
+            data:
+              oneOf:
+                - $ref: '#/components/schemas/Recipient'
+                - $ref: '#/components/schemas/Recipient-2025-07-11'
     RecipientListResponse:
       allOf:
         - $ref: '#/components/schemas/CursorPagination'
@@ -3637,50 +4206,11 @@ components:
               type: array
               description: List of recipients
               items:
-                $ref: '#/components/schemas/Recipient'
+                oneOf:
+                  - $ref: '#/components/schemas/Recipient-2025-07-11'
+                  - $ref: '#/components/schemas/Recipient'
           required:
             - data
-      example:
-        status: success
-        message: Recipients retrieved successfully
-        data:
-          - object: recipient
-            id: 8014c2ee-c70f-4c72-8d9f-c8b9d708a688
-            user_id: b8277d1c-1bde-46ef-92ce-ebb4752eede5
-            profile_id: b8277d1c-1bde-46ef-92ce-ebb4752eede5
-            currency_id: NGN
-            country_id: NG
-            type: ngn_bank_transfer
-            legal_entity_type: business
-            owned_by_customer: true
-            active: true
-            created_at: '2024-05-16T13:06:31.409336+01:00'
-            updated_at: '2024-05-16T13:06:31.409336+01:00'
-            fields:
-              - value: Access Bank Nigeria
-                display_name: Bank Name
-                name: bank_name
-                is_copyable: false
-                is_visible: true
-                required: true
-              - value: '0013246052'
-                display_name: Account Number
-                name: account_number
-                is_copyable: false
-                is_visible: true
-                required: true
-              - value: '000014'
-                display_name: Bank Code
-                name: bank_code
-                is_copyable: false
-                is_visible: false
-                required: true
-              - value: JOHN DOE
-                display_name: Account Name
-                name: full_name
-                is_copyable: false
-                is_visible: true
-                required: true
     RecipientRequirementListResponse:
       x-interal: true
       allOf:
@@ -4257,15 +4787,6 @@ components:
           type: string
           example: send
           description: Transaction type name
-    TransactionTypesListResponse:
-      allOf:
-        - $ref: '#/components/schemas/BaseSchema'
-        - type: object
-          properties:
-            data:
-              type: array
-              items:
-                $ref: '#/components/schemas/TransactionType'
     Transfer:
       type: object
       required:
