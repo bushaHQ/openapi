@@ -528,6 +528,7 @@ paths:
         - $ref: '#/components/parameters/CursorQueryParams'
         - $ref: '#/components/parameters/LimitQueryParam'
         - $ref: '#/components/parameters/CountryQueryParam'
+        - $ref: '#/components/parameters/CurrencyQueryParam'
         - $ref: '#/components/parameters/ProfileHeader'
         - name: withdrawal
           in: query
@@ -590,6 +591,16 @@ paths:
           explode: false
           x-oapi-codegen-extra-tags:
             filter: slice_upper|slice_trim
+        - name: auto_convert_to
+          in: query
+          required: false
+          description: Currency to convert the deposit to
+          schema:
+            type: string
+            example: NGN
+          x-oapi-codegen-extra-tags:
+            validate: min_len:3|max_len:10
+            filter: upper|trim
       responses:
         '200':
           $ref: '#/components/responses/LookupResponses'
@@ -784,7 +795,7 @@ paths:
       tags:
         - Recipients
       operationId: createRecipient
-      summary: Creates a recipient
+      summary: Create a recipient
       description: Create a new recipient for transfers.
       parameters:
         - $ref: '#/components/parameters/X-BU-Version'
@@ -868,21 +879,21 @@ paths:
                 summary: Recipient creation BTC (2025-07-11)
                 value:
                   type: crypto
-                  account_name: My Bitcoin Wallet
+                  wallet_name: My Bitcoin Wallet
                   network: BTC
                   address: bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh
               crypto_usdt_on_eth:
                 summary: Recipient creation USDT ON ETH NETWORK (2025-07-11)
                 value:
                   type: crypto
-                  account_name: My Ethereum Wallet
+                  wallet_name: My Ethereum Wallet
                   network: ETH
                   address: '0x742d35Cc6543C4532f5D2b8d9a2b2A1234567890'
               crypto_stellar_lumens_with_memo:
                 summary: Recipient creation STELLAR LUMENS (2025-07-11)
                 value:
                   type: crypto
-                  account_name: My Stellar Wallet
+                  wallet_name: My Stellar Wallet
                   network: XLM
                   address: GAHK7EEG2WWHVKDNT4CEQFZGKF2LGDSW2IVM4S5DP42RBW3K6BTODB4A
                   memo: '123456789'
@@ -4068,6 +4079,11 @@ components:
             - swift
           x-oapi-codegen-extra-tags:
             mapstructure: transfer_type,omitempty
+        wallet_name:
+          type: string
+          description: Name of the wallet (for crypto)
+          x-oapi-codegen-extra-tags:
+            mapstructure: wallet_name,omitempty
         account_name:
           type: string
           description: Name on the account
