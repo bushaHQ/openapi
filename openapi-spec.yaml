@@ -879,21 +879,21 @@ paths:
                 summary: Recipient creation BTC (2025-07-11)
                 value:
                   type: crypto
-                  wallet_name: My Bitcoin Wallet
+                  address_label: My Bitcoin Wallet
                   network: BTC
                   address: bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh
               crypto_usdt_on_eth:
                 summary: Recipient creation USDT ON ETH NETWORK (2025-07-11)
                 value:
                   type: crypto
-                  wallet_name: My Ethereum Wallet
+                  address_label: My Ethereum Wallet
                   network: ETH
                   address: '0x742d35Cc6543C4532f5D2b8d9a2b2A1234567890'
               crypto_stellar_lumens_with_memo:
                 summary: Recipient creation STELLAR LUMENS (2025-07-11)
                 value:
                   type: crypto
-                  wallet_name: My Stellar Wallet
+                  address_label: My Stellar Wallet
                   network: XLM
                   address: GAHK7EEG2WWHVKDNT4CEQFZGKF2LGDSW2IVM4S5DP42RBW3K6BTODB4A
                   memo: '123456789'
@@ -1043,6 +1043,7 @@ paths:
                       profile_id: aa909417-099c-429a-9d74-89e9b5e8891c
                       active: true
                       address: bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh
+                      address_label: My Bitcoin Wallet
                       category: crypto
                       network: BTC
                       object: recipients
@@ -1058,6 +1059,7 @@ paths:
                       profile_id: aa909417-099c-429a-9d74-89e9b5e8891c
                       active: true
                       address: '0x742d35Cc6543C4532f5D2b8d9a2b2A1234567890'
+                      address_label: My Ethereum Wallet
                       category: crypto
                       network: ETH
                       object: recipients
@@ -1073,6 +1075,7 @@ paths:
                       profile_id: aa909417-099c-429a-9d74-89e9b5e8891c
                       active: true
                       address: GAHK7EEG2WWHVKDNT4CEQFZGKF2LGDSW2IVM4S5DP42RBW3K6BTODB4A
+                      address_label: My Stellar Wallet
                       category: crypto
                       memo: '123456789'
                       network: XLM
@@ -4079,7 +4082,7 @@ components:
             - swift
           x-oapi-codegen-extra-tags:
             mapstructure: transfer_type,omitempty
-        wallet_name:
+        address_label:
           type: string
           description: Name of the wallet (for crypto)
           x-oapi-codegen-extra-tags:
