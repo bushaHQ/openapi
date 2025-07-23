@@ -157,8 +157,6 @@ tags:
     x-displayName: Recipients
   - name: Transactions
     x-displayName: Transactions
-  - name: Transaction
-    x-displayName: Transaction
   - name: Transfers
     x-displayName: Transfers
 paths:
@@ -1098,6 +1096,16 @@ paths:
         - $ref: '#/components/parameters/CountryQueryParam'
         - $ref: '#/components/parameters/X-BU-Version'
         - $ref: '#/components/parameters/ProfileHeader'
+        - name: network
+          in: query
+          description: Filter by recipient network
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+          style: form
+          explode: false
         - name: type
           in: query
           description: Filter by recipient type
@@ -1304,6 +1312,25 @@ paths:
                       object: recipients
                       owned_by_customer: true
                       type: ngn_bank
+        4XX:
+          $ref: '#/components/responses/RecipientError4XX'
+      security:
+        - Auth:
+            - recipients:read
+            - api:read
+    delete:
+      tags:
+        - Recipients
+      summary: Delete a recipient
+      description: Delete a specific recipient
+      operationId: deleteRecipient
+      parameters:
+        - $ref: '#/components/parameters/ParamUUID'
+        - $ref: '#/components/parameters/ProfileHeader'
+        - $ref: '#/components/parameters/X-BU-Version'
+      responses:
+        '204':
+          description: Recipient deleted successfully
         4XX:
           $ref: '#/components/responses/RecipientError4XX'
       security:
@@ -3153,6 +3180,9 @@ components:
         memo:
           type: string
           example: memo123
+        auto_convert_currency:
+          type: string
+          example: NGN
     ValidateDestinationResponse:
       allOf:
         - $ref: '#/components/schemas/BaseSchema'
@@ -3443,8 +3473,9 @@ components:
           type: string
         account_number:
           type: string
-        country:
+        country_code:
           type: string
+          example: NG
         provider:
           type: string
         currency:
