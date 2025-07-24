@@ -3487,6 +3487,9 @@ components:
         email:
           type: string
           example: sbsbs@busha.co
+        bank_code:
+          type: string
+          example: '100020'
     PayOutObj:
       type: object
       required:
