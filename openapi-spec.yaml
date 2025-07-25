@@ -1106,15 +1106,15 @@ paths:
               type: string
           style: form
           explode: false
-        - name: type
+        - name: category
           in: query
-          description: Filter by recipient type
+          description: Filter by recipient category
           required: false
           schema:
             type: string
-        - name: recipient_requirement_id
+        - name: type
           in: query
-          description: Filter recipient by the requirement ids
+          description: Filter recipient by the type
           required: false
           schema:
             type: array
@@ -4278,18 +4278,18 @@ components:
       x-interal: true
       type: object
       required:
-        - type
+        - id
         - countries
         - currencies
         - name
         - description
-        - category
+        - type
         - fields
         - active
         - created_at
         - entity_type
       properties:
-        type:
+        id:
           type: string
           x-order: 1
         currencies:
@@ -4308,7 +4308,7 @@ components:
         description:
           type: string
           x-order: 7
-        category:
+        type:
           type: string
           x-order: 3
         fields:
