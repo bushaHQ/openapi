@@ -1486,6 +1486,22 @@ paths:
         - Transfers
       parameters:
         - $ref: '#/components/parameters/ProfileHeader'
+        - name: start_date
+          in: query
+          description: Filter by start date
+          required: false
+          schema:
+            type: string
+            format: date
+          example: '2022-01-01'
+        - name: end_date
+          in: query
+          description: Filter by end date
+          required: false
+          schema:
+            type: string
+            format: date
+          example: '2022-01-01'
         - name: source_currency
           in: query
           description: Filter by source_currency code
@@ -1532,6 +1548,82 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/TransferListResponse'
+        4XX:
+          $ref: '#/components/responses/TransferError4XX'
+      security:
+        - Auth:
+            - transfers:read
+            - api:read
+  /v1/transfers/export/csv:
+    get:
+      summary: Export transfers as CSV
+      description: Export transfers as CSV
+      operationId: exportTransferCsv
+      tags:
+        - Transfers
+      parameters:
+        - $ref: '#/components/parameters/ProfileHeader'
+        - name: start_date
+          in: query
+          description: Filter by start date
+          required: true
+          schema:
+            type: string
+            format: date
+          example: '2022-01-01'
+        - name: end_date
+          in: query
+          description: Filter by end date
+          required: true
+          schema:
+            type: string
+            format: date
+          example: '2022-01-01'
+        - name: source_currency
+          in: query
+          description: Filter by source_currency code
+          required: false
+          x-oapi-codegen-extra-tags:
+            validate: min_len:3|max_len:10
+            filter: trim|upper
+          schema:
+            type: string
+        - name: target_currency
+          in: query
+          description: Filter by target_currency code
+          required: false
+          x-oapi-codegen-extra-tags:
+            validate: min_len:3|max_len:10
+            filter: trim|upper
+          schema:
+            type: string
+        - name: status
+          in: query
+          description: Filter by status
+          required: false
+          schema:
+            type: string
+        - name: referred
+          in: query
+          description: Specify whether to get referred transfers or not
+          required: false
+          schema:
+            type: boolean
+        - name: trade
+          in: query
+          description: Filter Transfers by "buy" or "sell" trades
+          required: false
+          schema:
+            type: string
+            enum:
+              - buy
+              - sell
+              - exchange
+              - non_exchange
+        - $ref: '#/components/parameters/CursorQueryParams'
+        - $ref: '#/components/parameters/SortQueryParam'
+        - $ref: '#/components/parameters/LimitQueryParam'
+      responses:
         4XX:
           $ref: '#/components/responses/TransferError4XX'
       security:
@@ -5026,6 +5118,20 @@ components:
           x-order: 6
           format: date-time
           example: '2023-10-15T12:15:30Z'
+    FileResponse:
+      description: File response values
+      type: object
+      required:
+        - url
+      properties:
+        url:
+          type: string
+          format: url
+          example: https://example.com/file
+        valid_until:
+          type: string
+          format: date-time
+          example: '2023-01-01T00:00:00Z'
   responses:
     BalanceError4XX:
       description: 409 error when a balance with the same currency already exists for a user
