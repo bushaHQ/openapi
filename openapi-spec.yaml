@@ -18,7 +18,7 @@ info:
     All API requests require a **Bearer Token** for authentication, passed in the `Authorization` header.
     Your authorization value is a base64 encoded value of your api key and your secret key.
     You can obtain API tokens via your Busha user or business account. Authentication is mandatory to ensure secure and authorized interactions with the API.
-    The API keys from the dashboard provides a base64 encoding of the your authorrization tokens.
+    The API keys from the dashboard provides a base64 encoding of the your authorization tokens.
 
     Your generated Key should look like this:
     `VURtNXhWcHueantkpaiewjo0S044MWsadfojienuoxRTiWDJaeWJaTGxxanZ3Ym10OU1RZnVWajVW=`
@@ -150,6 +150,9 @@ tags:
   - name: Pairs
     description: Access trading pair information and rates
     x-displayName: Pairs
+  - name: Payments
+    description: Payment request
+    x-displayName: Payments
   - name: Quotes
     description: Handle quotes requests and responses
     x-displayName: Quotes
@@ -196,6 +199,8 @@ paths:
                         $ref: '#/components/schemas/Balance'
         4XX:
           $ref: '#/components/responses/BalanceError4XX'
+        5XX:
+          $ref: '#/components/responses/BalanceError5XX'
     get:
       tags:
         - Balances
@@ -217,6 +222,8 @@ paths:
                 $ref: '#/components/schemas/BalanceListResponse'
         4XX:
           $ref: '#/components/responses/BalanceError4XX'
+        5XX:
+          $ref: '#/components/responses/BalanceError5XX'
       security:
         - Auth:
             - balances:read
@@ -228,7 +235,7 @@ paths:
       operationId: getBalance
       summary: Get balance details
       parameters:
-        - $ref: '#/components/parameters/ParamUUID'
+        - $ref: '#/components/parameters/PathParamUUID'
         - $ref: '#/components/parameters/ProfileHeader'
       responses:
         '200':
@@ -246,6 +253,8 @@ paths:
                         $ref: '#/components/schemas/Balance'
         4XX:
           $ref: '#/components/responses/BalanceError4XX'
+        5XX:
+          $ref: '#/components/responses/BalanceError5XX'
       security:
         - Auth:
             - balances:read
@@ -269,6 +278,8 @@ paths:
                 $ref: '#/components/schemas/CurrenciesListResponse'
         4XX:
           $ref: '#/components/responses/CurrenciesError4XX'
+        5XX:
+          $ref: '#/components/responses/CurrenciesError5XX'
       security: []
   /v1/currencies/{code}:
     get:
@@ -296,6 +307,8 @@ paths:
                         $ref: '#/components/schemas/Currencies'
         4XX:
           $ref: '#/components/responses/CurrenciesError4XX'
+        5XX:
+          $ref: '#/components/responses/CurrenciesError5XX'
       security: []
   /v1/customers:
     post:
@@ -361,6 +374,8 @@ paths:
           $ref: '#/components/responses/CustomerResponse'
         4XX:
           $ref: '#/components/responses/CustomerError4XX'
+        5XX:
+          $ref: '#/components/responses/CustomerError5XX'
     get:
       x-internal: false
       summary: List Customers
@@ -377,6 +392,8 @@ paths:
           $ref: '#/components/responses/CustomerListResponse'
         4XX:
           $ref: '#/components/responses/CustomerError4XX'
+        5XX:
+          $ref: '#/components/responses/CustomerError5XX'
       security:
         - Auth:
             - customers:read
@@ -390,13 +407,15 @@ paths:
       tags:
         - Customers
       parameters:
-        - $ref: '#/components/parameters/ParamNanoID'
+        - $ref: '#/components/parameters/PathParamNanoID'
         - $ref: '#/components/parameters/ProfileHeader'
       responses:
         '200':
           $ref: '#/components/responses/CustomerResponse'
         4XX:
           $ref: '#/components/responses/CustomerError4XX'
+        5XX:
+          $ref: '#/components/responses/CustomerError5XX'
       security:
         - Auth:
             - customers:read
@@ -414,7 +433,7 @@ paths:
       tags:
         - Customers
       parameters:
-        - $ref: '#/components/parameters/ParamNanoID'
+        - $ref: '#/components/parameters/PathParamNanoID'
         - $ref: '#/components/parameters/ProfileHeader'
       requestBody:
         description: Customer details to be updated
@@ -428,6 +447,8 @@ paths:
           $ref: '#/components/responses/CustomerResponse'
         4XX:
           $ref: '#/components/responses/CustomerError4XX'
+        5XX:
+          $ref: '#/components/responses/CustomerError5XX'
   /v1/customers/{id}/verify:
     post:
       x-rate-limit: 20
@@ -442,13 +463,15 @@ paths:
       tags:
         - Customers
       parameters:
-        - $ref: '#/components/parameters/ParamNanoID'
+        - $ref: '#/components/parameters/PathParamNanoID'
         - $ref: '#/components/parameters/ProfileHeader'
       responses:
         '200':
           $ref: '#/components/responses/GeneralResponse'
         4XX:
           $ref: '#/components/responses/CustomerError4XX'
+        5XX:
+          $ref: '#/components/responses/CustomerError5XX'
   /v1/customers/industries:
     get:
       x-internal: false
@@ -464,6 +487,8 @@ paths:
           $ref: '#/components/responses/CustomerBusinessIndustries'
         4XX:
           $ref: '#/components/responses/CustomerError4XX'
+        5XX:
+          $ref: '#/components/responses/CustomerError5XX'
       security:
         - Auth:
             - customers:read
@@ -492,6 +517,8 @@ paths:
                 $ref: '#/components/schemas/ValidateDestinationResponse'
         4XX:
           $ref: '#/components/responses/MiscellaneousError4XX'
+        5XX:
+          $ref: '#/components/responses/MiscellaneousError5XX'
       security: []
   /v1/banks:
     get:
@@ -513,6 +540,8 @@ paths:
                 $ref: '#/components/schemas/ListBankResponse'
         4XX:
           $ref: '#/components/responses/MiscellaneousError4XX'
+        5XX:
+          $ref: '#/components/responses/MiscellaneousError5XX'
       security: []
   /v1/countries:
     get:
@@ -547,8 +576,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CountriesListResponse'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+        4XX:
+          $ref: '#/components/responses/MiscellaneousError4XX'
+        5XX:
+          $ref: '#/components/responses/MiscellaneousError5XX'
       security: []
   /v1/pay/{username}:
     get:
@@ -604,6 +635,8 @@ paths:
           $ref: '#/components/responses/LookupResponses'
         4XX:
           $ref: '#/components/responses/MiscellaneousError4XX'
+        5XX:
+          $ref: '#/components/responses/MiscellaneousError5XX'
       security: []
   /v1/pairs:
     get:
@@ -648,7 +681,71 @@ paths:
                 $ref: '#/components/schemas/PairsListResponse'
         4XX:
           $ref: '#/components/responses/PairError4XX'
+        5XX:
+          $ref: '#/components/responses/PairError5XX'
       security: []
+  /v1/payments:
+    post:
+      tags:
+        - Payments
+      security:
+        - AuthOptional:
+            - transfers:write
+            - api:write
+      summary: Create a payment request
+      description: Create a payment request
+      operationId: createPaymentRequest
+      parameters:
+        - $ref: '#/components/parameters/ProfileHeader'
+        - $ref: '#/components/parameters/XBuPublicKey'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePaymentRequest'
+      responses:
+        '201':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseSchema'
+                  - type: object
+                    required:
+                      - data
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PaymentRequest'
+        4XX:
+          $ref: '#/components/responses/PaymentRequestError4XX'
+        5XX:
+          $ref: '#/components/responses/PaymentRequestError5XX'
+  /v1/payments/{id}:
+    get:
+      security:
+        - AuthOptional:
+            - transfers:read
+            - api:read
+      tags:
+        - Payments
+      summary: Retrieve a payment request
+      description: Retrieve a payment request
+      operationId: getPaymentRequest
+      parameters:
+        - $ref: '#/components/parameters/PathParamNanoID'
+        - $ref: '#/components/parameters/XBuPublicKey'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentRequestResponse'
+        4XX:
+          $ref: '#/components/responses/PaymentRequestError4XX'
+        5XX:
+          $ref: '#/components/responses/PaymentRequestError5XX'
   /v1/quotes:
     post:
       x-rate-limit: 20
@@ -663,6 +760,7 @@ paths:
         - Quotes
       parameters:
         - $ref: '#/components/parameters/ProfileHeader'
+        - $ref: '#/components/parameters/XBuPublicKey'
       requestBody:
         description: Create a new Quote
         required: true
@@ -675,6 +773,8 @@ paths:
           $ref: '#/components/responses/QuoteResponse'
         4XX:
           $ref: '#/components/responses/QuoteError4XX'
+        5XX:
+          $ref: '#/components/responses/QuoteError5XX'
     get:
       summary: List Quotes
       description: List Quotes
@@ -691,6 +791,8 @@ paths:
           $ref: '#/components/responses/QuotesListResponse'
         4XX:
           $ref: '#/components/responses/QuoteError4XX'
+        5XX:
+          $ref: '#/components/responses/QuoteError5XX'
       security:
         - Auth:
             - quotes:read
@@ -703,13 +805,15 @@ paths:
       tags:
         - Quotes
       parameters:
-        - $ref: '#/components/parameters/ParamUUID'
+        - $ref: '#/components/parameters/PathParamUUID'
         - $ref: '#/components/parameters/ProfileHeader'
       responses:
         '200':
           $ref: '#/components/responses/QuoteResponse'
         4XX:
           $ref: '#/components/responses/QuoteError4XX'
+        5XX:
+          $ref: '#/components/responses/QuoteError5XX'
       security:
         - Auth:
             - quotes:read
@@ -735,6 +839,8 @@ paths:
           $ref: '#/components/responses/QuoteResponse'
         4XX:
           $ref: '#/components/responses/QuoteError4XX'
+        5XX:
+          $ref: '#/components/responses/QuoteError5XX'
   /v1/quote/payment_options:
     get:
       summary: List Payment Options
@@ -779,6 +885,8 @@ paths:
           $ref: '#/components/responses/PaymentOptionsListResponse'
         4XX:
           $ref: '#/components/responses/QuoteError4XX'
+        5XX:
+          $ref: '#/components/responses/QuoteError5XX'
       security:
         - Auth:
             - quotes:read
@@ -1082,6 +1190,8 @@ paths:
                       type: crypto
         4XX:
           $ref: '#/components/responses/RecipientError4XX'
+        5XX:
+          $ref: '#/components/responses/RecipientError5XX'
     get:
       tags:
         - Recipients
@@ -1239,6 +1349,8 @@ paths:
                         type: ngn_bank
         4XX:
           $ref: '#/components/responses/RecipientError4XX'
+        5XX:
+          $ref: '#/components/responses/RecipientError5XX'
       security:
         - Auth:
             - recipients:read
@@ -1251,7 +1363,7 @@ paths:
       description: Get details of a specific recipient
       operationId: getRecipient
       parameters:
-        - $ref: '#/components/parameters/ParamUUID'
+        - $ref: '#/components/parameters/PathParamUUID'
         - $ref: '#/components/parameters/ProfileHeader'
         - $ref: '#/components/parameters/X-BU-Version'
       responses:
@@ -1314,6 +1426,8 @@ paths:
                       type: ngn_bank
         4XX:
           $ref: '#/components/responses/RecipientError4XX'
+        5XX:
+          $ref: '#/components/responses/RecipientError5XX'
       security:
         - Auth:
             - recipients:read
@@ -1325,7 +1439,7 @@ paths:
       description: Delete a specific recipient
       operationId: deleteRecipient
       parameters:
-        - $ref: '#/components/parameters/ParamUUID'
+        - $ref: '#/components/parameters/PathParamUUID'
         - $ref: '#/components/parameters/ProfileHeader'
         - $ref: '#/components/parameters/X-BU-Version'
       responses:
@@ -1333,6 +1447,8 @@ paths:
           description: Recipient deleted successfully
         4XX:
           $ref: '#/components/responses/RecipientError4XX'
+        5XX:
+          $ref: '#/components/responses/RecipientError5XX'
       security:
         - Auth:
             - recipients:read
@@ -1373,6 +1489,8 @@ paths:
                         $ref: '#/components/schemas/ResolveBankAccountResp'
         4XX:
           $ref: '#/components/responses/RecipientError4XX'
+        5XX:
+          $ref: '#/components/responses/RecipientError5XX'
   /v1/transactions:
     get:
       tags:
@@ -1416,8 +1534,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TransactionsListResponse'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+        4XX:
+          $ref: '#/components/responses/TransactionsError4XX'
+        5XX:
+          $ref: '#/components/responses/TransactionsError5XX'
       security:
         - Auth:
             - transactions:read
@@ -1430,7 +1550,7 @@ paths:
       operationId: getTransaction
       summary: Get transaction
       parameters:
-        - $ref: '#/components/parameters/ParamUUID'
+        - $ref: '#/components/parameters/PathParamUUID'
         - $ref: '#/components/parameters/ProfileHeader'
       responses:
         '200':
@@ -1446,8 +1566,10 @@ paths:
                     properties:
                       data:
                         $ref: '#/components/schemas/Transaction'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+        4XX:
+          $ref: '#/components/responses/TransactionsError4XX'
+        5XX:
+          $ref: '#/components/responses/TransactionsError5XX'
       security:
         - Auth:
             - transactions:read
@@ -1478,6 +1600,8 @@ paths:
           $ref: '#/components/responses/TransferResponse'
         4XX:
           $ref: '#/components/responses/TransferError4XX'
+        5XX:
+          $ref: '#/components/responses/TransferError5XX'
     get:
       summary: List transfers
       description: Gets all transfers
@@ -1550,82 +1674,8 @@ paths:
           $ref: '#/components/responses/TransferListResponse'
         4XX:
           $ref: '#/components/responses/TransferError4XX'
-      security:
-        - Auth:
-            - transfers:read
-            - api:read
-  /v1/transfers/export/csv:
-    get:
-      summary: Export transfers as CSV
-      description: Export transfers as CSV
-      operationId: exportTransferCsv
-      tags:
-        - Transfers
-      parameters:
-        - $ref: '#/components/parameters/ProfileHeader'
-        - name: start_date
-          in: query
-          description: Filter by start date
-          required: true
-          schema:
-            type: string
-            format: date
-          example: '2022-01-01'
-        - name: end_date
-          in: query
-          description: Filter by end date
-          required: true
-          schema:
-            type: string
-            format: date
-          example: '2022-01-01'
-        - name: source_currency
-          in: query
-          description: Filter by source_currency code
-          required: false
-          x-oapi-codegen-extra-tags:
-            validate: min_len:3|max_len:10
-            filter: trim|upper
-          schema:
-            type: string
-        - name: target_currency
-          in: query
-          description: Filter by target_currency code
-          required: false
-          x-oapi-codegen-extra-tags:
-            validate: min_len:3|max_len:10
-            filter: trim|upper
-          schema:
-            type: string
-        - name: status
-          in: query
-          description: Filter by status
-          required: false
-          schema:
-            type: string
-        - name: referred
-          in: query
-          description: Specify whether to get referred transfers or not
-          required: false
-          schema:
-            type: boolean
-        - name: trade
-          in: query
-          description: Filter Transfers by "buy" or "sell" trades
-          required: false
-          schema:
-            type: string
-            enum:
-              - buy
-              - sell
-              - exchange
-              - non_exchange
-        - $ref: '#/components/parameters/CursorQueryParams'
-        - $ref: '#/components/parameters/SortQueryParam'
-        - $ref: '#/components/parameters/LimitQueryParam'
-      responses:
-        4XX:
-          $ref: '#/components/responses/TransferError4XX'
+        5XX:
+          $ref: '#/components/responses/TransferError5XX'
       security:
         - Auth:
             - transfers:read
@@ -1638,13 +1688,15 @@ paths:
       tags:
         - Transfers
       parameters:
-        - $ref: '#/components/parameters/ParamNanoID'
+        - $ref: '#/components/parameters/PathParamNanoID'
         - $ref: '#/components/parameters/ProfileHeader'
       responses:
         '200':
           $ref: '#/components/responses/TransferResponse'
         4XX:
           $ref: '#/components/responses/TransferError4XX'
+        5XX:
+          $ref: '#/components/responses/TransferError5XX'
       security:
         - Auth:
             - transfers:read
@@ -1659,7 +1711,7 @@ components:
       schema:
         type: string
         example: BUS_YOK8tp5Zga01qOKEsqp07
-    ParamUUID:
+    PathParamUUID:
       in: path
       name: id
       required: true
@@ -1700,7 +1752,6 @@ components:
       schema:
         type: string
         format: string
-        example: base64_encoding
     LimitQueryParam:
       name: limit
       in: query
@@ -1709,7 +1760,7 @@ components:
         type: integer
         example: 10
         x-go-type: uint64
-    ParamNanoID:
+    PathParamNanoID:
       in: path
       name: id
       required: true
@@ -1772,6 +1823,13 @@ components:
         filter: trim|upper
       schema:
         type: string
+    XBuPublicKey:
+      in: header
+      name: X-BU-PUBLIC-KEY
+      required: false
+      schema:
+        type: string
+        example: pub_uibaidu930ani
     X-BU-Version:
       in: header
       name: X-BU-Version
@@ -3093,7 +3151,6 @@ components:
         - terms
         - status
         - estimated_term_amount
-        - rate
         - source_amount
         - created_at
         - updated_at
@@ -3275,6 +3332,108 @@ components:
         auto_convert_currency:
           type: string
           example: NGN
+    SearchResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseSchema'
+        - type: object
+          required:
+            - data
+          properties:
+            data:
+              $ref: '#/components/schemas/SearchResponseObject'
+    SearchResponseObject:
+      type: object
+      properties:
+        assets:
+          type: array
+          description: Returns all available assets
+          items:
+            type: object
+            required:
+              - type
+              - symbol
+              - name
+              - price
+              - change
+            properties:
+              type:
+                type: string
+                example: asset
+                description: Type of the result
+              symbol:
+                type: string
+                example: ADA
+                x-order: 1
+              name:
+                type: string
+                example: Cardano
+                x-order: 2
+              price:
+                $ref: '#/components/schemas/AmountWithCurrency'
+              change:
+                $ref: '#/components/schemas/Decimal'
+        transactions:
+          type: array
+          description: List of transactions related to assets
+          items:
+            type: object
+            required:
+              - type
+              - symbol
+              - amount
+              - status
+              - date
+              - transaction_type
+            properties:
+              type:
+                type: string
+                example: transaction
+              symbol:
+                type: string
+                example: ADA
+              amount:
+                $ref: '#/components/schemas/AmountWithCurrency'
+              status:
+                type: string
+                example: completed
+              date:
+                type: string
+                format: date
+                example: '2025-08-14'
+              transaction_type:
+                type: string
+                example: buy
+        wallets:
+          type: array
+          description: List of wallets containing assets
+          items:
+            type: object
+            required:
+              - type
+              - symbol
+              - balance
+              - wallet_name
+              - last_activity
+            properties:
+              type:
+                type: string
+                example: wallet
+              symbol:
+                type: string
+                example: ADA
+              balance:
+                type: string
+                example: 250.5 ADA
+              wallet_name:
+                $ref: '#/components/schemas/AmountWithCurrency'
+              last_activity:
+                type: string
+                format: date
+                example: '2025-08-14'
+        total_results:
+          type: integer
+          description: Total number of search results
+          example: 15
     ValidateDestinationResponse:
       allOf:
         - $ref: '#/components/schemas/BaseSchema'
@@ -3441,6 +3600,94 @@ components:
           type: string
           example: 0-15 minutes
           description: The average time to process via the payment option.
+    PayOutObj:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          example: address
+          enum:
+            - address
+            - bank_transfer
+            - mobile_money
+            - balance
+        recipient_id:
+          type: string
+          example: 64ae8c26ea1033204c805a8a
+          description: |
+            This represents the recipient ID, used for `mobile_money` and `bank_transfer` types.
+        address:
+          type: string
+          example: tb1qj4263506wyu8khrz2dwce0agk8lhyjgy269rxr
+          description: |
+            This could be the address, user email or username for type `address`.
+        network:
+          type: string
+          example: BTC
+          description: |
+            This specifies the blockchain network associated with the address receiving the payment, typically used with address type payouts.
+        memo:
+          type: string
+          example: memo
+          description: |
+            This refers to the memo required for blockchain networks that mandate a memo for cryptocurrency transactions.
+    RecipientDetails:
+      type: object
+      properties:
+        account_name:
+          type: string
+        bank_name:
+          type: string
+        account_number:
+          type: string
+        country_code:
+          type: string
+          example: NG
+        provider:
+          type: string
+        currency:
+          type: string
+        phone_number:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+          example: sbsbs@busha.co
+        bank_code:
+          type: string
+          example: '100020'
+    PaymentObj:
+      allOf:
+        - $ref: '#/components/schemas/PayOutObj'
+        - type: object
+          properties:
+            profile_id:
+              type: string
+              example: profile-id-1234
+            memo:
+              type: string
+              example: address memo
+            recipient_details:
+              $ref: '#/components/schemas/RecipientDetails'
+            blockchain_hash:
+              type: string
+              x-order: 16
+              example: 31b99c79e2fb7554d0a9421867a53a80e6810cdfd2b06826eec1b2a22974b171
+            blockchain_url:
+              type: string
+              x-order: 16
+              example: https://explorer.com/tx/31b99c79e2fb7554d0a9421867a53a80e6810cdfd2b06826eec1b2a22974b171
+            session_id:
+              type: string
+              x-order: 16
+              example: 31b99c79e2fb7554d0a9421867a53a80e6810cdfd2b06826eec1b2a22974b171
+            expires_at:
+              type: string
+              format: date-time
+              example: '2023-10-15T12:15:30Z'
     Pairs:
       type: object
       required:
@@ -3520,17 +3767,160 @@ components:
               maxItems: 100
               items:
                 $ref: '#/components/schemas/Pairs'
-    ExampleQuoteResponse:
+    PaymentRequest:
+      type: object
+      required:
+        - id
+        - source_amount
+        - source_currency
+        - target_amount
+        - target_currency
+        - rate
+        - fees
+        - reference
+        - additional_info
+        - merchant_info
+        - status
+        - created_at
+        - updated_at
+        - expires_at
+      properties:
+        id:
+          $ref: '#/components/schemas/NanoID'
+        source_amount:
+          $ref: '#/components/schemas/Decimal'
+        source_currency:
+          $ref: '#/components/schemas/Currency'
+        target_amount:
+          $ref: '#/components/schemas/Decimal'
+        target_currency:
+          $ref: '#/components/schemas/Currency'
+        rate:
+          allOf:
+            - $ref: '#/components/schemas/QuoteRate'
+        fees:
+          type: array
+          items:
+            $ref: '#/components/schemas/Fee'
+        pay_in:
+          $ref: '#/components/schemas/PaymentObj'
+        reference:
+          type: string
+        status:
+          type: string
+          enum:
+            - pending
+            - expired
+            - cancelled
+            - completed
+            - failed
+        additional_info:
+          $ref: '#/components/schemas/AdditionalInfo'
+        merchant_info:
+          $ref: '#/components/schemas/MerchantInfo'
+        timeline:
+          allOf:
+            - $ref: '#/components/schemas/TransferTimeline'
+        created_at:
+          type: string
+          format: date-time
+          example: '2023-10-15T12:15:30Z'
+        updated_at:
+          type: string
+          format: date-time
+          example: '2023-10-15T12:15:30Z'
+        expires_at:
+          type: string
+          format: date-time
+          example: '2023-10-15T12:15:30Z'
+    PaymentRequestResponse:
       allOf:
         - $ref: '#/components/schemas/BaseSchema'
         - type: object
+          required:
+            - data
           properties:
             data:
-              type: object
-              properties:
-                greeting:
-                  type: string
-                  example: Welcome to the quote service!
+              $ref: '#/components/schemas/PaymentRequest'
+    PaymentRequestListResponse:
+      allOf:
+        - $ref: '#/components/schemas/CursorPagination'
+        - type: object
+          required:
+            - data
+          properties:
+            data:
+              type: array
+              description: List of payment requests
+              items:
+                $ref: '#/components/schemas/PaymentRequest'
+    CreatePaymentRequest:
+      type: object
+      required:
+        - additional_info
+        - source_currency
+        - target_currency
+      properties:
+        additional_info:
+          $ref: '#/components/schemas/AdditionalInfo'
+        dry_run:
+          type: boolean
+          description: if true, will not create a payment transfer
+        quote_amount:
+          $ref: '#/components/schemas/Decimal'
+        quote_currency:
+          allOf:
+            - $ref: '#/components/schemas/Currency'
+          description: This optional field specifies the fiat currency to display amounts in, which is converted from the source amount
+          example: NGN
+        source_amount:
+          $ref: '#/components/schemas/Decimal'
+        source_currency:
+          $ref: '#/components/schemas/Currency'
+        target_amount:
+          $ref: '#/components/schemas/Decimal'
+        target_currency:
+          $ref: '#/components/schemas/Currency'
+        pay_in:
+          $ref: '#/components/schemas/PayInObj'
+        reference:
+          type: string
+          description: reference for the payment request
+          example: busha-123
+    AdditionalInfo:
+      type: object
+      required:
+        - email
+      properties:
+        email:
+          type: string
+          format: email
+          description: email address for the payment request
+        phone_number:
+          $ref: '#/components/schemas/PhoneField'
+    MerchantInfo:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          description: name of the business
+          example: busha
+        email:
+          type: string
+          format: email
+          description: email of the business
+          example: busha@me.com
+    PaymentRequestMeta:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        phone_number:
+          type: string
+          format: phone
     UnAuthPayInObj:
       type: object
       required:
@@ -3556,94 +3946,99 @@ components:
           properties:
             phone:
               $ref: '#/components/schemas/PhoneField'
-    RecipientDetails:
+    Fee:
       type: object
-      properties:
-        account_name:
-          type: string
-        bank_name:
-          type: string
-        account_number:
-          type: string
-        country_code:
-          type: string
-          example: NG
-        provider:
-          type: string
-        currency:
-          type: string
-        phone_number:
-          type: string
-        name:
-          type: string
-        email:
-          type: string
-          example: sbsbs@busha.co
-        bank_code:
-          type: string
-          example: '100020'
-    PayOutObj:
-      type: object
+      x-order: 40
       required:
+        - name
+        - amount
         - type
       properties:
+        name:
+          type: string
+          example: processing_fee
+        amount:
+          $ref: '#/components/schemas/AmountWithCurrency'
+        converted_amount:
+          $ref: '#/components/schemas/AmountWithCurrency'
         type:
           type: string
-          example: address
+          example: FIXED
+    Timeline:
+      type: object
+      required:
+        - step
+        - done
+        - status
+        - title
+        - description
+      properties:
+        step:
+          type: integer
+          x-order: 1
+          example: 1
+        done:
+          type: boolean
+          x-order: 2
+          example: true
+        status:
+          type: string
+          x-order: 3
           enum:
-            - address
-            - bank_transfer
-            - mobile_money
-            - balance
-        recipient_id:
+            - pending
+            - processing
+            - funds_converted
+            - funds_received
+            - outgoing_payment_sent
+            - funds_delivered
+            - failed
+            - completed
+        title:
           type: string
-          example: 64ae8c26ea1033204c805a8a
-          description: |
-            This represents the recipient ID, used for `mobile_money` and `bank_transfer` types.
-        address:
+          x-order: 4
+          example: Transfer started
+        description:
           type: string
-          example: tb1qj4263506wyu8khrz2dwce0agk8lhyjgy269rxr
-          description: |
-            This could be the address, user email or username for type `address`.
-        network:
+          x-order: 5
+          example: Transfer started
+          description: Waiting for payment
+        timestamp:
           type: string
-          example: BTC
-          description: |
-            This specifies the blockchain network associated with the address receiving the payment, typically used with address type payouts.
-        memo:
+          x-order: 6
+          format: date-time
+          example: '2023-10-15T12:15:30Z'
+    TransferTimeline:
+      type: object
+      required:
+        - total_steps
+        - current_step
+        - transfer_status
+        - events
+      properties:
+        total_steps:
+          type: integer
+          x-order: 1
+        current_step:
+          type: integer
+          x-order: 2
+        transfer_status:
           type: string
-          example: memo
-          description: |
-            This refers to the memo required for blockchain networks that mandate a memo for cryptocurrency transactions.
-    PaymentObj:
+          x-order: 3
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/Timeline'
+    ExampleQuoteResponse:
       allOf:
-        - $ref: '#/components/schemas/PayOutObj'
+        - $ref: '#/components/schemas/BaseSchema'
         - type: object
           properties:
-            profile_id:
-              type: string
-              example: profile-id-1234
-            memo:
-              type: string
-              example: address memo
-            recipient_details:
-              $ref: '#/components/schemas/RecipientDetails'
-            blockchain_hash:
-              type: string
-              x-order: 16
-              example: 31b99c79e2fb7554d0a9421867a53a80e6810cdfd2b06826eec1b2a22974b171
-            blockchain_url:
-              type: string
-              x-order: 16
-              example: https://explorer.com/tx/31b99c79e2fb7554d0a9421867a53a80e6810cdfd2b06826eec1b2a22974b171
-            session_id:
-              type: string
-              x-order: 16
-              example: 31b99c79e2fb7554d0a9421867a53a80e6810cdfd2b06826eec1b2a22974b171
-            expires_at:
-              type: string
-              format: date-time
-              example: '2023-10-15T12:15:30Z'
+            data:
+              type: object
+              properties:
+                greeting:
+                  type: string
+                  example: Welcome to the quote service!
     QuoteReference:
       type: string
       x-order: 2
@@ -3966,24 +4361,6 @@ components:
           type: boolean
           example: false
           description: If the code can be resent
-    Fee:
-      type: object
-      x-order: 40
-      required:
-        - name
-        - amount
-        - type
-      properties:
-        name:
-          type: string
-          example: processing_fee
-        amount:
-          $ref: '#/components/schemas/AmountWithCurrency'
-        converted_amount:
-          $ref: '#/components/schemas/AmountWithCurrency'
-        type:
-          type: string
-          example: FIXED
     CreateRecipientRequest:
       oneOf:
         - $ref: '#/components/schemas/RecipientCreate-2025-07-11'
@@ -5039,27 +5416,6 @@ components:
       properties:
         quote_id:
           $ref: '#/components/schemas/NanoID'
-    TransferTimeline:
-      type: object
-      required:
-        - total_steps
-        - current_step
-        - transfer_status
-        - events
-      properties:
-        total_steps:
-          type: integer
-          x-order: 1
-        current_step:
-          type: integer
-          x-order: 2
-        transfer_status:
-          type: string
-          x-order: 3
-        events:
-          type: array
-          items:
-            $ref: '#/components/schemas/Timeline'
     SimulateDepositRequest:
       type: object
       required:
@@ -5075,49 +5431,6 @@ components:
             - completed
           example: completed
           description: This is the status for simulated transaction.
-    Timeline:
-      type: object
-      required:
-        - step
-        - done
-        - status
-        - title
-        - description
-      properties:
-        step:
-          type: integer
-          x-order: 1
-          example: 1
-        done:
-          type: boolean
-          x-order: 2
-          example: true
-        status:
-          type: string
-          x-order: 3
-          enum:
-            - pending
-            - processing
-            - funds_converted
-            - funds_received
-            - outgoing_payment_sent
-            - funds_delivered
-            - failed
-            - completed
-        title:
-          type: string
-          x-order: 4
-          example: Transfer started
-        description:
-          type: string
-          x-order: 5
-          example: Transfer started
-          description: Waiting for payment
-        timestamp:
-          type: string
-          x-order: 6
-          format: date-time
-          example: '2023-10-15T12:15:30Z'
     FileResponse:
       description: File response values
       type: object
@@ -5150,6 +5463,17 @@ components:
               $ref: '#/components/examples/RequestValidationError'
             schema_validation_error:
               $ref: '#/components/examples/SchemaValidationError'
+    BalanceError5XX:
+      description: Server error when processing the balance request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            internal_server_error:
+              $ref: '#/components/examples/InternalServerError'
+            service_unavailable_error:
+              $ref: '#/components/examples/ServiceUnavailableError'
     CurrenciesError4XX:
       description: Error from customer resource.
       content:
@@ -5167,6 +5491,17 @@ components:
               $ref: '#/components/examples/RequestValidationError'
             schema_validation_error:
               $ref: '#/components/examples/SchemaValidationError'
+    CurrenciesError5XX:
+      description: Server error when processing the currencies request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            internal_server_error:
+              $ref: '#/components/examples/InternalServerError'
+            service_unavailable_error:
+              $ref: '#/components/examples/ServiceUnavailableError'
     CustomerError4XX:
       description: Something went wrong in Customer resource
       content:
@@ -5184,6 +5519,17 @@ components:
               $ref: '#/components/examples/RequestValidationError'
             schema_validation_error:
               $ref: '#/components/examples/SchemaValidationError'
+    CustomerError5XX:
+      description: Server error when processing the customers request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            internal_server_error:
+              $ref: '#/components/examples/InternalServerError'
+            service_unavailable_error:
+              $ref: '#/components/examples/ServiceUnavailableError'
     CustomerResponse:
       description: Successful response
       content:
@@ -5249,11 +5595,33 @@ components:
                   data:
                     $ref: '#/components/schemas/Redemption'
     Error4XX:
-      description: Default
+      description: Something went wrong in Earn resource
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            default:
+              $ref: '#/components/examples/DefaultError'
+            not_found_error:
+              $ref: '#/components/examples/NotFoundError'
+            unauthorized_error:
+              $ref: '#/components/examples/UnAuthorizedError'
+            request_validation_error:
+              $ref: '#/components/examples/RequestValidationError'
+            schema_validation_error:
+              $ref: '#/components/examples/SchemaValidationError'
+    Error5XX:
+      description: Server error when processing the loan request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            internal_server_error:
+              $ref: '#/components/examples/InternalServerError'
+            service_unavailable_error:
+              $ref: '#/components/examples/ServiceUnavailableError'
     HealthError4XX:
       description: 409 error when a balance with the same currency already exists for a user
       content:
@@ -5271,6 +5639,17 @@ components:
               $ref: '#/components/examples/RequestValidationError'
             schema_validation_error:
               $ref: '#/components/examples/SchemaValidationError'
+    LoanError5XX:
+      description: Server error when processing the loan request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            internal_server_error:
+              $ref: '#/components/examples/InternalServerError'
+            service_unavailable_error:
+              $ref: '#/components/examples/ServiceUnavailableError'
     LookupResponses:
       description: Successful Response
       content:
@@ -5287,6 +5666,17 @@ components:
                     description: List of Plans
                     items:
                       $ref: '#/components/schemas/LookUpResponseObject'
+    MiscellaneousError5XX:
+      description: Server error when processing the miscellaneous request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            internal_server_error:
+              $ref: '#/components/examples/InternalServerError'
+            service_unavailable_error:
+              $ref: '#/components/examples/ServiceUnavailableError'
     MiscellaneousError4XX:
       description: Default
       content:
@@ -5304,13 +5694,46 @@ components:
               $ref: '#/components/examples/RequestValidationError'
             schema_validation_error:
               $ref: '#/components/examples/SchemaValidationError'
-    InternalServerError:
-      description: Internal Server Error
+    PairError4XX:
+      description: Default
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
-    PairError4XX:
+          examples:
+            default:
+              $ref: '#/components/examples/DefaultError'
+            not_found_error:
+              $ref: '#/components/examples/NotFoundError'
+            unauthorized_error:
+              $ref: '#/components/examples/UnAuthorizedError'
+            request_validation_error:
+              $ref: '#/components/examples/RequestValidationError'
+            schema_validation_error:
+              $ref: '#/components/examples/SchemaValidationError'
+    PairError5XX:
+      description: Server error when processing the pair request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            internal_server_error:
+              $ref: '#/components/examples/InternalServerError'
+            service_unavailable_error:
+              $ref: '#/components/examples/ServiceUnavailableError'
+    PaymentRequestError5XX:
+      description: Default
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            internal_server_error:
+              $ref: '#/components/examples/InternalServerError'
+            service_unavailable_error:
+              $ref: '#/components/examples/ServiceUnavailableError'
+    PaymentRequestError4XX:
       description: Default
       content:
         application/json:
@@ -5344,6 +5767,17 @@ components:
               $ref: '#/components/examples/RequestValidationError'
             schema_validation_error:
               $ref: '#/components/examples/SchemaValidationError'
+    QuoteError5XX:
+      description: Server error when processing the quote request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            internal_server_error:
+              $ref: '#/components/examples/InternalServerError'
+            service_unavailable_error:
+              $ref: '#/components/examples/ServiceUnavailableError'
     QuoteConversionResponse:
       description: Quote Conversion Response
       content:
@@ -5417,6 +5851,17 @@ components:
               $ref: '#/components/examples/RequestValidationError'
             schema_validation_error:
               $ref: '#/components/examples/SchemaValidationError'
+    RecipientError5XX:
+      description: Server error when processing the recipient request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            internal_server_error:
+              $ref: '#/components/examples/InternalServerError'
+            service_unavailable_error:
+              $ref: '#/components/examples/ServiceUnavailableError'
     TransactionsError4XX:
       description: Default
       content:
@@ -5434,6 +5879,28 @@ components:
               $ref: '#/components/examples/RequestValidationError'
             schema_validation_error:
               $ref: '#/components/examples/SchemaValidationError'
+    TransactionsError5XX:
+      description: Server error when processing the transaction request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            internal_server_error:
+              $ref: '#/components/examples/InternalServerError'
+            service_unavailable_error:
+              $ref: '#/components/examples/ServiceUnavailableError'
+    TransferError5XX:
+      description: Server error when processing the transfer request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            internal_server_error:
+              $ref: '#/components/examples/InternalServerError'
+            service_unavailable_error:
+              $ref: '#/components/examples/ServiceUnavailableError'
     TransferError4XX:
       description: Default
       content:
@@ -5508,6 +5975,10 @@ components:
       type: http
       scheme: bearer
       description: Bearer Authentication
+    AuthOptional:
+      type: http
+      scheme: bearer
+      description: Bearer Authentication
   examples:
     DefaultError:
       description: Default error
@@ -5549,6 +6020,18 @@ components:
             fix: Ensure that the object being submitted, matches the schema correctly
             schema_validation_error:
               - 'minLength: got 3, want 12'
+    InternalServerError:
+      description: Internal Server Error
+      value:
+        error:
+          name: internal_server_error
+          message: Internal Server Error
+    ServiceUnavailableError:
+      description: Service Unavailable Error
+      value:
+        error:
+          name: service_unavailable
+          message: Service Unavailable
   requestBodies:
     CreateRedemptionRequest:
       description: Create Earn Redemption Request
