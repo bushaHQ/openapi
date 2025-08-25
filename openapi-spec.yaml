@@ -269,6 +269,16 @@ paths:
       operationId: listCurrencies
       parameters:
         - $ref: '#/components/parameters/CurrencyType'
+        - name: payments_request
+          in: query
+          required: false
+          schema:
+            type: boolean
+        - name: ramp
+          in: query
+          required: false
+          schema:
+            type: boolean
       responses:
         '200':
           description: A list of supported currencies.
@@ -3347,6 +3357,7 @@ components:
         assets:
           type: array
           description: Returns all available assets
+          x-order: 1
           items:
             type: object
             required:
@@ -3372,12 +3383,34 @@ components:
                 $ref: '#/components/schemas/AmountWithCurrency'
               change:
                 $ref: '#/components/schemas/Decimal'
-        transactions:
+        wallets:
           type: array
-          description: List of transactions related to assets
+          description: List of wallets containing assets
+          x-order: 2
           items:
             type: object
             required:
+              - type
+              - balance
+              - last_activity
+            properties:
+              type:
+                type: string
+                example: wallet
+              balance:
+                $ref: '#/components/schemas/AmountWithCurrency'
+              last_activity:
+                type: string
+                format: date
+                example: '2025-08-14'
+        transactions:
+          type: array
+          description: List of transactions related to assets
+          x-order: 3
+          items:
+            type: object
+            required:
+              - id
               - type
               - symbol
               - amount
@@ -3385,6 +3418,8 @@ components:
               - date
               - transaction_type
             properties:
+              id:
+                $ref: '#/components/schemas/ID'
               type:
                 type: string
                 example: transaction
@@ -3403,35 +3438,9 @@ components:
               transaction_type:
                 type: string
                 example: buy
-        wallets:
-          type: array
-          description: List of wallets containing assets
-          items:
-            type: object
-            required:
-              - type
-              - symbol
-              - balance
-              - wallet_name
-              - last_activity
-            properties:
-              type:
-                type: string
-                example: wallet
-              symbol:
-                type: string
-                example: ADA
-              balance:
-                type: string
-                example: 250.5 ADA
-              wallet_name:
-                $ref: '#/components/schemas/AmountWithCurrency'
-              last_activity:
-                type: string
-                format: date
-                example: '2025-08-14'
         total_results:
           type: integer
+          x-order: 4
           description: Total number of search results
           example: 15
     ValidateDestinationResponse:
@@ -3814,6 +3823,9 @@ components:
             - cancelled
             - completed
             - failed
+            - multiple_deposits
+            - under_payment
+            - over_payment
         additional_info:
           $ref: '#/components/schemas/AdditionalInfo'
         merchant_info:
