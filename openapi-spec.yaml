@@ -268,6 +268,7 @@ paths:
         Retrieves a list of all supported currencies along with their basic details. This endpoint can be used to display available currencies in wallets or APIs requiring currency data.
       operationId: listCurrencies
       parameters:
+        - $ref: '#/components/parameters/XBuPublicKey'
         - $ref: '#/components/parameters/CurrencyType'
         - name: payments_request
           in: query
@@ -671,17 +672,44 @@ paths:
               - fiat
               - stablecoin
               - crypto
-        - name: business
+        - name: is_business
           in: query
           schema:
             type: boolean
-        - name: currency
+        - name: base
           in: query
           x-oapi-codegen-extra-tags:
             validate: min_len:3|max_len:10
             filter: trim|upper
           schema:
             $ref: '#/components/schemas/Currency'
+        - name: counter
+          in: query
+          x-oapi-codegen-extra-tags:
+            validate: min_len:3|max_len:10
+            filter: trim|upper
+          schema:
+            $ref: '#/components/schemas/Currency'
+        - name: sort_by
+          in: query
+          schema:
+            type: string
+            enum:
+              - alphabetical
+              - market_cap
+              - current_price
+              - price_change
+              - most_bought
+              - most_sold
+        - name: price_change_direction
+          in: query
+          schema:
+            type: string
+            enum:
+              - positive
+              - negative
+              - absolute
+        - $ref: '#/components/parameters/SortQueryParam'
       responses:
         '200':
           description: List of trading pairs
@@ -1732,6 +1760,13 @@ components:
         x-go-type: string
       x-oapi-codegen-extra-tags:
         validate: required|uuid
+    XBuPublicKey:
+      in: header
+      name: X-BU-PUBLIC-KEY
+      required: false
+      schema:
+        type: string
+        example: pub_uibaidu930ani
     CurrencyType:
       name: type
       in: query
@@ -1833,13 +1868,6 @@ components:
         filter: trim|upper
       schema:
         type: string
-    XBuPublicKey:
-      in: header
-      name: X-BU-PUBLIC-KEY
-      required: false
-      schema:
-        type: string
-        example: pub_uibaidu930ani
     X-BU-Version:
       in: header
       name: X-BU-Version
@@ -3712,7 +3740,7 @@ components:
         id:
           type: string
           x-order: 1
-          example: eth-btc
+          example: BTCNGN
         base:
           allOf:
             - $ref: '#/components/schemas/Currency'
@@ -3766,6 +3794,9 @@ components:
           type: string
           x-order: 14
           example: '6'
+        percentage_change:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
     PairsListResponse:
       allOf:
         - $ref: '#/components/schemas/BaseSchema'
