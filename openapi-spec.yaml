@@ -1890,6 +1890,8 @@ components:
         - type
         - pending
         - available
+        - savings
+        - investments
         - total
         - user_id
         - profile_id
@@ -1918,6 +1920,10 @@ components:
         pending:
           $ref: '#/components/schemas/AmountWithCurrency'
         available:
+          $ref: '#/components/schemas/AmountWithCurrency'
+        savings:
+          $ref: '#/components/schemas/AmountWithCurrency'
+        investments:
           $ref: '#/components/schemas/AmountWithCurrency'
         total:
           $ref: '#/components/schemas/AmountWithCurrency'
