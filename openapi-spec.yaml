@@ -5039,6 +5039,18 @@ components:
           $ref: '#/components/schemas/TxnMetaService'
         fee:
           $ref: '#/components/schemas/TxnMetaFee'
+        amounts:
+          $ref: '#/components/schemas/TxnMetaAmounts'
+    TxnMetaAmounts:
+      type: object
+      description: Transactions amounts explained
+      properties:
+        fee:
+          $ref: '#/components/schemas/Decimal'
+        amount_paid:
+          $ref: '#/components/schemas/Decimal'
+        amount_added:
+          $ref: '#/components/schemas/Decimal'
     TxnMetaFee:
       type: object
       description: Fee details
