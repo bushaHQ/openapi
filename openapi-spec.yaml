@@ -3732,6 +3732,15 @@ components:
               type: string
               format: date-time
               example: '2023-10-15T12:15:30Z'
+    ExpiresIn:
+      type: string
+      description: Expiration time in duration format
+      enum:
+        - 10m
+        - 1h
+        - 6h
+        - 1d
+        - 1w
     Pairs:
       type: object
       required:
@@ -5049,14 +5058,28 @@ components:
         amounts:
           $ref: '#/components/schemas/TxnMetaAmounts'
     TxnMetaAmounts:
-      type: object
       description: Transactions amounts explained
+      allOf:
+        - type: object
+          properties:
+            fee:
+              $ref: '#/components/schemas/Decimal'
+        - oneOf:
+            - $ref: '#/components/schemas/TxnMetaDepositAmounts'
+            - $ref: '#/components/schemas/TxnMetaPayoutAmounts'
+    TxnMetaDepositAmounts:
+      type: object
       properties:
-        fee:
-          $ref: '#/components/schemas/Decimal'
         amount_paid:
           $ref: '#/components/schemas/Decimal'
         amount_added:
+          $ref: '#/components/schemas/Decimal'
+    TxnMetaPayoutAmounts:
+      type: object
+      properties:
+        amount:
+          $ref: '#/components/schemas/Decimal'
+        total:
           $ref: '#/components/schemas/Decimal'
     TxnMetaFee:
       type: object
