@@ -3450,6 +3450,7 @@ components:
               - symbol
               - amount
               - status
+              - description
               - date
               - transaction_type
             properties:
@@ -3466,6 +3467,9 @@ components:
               status:
                 type: string
                 example: completed
+              description:
+                type: string
+                example: Transaction description
               date:
                 type: string
                 format: date
