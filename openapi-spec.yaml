@@ -3750,7 +3750,9 @@ components:
       required:
         - id
         - base
+        - base_currency_name
         - counter
+        - counter_currency_name
         - type
         - is_buy_supported
         - is_sell_supported
@@ -3765,10 +3767,18 @@ components:
           allOf:
             - $ref: '#/components/schemas/Currency'
           x-order: 2
+        base_currency_name:
+          type: string
+          x-order: 2
+          example: Bitcoin
         counter:
           allOf:
             - $ref: '#/components/schemas/Currency'
           x-order: 3
+        counter_currency_name:
+          type: string
+          x-order: 3
+          example: Naira
         type:
           type: string
           x-order: 4
