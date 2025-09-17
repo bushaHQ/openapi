@@ -1919,17 +1919,17 @@ components:
             - crypto
           example: crypto
         pending:
-          $ref: '#/components/schemas/AmountWithCurrency'
+          $ref: '#/components/schemas/AmountWithCurrencyAndFiat'
         available:
-          $ref: '#/components/schemas/AmountWithCurrency'
+          $ref: '#/components/schemas/AmountWithCurrencyAndFiat'
         savings:
-          $ref: '#/components/schemas/AmountWithCurrency'
+          $ref: '#/components/schemas/AmountWithCurrencyAndFiat'
         investments:
-          $ref: '#/components/schemas/AmountWithCurrency'
+          $ref: '#/components/schemas/AmountWithCurrencyAndFiat'
         total:
-          $ref: '#/components/schemas/AmountWithCurrency'
+          $ref: '#/components/schemas/AmountWithCurrencyAndFiat'
     Amount:
-      $ref: '#/components/schemas/AmountWithCurrency'
+      $ref: '#/components/schemas/AmountWithCurrencyAndFiat'
     BalanceListResponse:
       allOf:
         - $ref: '#/components/schemas/CursorPagination'
@@ -2036,6 +2036,15 @@ components:
           $ref: '#/components/schemas/Decimal'
         currency:
           $ref: '#/components/schemas/Currency'
+    AmountWithCurrencyAndFiat:
+      allOf:
+        - $ref: '#/components/schemas/AmountWithCurrency'
+        - type: object
+          properties:
+            fiat:
+              allOf:
+                - $ref: '#/components/schemas/AmountWithCurrency'
+              description: amount in fiat
     ErrorResponse:
       type: object
       required:
