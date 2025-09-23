@@ -228,15 +228,20 @@ paths:
         - Auth:
             - balances:read
             - api:read
-  /v1/balances/{id}:
+  /v1/balances/{id_or_code}:
     get:
       tags:
         - Balances
       operationId: getBalance
       summary: Get balance details
       parameters:
-        - $ref: '#/components/parameters/PathParamUUID'
         - $ref: '#/components/parameters/ProfileHeader'
+        - name: id_or_code
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Balance ID or currency code
       responses:
         '200':
           description: Balance details retrieved successfully
@@ -261,6 +266,8 @@ paths:
             - api:read
   /v1/currencies:
     get:
+      security:
+        - AuthOptional: []
       tags:
         - Currencies
       summary: Retrieve supported currencies
@@ -270,6 +277,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/XBuPublicKey'
         - $ref: '#/components/parameters/CurrencyType'
+        - $ref: '#/components/parameters/SortQueryParam'
         - name: payments_request
           in: query
           required: false
@@ -291,7 +299,6 @@ paths:
           $ref: '#/components/responses/CurrenciesError4XX'
         5XX:
           $ref: '#/components/responses/CurrenciesError5XX'
-      security: []
   /v1/currencies/{code}:
     get:
       tags:
@@ -1750,17 +1757,6 @@ components:
       schema:
         type: string
         example: BUS_YOK8tp5Zga01qOKEsqp07
-    PathParamUUID:
-      in: path
-      name: id
-      required: true
-      schema:
-        type: string
-        format: uuid
-        example: 550e8400-e29b-41d4-a716-446655440000
-        x-go-type: string
-      x-oapi-codegen-extra-tags:
-        validate: required|uuid
     XBuPublicKey:
       in: header
       name: X-BU-PUBLIC-KEY
@@ -1782,6 +1778,16 @@ components:
       style: form
       example: fiat
       explode: false
+    SortQueryParam:
+      name: sort
+      in: query
+      description: The order to sort the results
+      schema:
+        type: string
+        enum:
+          - asc
+          - desc
+        example: asc
     CurrencyCodePathParam:
       name: code
       in: path
@@ -1837,16 +1843,6 @@ components:
       style: form
       explode: false
       example: platform_123456
-    SortQueryParam:
-      name: sort
-      in: query
-      description: The order to sort the results
-      schema:
-        type: string
-        enum:
-          - asc
-          - desc
-        example: asc
     CurrencyQueryParam:
       name: currency
       in: query
@@ -1861,6 +1857,17 @@ components:
             filter: trim|upper
       style: form
       explode: false
+    PathParamUUID:
+      in: path
+      name: id
+      required: true
+      schema:
+        type: string
+        format: uuid
+        example: 550e8400-e29b-41d4-a716-446655440000
+        x-go-type: string
+      x-oapi-codegen-extra-tags:
+        validate: required|uuid
     CountryQueryParam:
       name: country
       in: query
@@ -2087,6 +2094,9 @@ components:
           allOf:
             - $ref: '#/components/schemas/Currency'
           x-order: 1
+        description:
+          type: string
+          description: Extra information about the currency
         name:
           type: string
           x-order: 5
@@ -3461,7 +3471,9 @@ components:
               - status
               - description
               - date
-              - transaction_type
+              - transaction_category
+              - is_credit
+              - is_fiat
             properties:
               id:
                 $ref: '#/components/schemas/ID'
@@ -3483,9 +3495,14 @@ components:
                 type: string
                 format: date
                 example: '2025-08-14'
-              transaction_type:
+              transaction_category:
                 type: string
-                example: buy
+              is_credit:
+                type: boolean
+                example: true
+              is_fiat:
+                type: boolean
+                example: true
         total_results:
           type: integer
           x-order: 4
