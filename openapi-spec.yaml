@@ -660,10 +660,13 @@ paths:
     get:
       tags:
         - Pairs
+      security:
+        - AuthOptional: []
       summary: List trading pairs
       description: Retrieves all available trading pairs with their current rates.
       operationId: listPairs
       parameters:
+        - $ref: '#/components/parameters/ProfileHeader'
         - name: id
           in: query
           x-oapi-codegen-extra-tags:
@@ -729,7 +732,6 @@ paths:
           $ref: '#/components/responses/PairError4XX'
         5XX:
           $ref: '#/components/responses/PairError5XX'
-      security: []
   /v1/payments:
     post:
       tags:
