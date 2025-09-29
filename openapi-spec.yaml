@@ -676,12 +676,16 @@ paths:
             type: string
         - name: type
           in: query
+          description: |
+            This filter pairs based on the type. fiat filter return pairs where the counter currency-type is a fiat crypto filter return pairs where the counter currency type is digital stablecoin filter return pairs where the base or counter currency is a stablecoin base_crypto filter return pairs where the base currency is digital base_fiat filter return pairs where the base currency is a fiat
           schema:
             type: string
             enum:
               - fiat
               - stablecoin
               - crypto
+              - base_crypto
+              - base_fiat
         - name: is_business
           in: query
           schema:
