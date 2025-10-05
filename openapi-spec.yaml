@@ -1572,8 +1572,7 @@ paths:
           schema:
             type: array
             items:
-              type: string
-            example: savings
+              $ref: '#/components/schemas/TransactionTypes'
           style: form
           explode: false
         - $ref: '#/components/parameters/CursorQueryParams'
@@ -3373,6 +3372,18 @@ components:
       description: A valid id
       x-oapi-codegen-extra-tags:
         validate: required|nanoid
+    DepositAddressWarnings:
+      type: object
+      required:
+        - risk_message
+        - processing_time
+      properties:
+        risk_message:
+          type: string
+          example: You can only receive {asset} on {network} network. If you deposit on the wrong network, your funds will be lost.
+        processing_time:
+          type: string
+          example: Your deposit will typically take a few minutes to appear in your account.
     LookUpResponseObject:
       type: object
       required:
@@ -3499,8 +3510,8 @@ components:
                 example: Transaction description
               date:
                 type: string
-                format: date
-                example: '2025-08-14'
+                format: date-time
+                example: '2025-08-14T15:30:00Z'
               transaction_category:
                 type: string
               is_credit:
@@ -4942,6 +4953,21 @@ components:
                 $ref: '#/components/schemas/Transaction'
           required:
             - data
+    TransactionTypes:
+      type: string
+      description: transaction type
+      enum:
+        - buys
+        - sells
+        - converts
+        - utilities
+        - rewards
+        - loans
+        - savings
+        - deposits
+        - withdrawals
+        - sends
+        - receives
     Transaction:
       type: object
       required:
@@ -5002,20 +5028,8 @@ components:
             - $ref: '#/components/schemas/ID'
         type:
           x-order: 8
-          type: string
-          description: transaction type
-          enum:
-            - buys
-            - sells
-            - converts
-            - utilities
-            - rewards
-            - loans
-            - savings
-            - deposits
-            - withdrawals
-            - sends
-            - receives
+          allOf:
+            - $ref: '#/components/schemas/TransactionTypes'
           example: buys
         description:
           x-order: 9
@@ -5079,22 +5093,45 @@ components:
         source:
           type: object
           description: Source details (for deposits, receives)
-          oneOf:
-            - $ref: '#/components/schemas/TxnMetaBankTransferSource'
-            - $ref: '#/components/schemas/TxnMetaMobileMoneySource'
-            - $ref: '#/components/schemas/TxnMetaUsernameSource'
-            - $ref: '#/components/schemas/TxnMetaEmailSource'
-            - $ref: '#/components/schemas/TxnMetaCryptoWalletSource'
+          allOf:
+            - type: object
+              properties:
+                type:
+                  type: string
+                  enum:
+                    - bank_transfer
+                    - mobile_money
+                    - username
+                    - email
+                    - wallet
+            - oneOf:
+                - $ref: '#/components/schemas/TxnMetaBankTransferSource'
+                - $ref: '#/components/schemas/TxnMetaMobileMoneySource'
+                - $ref: '#/components/schemas/TxnMetaUsernameSource'
+                - $ref: '#/components/schemas/TxnMetaEmailSource'
+                - $ref: '#/components/schemas/TxnMetaCryptoWalletSource'
         destination:
           type: object
           description: Destination details (for withdraws, sends)
-          oneOf:
-            - $ref: '#/components/schemas/TxnMetaBankTransferDestination'
-            - $ref: '#/components/schemas/TxnMetaWireTransferDestination'
-            - $ref: '#/components/schemas/TxnMetaMobileMoneyDestination'
-            - $ref: '#/components/schemas/TxnMetaUsernameDestination'
-            - $ref: '#/components/schemas/TxnMetaEmailDestination'
-            - $ref: '#/components/schemas/TxnMetaCryptoWalletDestination'
+          allOf:
+            - type: object
+              properties:
+                type:
+                  type: string
+                  enum:
+                    - bank_transfer
+                    - wire_transfer
+                    - mobile_money
+                    - username
+                    - email
+                    - wallet
+            - oneOf:
+                - $ref: '#/components/schemas/TxnMetaBankTransferDestination'
+                - $ref: '#/components/schemas/TxnMetaWireTransferDestination'
+                - $ref: '#/components/schemas/TxnMetaMobileMoneyDestination'
+                - $ref: '#/components/schemas/TxnMetaUsernameDestination'
+                - $ref: '#/components/schemas/TxnMetaEmailDestination'
+                - $ref: '#/components/schemas/TxnMetaCryptoWalletDestination'
         savings:
           $ref: '#/components/schemas/TxnMetaSaving'
         service:
@@ -5199,10 +5236,6 @@ components:
       type: object
       description: Bank Transfer Source
       properties:
-        type:
-          type: string
-          enum:
-            - bank_transfer
         bank_name:
           type: string
           description: Bank name
@@ -5219,10 +5252,6 @@ components:
       type: object
       description: Mobile Money Source
       properties:
-        type:
-          type: string
-          enum:
-            - mobile_money
         provider:
           type: string
           description: Provider Name
@@ -5236,10 +5265,6 @@ components:
       type: object
       description: Username Source
       properties:
-        type:
-          type: string
-          enum:
-            - username
         username:
           type: string
           description: Username
@@ -5253,10 +5278,6 @@ components:
       type: object
       description: Email Source
       properties:
-        type:
-          type: string
-          enum:
-            - email
         email:
           type: string
           description: Email
@@ -5270,10 +5291,6 @@ components:
       type: object
       description: Crypto Wallet Source
       properties:
-        type:
-          type: string
-          enum:
-            - wallet
         network_name:
           type: string
           description: Network name
@@ -5303,10 +5320,6 @@ components:
       type: object
       description: Bank Transfer Destination
       properties:
-        type:
-          type: string
-          enum:
-            - bank_transfer
         bank_name:
           type: string
           description: Bank name
@@ -5323,10 +5336,6 @@ components:
       type: object
       description: Wire transfer Destination
       properties:
-        type:
-          type: string
-          enum:
-            - wire_transfer
         bank_name:
           type: string
           description: Bank name
@@ -5352,10 +5361,6 @@ components:
       type: object
       description: Mobile Money Destination
       properties:
-        type:
-          type: string
-          enum:
-            - mobile_money
         provider:
           type: string
           description: Provider Name
@@ -5369,10 +5374,6 @@ components:
       type: object
       description: Username Destination
       properties:
-        type:
-          type: string
-          enum:
-            - username
         username:
           type: string
           description: Username
@@ -5386,10 +5387,6 @@ components:
       type: object
       description: Email Destination
       properties:
-        type:
-          type: string
-          enum:
-            - email
         email:
           type: string
           description: Email
@@ -5403,10 +5400,6 @@ components:
       type: object
       description: Crypto Wallet Destination
       properties:
-        type:
-          type: string
-          enum:
-            - wallet
         network_name:
           type: string
           description: Network name
