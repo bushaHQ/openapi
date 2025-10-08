@@ -147,9 +147,14 @@ tags:
   - name: Miscellaneous
     description: Provides auxiliary APIs to complement and enhance other services.
     x-displayName: Miscellaneous
+  - name: News
+    x-displayName: News
   - name: Pairs
     description: Access trading pair information and rates
     x-displayName: Pairs
+  - name: PaymentLinks
+    description: Payment Links
+    x-displayName: PaymentLinks
   - name: Payments
     description: Payment request
     x-displayName: Payments
@@ -2091,9 +2096,15 @@ components:
         - name
         - code
         - decimals
+        - display_name
+        - type
+        - is_ramp_buy_supported
+        - is_ramp_sell_supported
         - precision
         - default_network
         - supported_networks
+        - withdrawal
+        - deposit
       properties:
         code:
           allOf:
@@ -3691,6 +3702,85 @@ components:
           type: string
           example: 0-15 minutes
           description: The average time to process via the payment option.
+    PaymentOptionObj:
+      type: object
+      required:
+        - channel
+        - name
+        - description
+        - currency
+        - payment_method_ids
+        - minimum_fee
+        - maximum_fee
+        - minimum_amount
+        - maximum_amount
+        - recommended
+        - new
+        - support_conversion
+      properties:
+        channel:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/Currency'
+        payment_method_ids:
+          type: array
+          items:
+            $ref: '#/components/schemas/NanoID'
+        maximum_fee:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+        minimum_fee:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+        maximum_amount:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+        minimum_amount:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+        recommended:
+          type: boolean
+        new:
+          type: boolean
+        support_conversion:
+          type: boolean
+    Pagination:
+      type: object
+      required:
+        - total_count
+        - page
+        - per_page
+        - offset
+        - total_entries_size
+        - current_entries_size
+        - total_pages
+      properties:
+        total_count:
+          type: integer
+          example: 100
+        page:
+          type: integer
+          example: 1
+        per_page:
+          type: integer
+          example: 10
+        offset:
+          type: integer
+          example: 0
+        total_entries_size:
+          type: integer
+          example: 100
+        current_entries_size:
+          type: integer
+          example: 10
+        total_pages:
+          type: integer
+          example: 10
     PayOutObj:
       type: object
       required:
@@ -3781,13 +3871,22 @@ components:
               example: '2023-10-15T12:15:30Z'
     ExpiresIn:
       type: string
-      description: Expiration time in duration format
-      enum:
-        - 10m
-        - 1h
-        - 6h
-        - 1d
-        - 1w
+      pattern: ^[0-9]+[smhdwMy]$
+      description: |
+        Expiration time in duration format.
+        - Number followed by a unit
+        - Allowed units: s (second), m (minute), h (hour), d (day), w (week), M (month), y (year)
+        - Examples: 1d, 7d, 2w, 6m, 1y
+      example: 1d
+    NullableDecimal:
+      type: string
+      description: nullable decimal value
+      example: '100'
+      x-go-type: decimal.Decimal
+      x-go-type-import:
+        path: github.com/shopspring/decimal
+        name: decimal
+      nullable: true
     Pairs:
       type: object
       required:
@@ -3880,6 +3979,43 @@ components:
               maxItems: 100
               items:
                 $ref: '#/components/schemas/Pairs'
+    TimeStamp:
+      type: string
+      format: date-time
+      example: '2023-10-15T12:15:30Z'
+      x-go-type: time.Time
+    NullableCurrency:
+      type: string
+      x-order: 20
+      example: BTC
+      format: string
+      maxLength: 10
+      minLength: 3
+      nullable: true
+    CreatePaymentRequestForLinkReq:
+      type: object
+      required:
+        - source_currency
+      properties:
+        quote_amount:
+          $ref: '#/components/schemas/Decimal'
+        quote_currency:
+          allOf:
+            - $ref: '#/components/schemas/Currency'
+        source_currency:
+          $ref: '#/components/schemas/Currency'
+        source_amount:
+          $ref: '#/components/schemas/Decimal'
+        target_amount:
+          $ref: '#/components/schemas/Decimal'
+        pay_in:
+          $ref: '#/components/schemas/PayInObj'
+        requested_info:
+          type: object
+          additionalProperties:
+            type: string
+        reference:
+          type: string
     PaymentRequest:
       type: object
       required:
@@ -4409,53 +4545,6 @@ components:
           example: '2023-10-15T12:20:45Z'
         two_step:
           $ref: '#/components/schemas/TwoStep'
-    PaymentOptionObj:
-      type: object
-      required:
-        - channel
-        - name
-        - description
-        - currency
-        - payment_method_ids
-        - minimum_fee
-        - maximum_fee
-        - minimum_amount
-        - maximum_amount
-        - recommended
-        - new
-        - support_conversion
-      properties:
-        channel:
-          type: string
-        name:
-          type: string
-        description:
-          type: string
-        currency:
-          allOf:
-            - $ref: '#/components/schemas/Currency'
-        payment_method_ids:
-          type: array
-          items:
-            $ref: '#/components/schemas/NanoID'
-        maximum_fee:
-          allOf:
-            - $ref: '#/components/schemas/Decimal'
-        minimum_fee:
-          allOf:
-            - $ref: '#/components/schemas/Decimal'
-        maximum_amount:
-          allOf:
-            - $ref: '#/components/schemas/Decimal'
-        minimum_amount:
-          allOf:
-            - $ref: '#/components/schemas/Decimal'
-        recommended:
-          type: boolean
-        new:
-          type: boolean
-        support_conversion:
-          type: boolean
     TwoStep:
       type: object
       required:
@@ -5818,6 +5907,21 @@ components:
               $ref: '#/components/examples/RequestValidationError'
             schema_validation_error:
               $ref: '#/components/examples/SchemaValidationError'
+    PaymentOptionsListResponse:
+      description: Payment Options List Response
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/BaseSchema'
+              - type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PaymentOptionObj'
     PairError4XX:
       description: Default
       content:
@@ -5943,21 +6047,6 @@ components:
                     type: array
                     items:
                       $ref: '#/components/schemas/Quote'
-    PaymentOptionsListResponse:
-      description: Payment Options List Response
-      content:
-        application/json:
-          schema:
-            allOf:
-              - $ref: '#/components/schemas/BaseSchema'
-              - type: object
-                required:
-                  - data
-                properties:
-                  data:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/PaymentOptionObj'
     RecipientError4XX:
       description: Recipient Error sample
       content:
