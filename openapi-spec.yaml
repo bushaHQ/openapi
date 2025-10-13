@@ -155,9 +155,9 @@ tags:
   - name: PaymentLinks
     description: Payment Links
     x-displayName: PaymentLinks
-  - name: Payments
+  - name: PaymentRequests
     description: Payment request
-    x-displayName: Payments
+    x-displayName: PaymentRequests
   - name: Quotes
     description: Handle quotes requests and responses
     x-displayName: Quotes
@@ -741,10 +741,47 @@ paths:
           $ref: '#/components/responses/PairError4XX'
         5XX:
           $ref: '#/components/responses/PairError5XX'
-  /v1/payments:
+  /v1/payments/links/{id}/requests:
     post:
       tags:
-        - Payments
+        - PaymentLinks
+      security:
+        - AuthOptional:
+            - transfers:write
+            - api:write
+      operationId: createPaymentLinkRequest
+      summary: Create a payment request for payment link
+      description: Create a payment request for payment link
+      parameters:
+        - $ref: '#/components/parameters/PathParamNanoID'
+        - $ref: '#/components/parameters/ProfileHeader'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePaymentRequestForLinkReq'
+      responses:
+        '201':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseSchema'
+                  - type: object
+                    required:
+                      - data
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PaymentRequest'
+        4XX:
+          $ref: '#/components/responses/PaymentRequestError4XX'
+        5XX:
+          $ref: '#/components/responses/PaymentRequestError4XX'
+  /v1/payments/requests:
+    post:
+      tags:
+        - PaymentRequests
       security:
         - AuthOptional:
             - transfers:write
@@ -778,14 +815,14 @@ paths:
           $ref: '#/components/responses/PaymentRequestError4XX'
         5XX:
           $ref: '#/components/responses/PaymentRequestError5XX'
-  /v1/payments/{id}:
+  /v1/payments/requests/{id}:
     get:
       security:
         - AuthOptional:
             - transfers:read
             - api:read
       tags:
-        - Payments
+        - PaymentRequests
       summary: Retrieve a payment request
       description: Retrieve a payment request
       operationId: getPaymentRequest
@@ -1712,16 +1749,23 @@ paths:
           required: false
           schema:
             type: boolean
-        - name: trade
+        - name: includes_step
           in: query
-          description: Filter Transfers by "buy" or "sell" trades
+          description: Filter transfers that include a specific step in their flow.
           required: false
+          style: form
+          explode: false
           schema:
-            type: string
-            enum:
-              - deposit
-              - withdrawal
-              - conversion
+            type: array
+            items:
+              type: string
+              enum:
+                - deposit
+                - withdrawal
+                - conversion
+                - no_deposit
+                - no_withdrawal
+                - no_conversion
         - $ref: '#/components/parameters/CursorQueryParams'
         - $ref: '#/components/parameters/SortQueryParam'
         - $ref: '#/components/parameters/LimitQueryParam'
@@ -3992,153 +4036,35 @@ components:
       maxLength: 10
       minLength: 3
       nullable: true
-    CreatePaymentRequestForLinkReq:
+    PaymentRequestStatus:
+      type: string
+      enum:
+        - pending
+        - expired
+        - cancelled
+        - completed
+        - failed
+        - multiple_deposits
+        - under_payment
+        - over_payment
+    Fee:
       type: object
+      x-order: 40
       required:
-        - source_currency
+        - name
+        - amount
+        - type
       properties:
-        quote_amount:
-          $ref: '#/components/schemas/Decimal'
-        quote_currency:
-          allOf:
-            - $ref: '#/components/schemas/Currency'
-        source_currency:
-          $ref: '#/components/schemas/Currency'
-        source_amount:
-          $ref: '#/components/schemas/Decimal'
-        target_amount:
-          $ref: '#/components/schemas/Decimal'
-        pay_in:
-          $ref: '#/components/schemas/PayInObj'
-        requested_info:
-          type: object
-          additionalProperties:
-            type: string
-        reference:
+        name:
           type: string
-    PaymentRequest:
-      type: object
-      required:
-        - id
-        - source_amount
-        - source_currency
-        - target_amount
-        - target_currency
-        - rate
-        - fees
-        - reference
-        - additional_info
-        - merchant_info
-        - status
-        - created_at
-        - updated_at
-        - expires_at
-      properties:
-        id:
-          $ref: '#/components/schemas/NanoID'
-        source_amount:
-          $ref: '#/components/schemas/Decimal'
-        source_currency:
-          $ref: '#/components/schemas/Currency'
-        target_amount:
-          $ref: '#/components/schemas/Decimal'
-        target_currency:
-          $ref: '#/components/schemas/Currency'
-        rate:
-          allOf:
-            - $ref: '#/components/schemas/QuoteRate'
-        fees:
-          type: array
-          items:
-            $ref: '#/components/schemas/Fee'
-        pay_in:
-          $ref: '#/components/schemas/PaymentObj'
-        reference:
+          example: processing_fee
+        amount:
+          $ref: '#/components/schemas/AmountWithCurrency'
+        converted_amount:
+          $ref: '#/components/schemas/AmountWithCurrency'
+        type:
           type: string
-        status:
-          type: string
-          enum:
-            - pending
-            - expired
-            - cancelled
-            - completed
-            - failed
-            - multiple_deposits
-            - under_payment
-            - over_payment
-        additional_info:
-          $ref: '#/components/schemas/AdditionalInfo'
-        merchant_info:
-          $ref: '#/components/schemas/MerchantInfo'
-        timeline:
-          allOf:
-            - $ref: '#/components/schemas/TransferTimeline'
-        created_at:
-          type: string
-          format: date-time
-          example: '2023-10-15T12:15:30Z'
-        updated_at:
-          type: string
-          format: date-time
-          example: '2023-10-15T12:15:30Z'
-        expires_at:
-          type: string
-          format: date-time
-          example: '2023-10-15T12:15:30Z'
-    PaymentRequestResponse:
-      allOf:
-        - $ref: '#/components/schemas/BaseSchema'
-        - type: object
-          required:
-            - data
-          properties:
-            data:
-              $ref: '#/components/schemas/PaymentRequest'
-    PaymentRequestListResponse:
-      allOf:
-        - $ref: '#/components/schemas/CursorPagination'
-        - type: object
-          required:
-            - data
-          properties:
-            data:
-              type: array
-              description: List of payment requests
-              items:
-                $ref: '#/components/schemas/PaymentRequest'
-    CreatePaymentRequest:
-      type: object
-      required:
-        - additional_info
-        - source_currency
-        - target_currency
-      properties:
-        additional_info:
-          $ref: '#/components/schemas/AdditionalInfo'
-        dry_run:
-          type: boolean
-          description: if true, will not create a payment transfer
-        quote_amount:
-          $ref: '#/components/schemas/Decimal'
-        quote_currency:
-          allOf:
-            - $ref: '#/components/schemas/Currency'
-          description: This optional field specifies the fiat currency to display amounts in, which is converted from the source amount
-          example: NGN
-        source_amount:
-          $ref: '#/components/schemas/Decimal'
-        source_currency:
-          $ref: '#/components/schemas/Currency'
-        target_amount:
-          $ref: '#/components/schemas/Decimal'
-        target_currency:
-          $ref: '#/components/schemas/Currency'
-        pay_in:
-          $ref: '#/components/schemas/PayInObj'
-        reference:
-          type: string
-          description: reference for the payment request
-          example: busha-123
+          example: FIXED
     AdditionalInfo:
       type: object
       required:
@@ -4164,58 +4090,6 @@ components:
           format: email
           description: email of the business
           example: busha@me.com
-    PaymentRequestMeta:
-      type: object
-      properties:
-        email:
-          type: string
-          format: email
-        phone_number:
-          type: string
-          format: phone
-    UnAuthPayInObj:
-      type: object
-      required:
-        - type
-      properties:
-        type:
-          type: string
-          example: address
-          enum:
-            - address
-            - mobile_money
-            - temporary_bank_account
-            - balance
-        network:
-          type: string
-          example: BTC
-          description: |
-            This specifies the blockchain network associated with the address receiving the payment, typically used with address type payouts.
-    PayInObj:
-      allOf:
-        - $ref: '#/components/schemas/UnAuthPayInObj'
-        - type: object
-          properties:
-            phone:
-              $ref: '#/components/schemas/PhoneField'
-    Fee:
-      type: object
-      x-order: 40
-      required:
-        - name
-        - amount
-        - type
-      properties:
-        name:
-          type: string
-          example: processing_fee
-        amount:
-          $ref: '#/components/schemas/AmountWithCurrency'
-        converted_amount:
-          $ref: '#/components/schemas/AmountWithCurrency'
-        type:
-          type: string
-          example: FIXED
     Timeline:
       type: object
       required:
@@ -4280,6 +4154,184 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Timeline'
+    PaymentRequest:
+      type: object
+      required:
+        - id
+        - source_amount
+        - source_currency
+        - target_amount
+        - target_currency
+        - rate
+        - fees
+        - reference
+        - additional_info
+        - merchant_info
+        - status
+        - created_at
+        - updated_at
+        - expires_at
+      properties:
+        id:
+          $ref: '#/components/schemas/NanoID'
+        source_amount:
+          $ref: '#/components/schemas/Decimal'
+        source_currency:
+          $ref: '#/components/schemas/Currency'
+        target_amount:
+          $ref: '#/components/schemas/Decimal'
+        target_currency:
+          $ref: '#/components/schemas/Currency'
+        rate:
+          allOf:
+            - $ref: '#/components/schemas/QuoteRate'
+        fees:
+          type: array
+          items:
+            $ref: '#/components/schemas/Fee'
+        pay_in:
+          $ref: '#/components/schemas/PaymentObj'
+        reference:
+          type: string
+        status:
+          $ref: '#/components/schemas/PaymentRequestStatus'
+        additional_info:
+          $ref: '#/components/schemas/AdditionalInfo'
+        merchant_info:
+          $ref: '#/components/schemas/MerchantInfo'
+        source:
+          type: string
+          description: The source of the payment request
+        source_id:
+          description: The source id of the payment request
+          type: string
+        timeline:
+          allOf:
+            - $ref: '#/components/schemas/TransferTimeline'
+        created_at:
+          type: string
+          format: date-time
+          example: '2023-10-15T12:15:30Z'
+        updated_at:
+          type: string
+          format: date-time
+          example: '2023-10-15T12:15:30Z'
+        expires_at:
+          type: string
+          format: date-time
+          example: '2023-10-15T12:15:30Z'
+    CreatePaymentRequestForLinkReq:
+      type: object
+      required:
+        - source_currency
+      properties:
+        quote_amount:
+          $ref: '#/components/schemas/Decimal'
+        quote_currency:
+          allOf:
+            - $ref: '#/components/schemas/Currency'
+        source_currency:
+          $ref: '#/components/schemas/Currency'
+        source_amount:
+          $ref: '#/components/schemas/Decimal'
+        target_amount:
+          $ref: '#/components/schemas/Decimal'
+        pay_in:
+          $ref: '#/components/schemas/PayInObj'
+        requested_info:
+          type: object
+          additionalProperties:
+            type: string
+        reference:
+          type: string
+    PaymentRequestResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseSchema'
+        - type: object
+          required:
+            - data
+          properties:
+            data:
+              $ref: '#/components/schemas/PaymentRequest'
+    PaymentRequestListResponse:
+      allOf:
+        - $ref: '#/components/schemas/CursorPagination'
+        - type: object
+          required:
+            - data
+          properties:
+            data:
+              type: array
+              description: List of payment requests
+              items:
+                $ref: '#/components/schemas/PaymentRequest'
+    CreatePaymentRequest:
+      type: object
+      required:
+        - additional_info
+        - source_currency
+        - target_currency
+      properties:
+        additional_info:
+          $ref: '#/components/schemas/AdditionalInfo'
+        dry_run:
+          type: boolean
+          description: if true, will not create a payment transfer
+        quote_amount:
+          $ref: '#/components/schemas/Decimal'
+        quote_currency:
+          allOf:
+            - $ref: '#/components/schemas/Currency'
+          description: This optional field specifies the fiat currency to display amounts in, which is converted from the source amount
+          example: NGN
+        source_amount:
+          $ref: '#/components/schemas/Decimal'
+        source_currency:
+          $ref: '#/components/schemas/Currency'
+        target_amount:
+          $ref: '#/components/schemas/Decimal'
+        target_currency:
+          $ref: '#/components/schemas/Currency'
+        pay_in:
+          $ref: '#/components/schemas/PayInObj'
+        reference:
+          type: string
+          description: reference for the payment request
+          example: busha-123
+    PaymentRequestMeta:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        phone_number:
+          type: string
+          format: phone
+    UnAuthPayInObj:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          example: address
+          enum:
+            - address
+            - mobile_money
+            - temporary_bank_account
+            - balance
+        network:
+          type: string
+          example: BTC
+          description: |
+            This specifies the blockchain network associated with the address receiving the payment, typically used with address type payouts.
+    PayInObj:
+      allOf:
+        - $ref: '#/components/schemas/UnAuthPayInObj'
+        - type: object
+          properties:
+            phone:
+              $ref: '#/components/schemas/PhoneField'
     ExampleQuoteResponse:
       allOf:
         - $ref: '#/components/schemas/BaseSchema'
@@ -5950,17 +6002,6 @@ components:
               $ref: '#/components/examples/InternalServerError'
             service_unavailable_error:
               $ref: '#/components/examples/ServiceUnavailableError'
-    PaymentRequestError5XX:
-      description: Default
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorResponse'
-          examples:
-            internal_server_error:
-              $ref: '#/components/examples/InternalServerError'
-            service_unavailable_error:
-              $ref: '#/components/examples/ServiceUnavailableError'
     PaymentRequestError4XX:
       description: Default
       content:
@@ -5978,6 +6019,17 @@ components:
               $ref: '#/components/examples/RequestValidationError'
             schema_validation_error:
               $ref: '#/components/examples/SchemaValidationError'
+    PaymentRequestError5XX:
+      description: Default
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            internal_server_error:
+              $ref: '#/components/examples/InternalServerError'
+            service_unavailable_error:
+              $ref: '#/components/examples/ServiceUnavailableError'
     QuoteError4XX:
       description: Default
       content:
