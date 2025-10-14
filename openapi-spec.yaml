@@ -518,7 +518,7 @@ paths:
             - api:read
   /v1/validate:
     post:
-      x-rate-limit: 20
+      x-rate-limit: 5
       tags:
         - Miscellaneous
       summary: Validate payment destination
@@ -606,7 +606,7 @@ paths:
       security: []
   /v1/pay/{username}:
     get:
-      x-rate-limit: 20
+      x-rate-limit: 5
       tags:
         - Miscellaneous
       summary: Look up users addresses
@@ -2688,6 +2688,7 @@ components:
             - payout
             - phone
             - address
+            - level
             - created_at
             - updated_at
           properties:
@@ -2766,14 +2767,17 @@ components:
                   email:
                     $ref: '#/components/schemas/EmailField'
               x-order: 14
+            level:
+              type: string
+              x-order: 15
             created_at:
               type: string
               format: date-time
-              x-order: 15
+              x-order: 16
             updated_at:
               type: string
               format: date-time
-              x-order: 16
+              x-order: 17
     BusinessCustomerType:
       type: string
       enum:
