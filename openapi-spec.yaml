@@ -607,6 +607,8 @@ paths:
   /v1/pay/{username}:
     get:
       x-rate-limit: 5
+      security:
+        - Auth: []
       tags:
         - Miscellaneous
       summary: Look up users addresses
@@ -660,7 +662,6 @@ paths:
           $ref: '#/components/responses/MiscellaneousError4XX'
         5XX:
           $ref: '#/components/responses/MiscellaneousError5XX'
-      security: []
   /v1/pairs:
     get:
       tags:
@@ -4484,6 +4485,10 @@ components:
         - minimum_sale
         - minimum_purchase
         - maximum_purchase
+        - maximum_sale_target
+        - minimum_sale_target
+        - minimum_purchase_target
+        - maximum_purchase_target
       properties:
         source_currency:
           allOf:
@@ -4521,6 +4526,22 @@ components:
           allOf:
             - $ref: '#/components/schemas/Decimal'
           x-order: 9
+        maximum_sale_target:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          x-order: 10
+        minimum_sale_target:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          x-order: 11
+        minimum_purchase_target:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          x-order: 12
+        maximum_purchase_target:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          x-order: 13
     Quote:
       type: object
       required:
