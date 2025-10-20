@@ -136,6 +136,9 @@ tags:
   - name: Balances
     description: Handles account balances across different currencies
     x-displayName: Balances
+  - name: Cards
+    description: Lorem Ipsum
+    x-displayName: Cards
   - name: Currencies
     description: |
       Endpoints to manage supported currencies, their properties, and network details.
@@ -900,7 +903,7 @@ paths:
       tags:
         - Quotes
       parameters:
-        - $ref: '#/components/parameters/PathParamUUID'
+        - $ref: '#/components/parameters/PathParamNanoID'
         - $ref: '#/components/parameters/ProfileHeader'
       responses:
         '200':
@@ -1812,6 +1815,64 @@ components:
       schema:
         type: string
         example: BUS_YOK8tp5Zga01qOKEsqp07
+    CurrencyCodePathParam:
+      name: code
+      in: path
+      required: true
+      description: The currency path parameter
+      schema:
+        type: string
+        example: BTC
+        x-go-type: string
+    CurrencyQueryParam:
+      name: currency
+      in: query
+      required: false
+      description: Filter by currency
+      schema:
+        type: array
+        items:
+          type: string
+          x-oapi-codegen-extra-tags:
+            validate: min_len:3|max_len:10
+            filter: trim|upper
+      style: form
+      explode: false
+    CursorQueryParams:
+      name: cursor
+      in: query
+      description: The cursor
+      schema:
+        type: string
+        format: string
+    LimitQueryParam:
+      name: limit
+      in: query
+      description: The number of items to return
+      schema:
+        type: integer
+        example: 10
+        x-go-type: uint64
+    SortQueryParam:
+      name: sort
+      in: query
+      description: The order to sort the results
+      schema:
+        type: string
+        enum:
+          - asc
+          - desc
+        example: asc
+    PathParamNanoID:
+      in: path
+      name: id
+      required: true
+      schema:
+        type: string
+        format: nanoid
+        example: bus_123456789
+      x-oapi-codegen-extra-tags:
+        validate: required|nanoid
     XBuPublicKey:
       in: header
       name: X-BU-PUBLIC-KEY
@@ -1833,50 +1894,6 @@ components:
       style: form
       example: fiat
       explode: false
-    SortQueryParam:
-      name: sort
-      in: query
-      description: The order to sort the results
-      schema:
-        type: string
-        enum:
-          - asc
-          - desc
-        example: asc
-    CurrencyCodePathParam:
-      name: code
-      in: path
-      required: true
-      description: The currency path parameter
-      schema:
-        type: string
-        example: BTC
-        x-go-type: string
-    CursorQueryParams:
-      name: cursor
-      in: query
-      description: The cursor
-      schema:
-        type: string
-        format: string
-    LimitQueryParam:
-      name: limit
-      in: query
-      description: The number of items to return
-      schema:
-        type: integer
-        example: 10
-        x-go-type: uint64
-    PathParamNanoID:
-      in: path
-      name: id
-      required: true
-      schema:
-        type: string
-        format: nanoid
-        example: bus_123456789
-      x-oapi-codegen-extra-tags:
-        validate: required|nanoid
     ParamNanoPlanID:
       in: path
       name: plan_id
@@ -1898,20 +1915,6 @@ components:
       style: form
       explode: false
       example: platform_123456
-    CurrencyQueryParam:
-      name: currency
-      in: query
-      required: false
-      description: Filter by currency
-      schema:
-        type: array
-        items:
-          type: string
-          x-oapi-codegen-extra-tags:
-            validate: min_len:3|max_len:10
-            filter: trim|upper
-      style: form
-      explode: false
     PathParamUUID:
       in: path
       name: id
@@ -2017,7 +2020,7 @@ components:
       minLength: 1
       description: A valid currency
       x-oapi-codegen-extra-tags:
-        validate: required|min_len:3|max_len:10
+        validate: required|min_len:1|max_len:10
         filter: trim|upper
     BaseSchema:
       description: General response Values
@@ -2135,6 +2138,148 @@ components:
         error:
           name: bad_request
           message: Invalid Request
+    CardInfoResponse:
+      type: object
+      required:
+        - currency
+        - creation_fee
+        - convenience_fee
+        - convenience_fee_frequency
+        - min_funding
+        - max_funding
+        - max_amount
+        - supported_issuers
+        - supported_types
+      properties:
+        currency:
+          $ref: '#/components/schemas/Currency'
+        creation_fee:
+          allOf:
+            - $ref: '#/components/schemas/Fee'
+          description: fee to create a card
+        convenience_fee:
+          allOf:
+            - $ref: '#/components/schemas/Fee'
+          description: fee to use a card
+        convenience_fee_frequency:
+          allOf:
+            - $ref: '#/components/schemas/Duration'
+          description: frequency of convenience fee
+        min_funding:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: minimum funding required for card
+        max_funding:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: maximum funding allowed for card
+        max_amount:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: maximum amount allowed for card
+        supported_types:
+          type: array
+        supported_issuers:
+          type: array
+    FeeType:
+      type: string
+      enum:
+        - FIXED
+        - PERCENTAGE
+        - TIERED
+      example: FIXED
+    Fee:
+      type: object
+      x-order: 40
+      required:
+        - name
+        - amount
+        - type
+      properties:
+        name:
+          type: string
+          example: processing_fee
+        amount:
+          $ref: '#/components/schemas/AmountWithCurrency'
+        converted_amount:
+          $ref: '#/components/schemas/AmountWithCurrency'
+        type:
+          $ref: '#/components/schemas/FeeType'
+    Duration:
+      type: string
+      pattern: ^[0-9]+[smhdwMy]$
+      description: |
+        Expiration time in duration format.
+        - Number followed by a unit
+        - Allowed units: s (second), m (minute), h (hour), d (day), w (week), M (month), y (year)
+        - Examples: 1d, 7d, 2w, 6m, 1y
+      example: 1d
+    ResourceID:
+      type: string
+      x-order: 1
+      example: bus_123456789
+      format: string
+      description: A valid id
+      x-oapi-codegen-extra-tags:
+        validate: required|nanoid
+    NanoID:
+      type: string
+      x-order: 2
+      example: bus_123456789
+      format: nanoid
+      description: A valid id
+      x-oapi-codegen-extra-tags:
+        validate: required|nanoid
+    Address:
+      type: object
+      description: Address of the business.
+      required:
+        - address_line_1
+        - country_id
+      properties:
+        city:
+          type: string
+          example: Lekki
+          x-oapi-codegen-extra-tags:
+            mapstructure: city
+        state:
+          type: string
+          example: Lagos
+          x-oapi-codegen-extra-tags:
+            mapstructure: state
+        county:
+          type: string
+          example: Mombasa
+          x-oapi-codegen-extra-tags:
+            mapstructure: county
+        country_id:
+          type: string
+          example: NG
+          format: alpha2
+          description: A valid country id
+          x-oapi-codegen-extra-tags:
+            validate: alpha2
+            mapstructure: country_id
+        address_line_1:
+          type: string
+          example: RT Lawal
+          x-oapi-codegen-extra-tags:
+            mapstructure: address_line_1
+        address_line_2:
+          type: string
+          example: ''
+          x-oapi-codegen-extra-tags:
+            mapstructure: address_line_2
+        province:
+          type: string
+          example: province
+          x-oapi-codegen-extra-tags:
+            mapstructure: province
+        postal_code:
+          type: string
+          example: '12345'
+          x-oapi-codegen-extra-tags:
+            mapstructure: postal_code
     Currencies:
       type: object
       required:
@@ -2793,14 +2938,6 @@ components:
       x-oapi-codegen-extra-tags:
         validate: regex:^[-a-zA-Z0-9]+$|minLen:3|maxLen:70
         filter: trim|lower|ucFirst
-    NanoID:
-      type: string
-      x-order: 2
-      example: bus_123456789
-      format: nanoid
-      description: A valid id
-      x-oapi-codegen-extra-tags:
-        validate: required|nanoid
     EmailField:
       type: string
       example: bCnW7@example.com
@@ -2826,56 +2963,6 @@ components:
       description: A valid phone number. format `{{calling_code}} {{number}}`
       x-oapi-codegen-extra-tags:
         validate: phone
-    Address:
-      type: object
-      description: Address of the business.
-      required:
-        - address_line_1
-        - country_id
-      properties:
-        city:
-          type: string
-          example: Lekki
-          x-oapi-codegen-extra-tags:
-            mapstructure: city
-        state:
-          type: string
-          example: Lagos
-          x-oapi-codegen-extra-tags:
-            mapstructure: state
-        county:
-          type: string
-          example: Mombasa
-          x-oapi-codegen-extra-tags:
-            mapstructure: county
-        country_id:
-          type: string
-          example: NG
-          format: alpha2
-          description: A valid country id
-          x-oapi-codegen-extra-tags:
-            validate: alpha2
-            mapstructure: country_id
-        address_line_1:
-          type: string
-          example: RT Lawal
-          x-oapi-codegen-extra-tags:
-            mapstructure: address_line_1
-        address_line_2:
-          type: string
-          example: ''
-          x-oapi-codegen-extra-tags:
-            mapstructure: address_line_2
-        province:
-          type: string
-          example: province
-          x-oapi-codegen-extra-tags:
-            mapstructure: province
-        postal_code:
-          type: string
-          example: '12345'
-          x-oapi-codegen-extra-tags:
-            mapstructure: postal_code
     BVNField:
       type: string
       description: Bank Verification Number (BVN)
@@ -3424,14 +3511,6 @@ components:
           enum:
             - FIXED
           example: FIXED
-    ResourceID:
-      type: string
-      x-order: 1
-      example: bus_123456789
-      format: string
-      description: A valid id
-      x-oapi-codegen-extra-tags:
-        validate: required|nanoid
     DepositAddressWarnings:
       type: object
       required:
@@ -3918,15 +3997,6 @@ components:
               type: string
               format: date-time
               example: '2023-10-15T12:15:30Z'
-    ExpiresIn:
-      type: string
-      pattern: ^[0-9]+[smhdwMy]$
-      description: |
-        Expiration time in duration format.
-        - Number followed by a unit
-        - Allowed units: s (second), m (minute), h (hour), d (day), w (week), M (month), y (year)
-        - Examples: 1d, 7d, 2w, 6m, 1y
-      example: 1d
     NullableDecimal:
       type: string
       description: nullable decimal value
@@ -4039,7 +4109,7 @@ components:
       example: BTC
       format: string
       maxLength: 10
-      minLength: 3
+      minLength: 1
       nullable: true
     PaymentRequestStatus:
       type: string
@@ -4052,24 +4122,6 @@ components:
         - multiple_deposits
         - under_payment
         - over_payment
-    Fee:
-      type: object
-      x-order: 40
-      required:
-        - name
-        - amount
-        - type
-      properties:
-        name:
-          type: string
-          example: processing_fee
-        amount:
-          $ref: '#/components/schemas/AmountWithCurrency'
-        converted_amount:
-          $ref: '#/components/schemas/AmountWithCurrency'
-        type:
-          type: string
-          example: FIXED
     AdditionalInfo:
       type: object
       required:
@@ -5764,6 +5816,34 @@ components:
               $ref: '#/components/examples/InternalServerError'
             service_unavailable_error:
               $ref: '#/components/examples/ServiceUnavailableError'
+    CardsError5XX:
+      description: Default
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            internal_server_error:
+              $ref: '#/components/examples/InternalServerError'
+            service_unavailable_error:
+              $ref: '#/components/examples/ServiceUnavailableError'
+    CardsError4XX:
+      description: Default
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            default:
+              $ref: '#/components/examples/DefaultError'
+            not_found_error:
+              $ref: '#/components/examples/NotFoundError'
+            unauthorized_error:
+              $ref: '#/components/examples/UnAuthorizedError'
+            request_validation_error:
+              $ref: '#/components/examples/RequestValidationError'
+            schema_validation_error:
+              $ref: '#/components/examples/SchemaValidationError'
     CurrenciesError4XX:
       description: Error from customer resource.
       content:
