@@ -309,6 +309,8 @@ paths:
           $ref: '#/components/responses/CurrenciesError5XX'
   /v1/currencies/{code}:
     get:
+      security:
+        - AuthOptional: []
       tags:
         - Currencies
       summary: Retrieve details of a specific currency
@@ -316,6 +318,7 @@ paths:
         Fetches detailed information about a specific currency using its unique code. This includes details such as network support, decimal precision, and transaction limits.
       parameters:
         - $ref: '#/components/parameters/CurrencyCodePathParam'
+        - $ref: '#/components/parameters/ProfileHeader'
       operationId: getCurrency
       responses:
         '200':
@@ -335,7 +338,6 @@ paths:
           $ref: '#/components/responses/CurrenciesError4XX'
         5XX:
           $ref: '#/components/responses/CurrenciesError5XX'
-      security: []
   /v1/customers:
     post:
       x-rate-limit: 20
@@ -745,7 +747,218 @@ paths:
           $ref: '#/components/responses/PairError4XX'
         5XX:
           $ref: '#/components/responses/PairError5XX'
+  /v1/payments/links:
+    post:
+      tags:
+        - PaymentLinks
+      security:
+        - Auth:
+            - transfers:write
+            - api:write
+      summary: Create a payment link
+      description: Create a payment link
+      operationId: createPaymentLink
+      parameters:
+        - $ref: '#/components/parameters/ProfileHeader'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePaymentLinkReq'
+      responses:
+        '201':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseSchema'
+                  - type: object
+                    required:
+                      - data
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PaymentLink'
+        4XX:
+          $ref: '#/components/responses/PaymentLinkError4XX'
+        5XX:
+          $ref: '#/components/responses/PaymentLinkError5XX'
+    get:
+      tags:
+        - PaymentLinks
+      security:
+        - Auth:
+            - api:get
+            - transfers:get
+      summary: List payment links
+      description: List payment links
+      operationId: listPaymentLink
+      parameters:
+        - $ref: '#/components/parameters/ProfileHeader'
+        - $ref: '#/components/parameters/SortQueryParam'
+        - $ref: '#/components/parameters/LimitQueryParam'
+        - $ref: '#/components/parameters/CursorQueryParams'
+        - name: status
+          in: query
+          explode: false
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/PaymentLinkStatus'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaymentLinkListResponse'
+        4XX:
+          $ref: '#/components/responses/PaymentLinkError4XX'
+        5XX:
+          $ref: '#/components/responses/PaymentLinkError5XX'
+  /v1/payments/links/{id}:
+    get:
+      tags:
+        - PaymentLinks
+      security:
+        - AuthOptional:
+            - api:get
+            - transfers:get
+      summary: Retrieve a payment link
+      description: Retrieve a payment link
+      operationId: getPaymentLink
+      parameters:
+        - $ref: '#/components/parameters/PathParamNanoID'
+        - $ref: '#/components/parameters/ProfileHeader'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseSchema'
+                  - type: object
+                    required:
+                      - data
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PaymentLink'
+        4XX:
+          $ref: '#/components/responses/PaymentLinkError4XX'
+        5XX:
+          $ref: '#/components/responses/PaymentLinkError5XX'
+    patch:
+      tags:
+        - PaymentLinks
+      security:
+        - Auth:
+            - transfers:write
+            - api:write
+      operationId: updatePaymentLink
+      summary: Update a payment link
+      description: Update a payment link
+      parameters:
+        - $ref: '#/components/parameters/PathParamNanoID'
+        - $ref: '#/components/parameters/ProfileHeader'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePaymentLinkReq'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseSchema'
+                  - type: object
+                    required:
+                      - data
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PaymentLink'
+        4XX:
+          $ref: '#/components/responses/PaymentLinkError4XX'
+        5XX:
+          $ref: '#/components/responses/PaymentLinkError5XX'
+    delete:
+      tags:
+        - PaymentLinks
+      security:
+        - Auth:
+            - transfers:write
+            - api:write
+      operationId: deletePaymentLink
+      summary: Delete a payment link
+      description: Delete a payment link
+      parameters:
+        - $ref: '#/components/parameters/PathParamNanoID'
+        - $ref: '#/components/parameters/ProfileHeader'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseSchema'
+                  - type: object
+                    required:
+                      - data
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PaymentLink'
+        4XX:
+          $ref: '#/components/responses/PaymentLinkError4XX'
+        5XX:
+          $ref: '#/components/responses/PaymentLinkError5XX'
   /v1/payments/links/{id}/requests:
+    get:
+      tags:
+        - PaymentLinks
+      security:
+        - Auth:
+            - transfers:write
+            - api:write
+      operationId: listPaymentLinkRequests
+      summary: List payment requests for payment link
+      description: List payment requests for payment link
+      parameters:
+        - $ref: '#/components/parameters/PathParamNanoID'
+        - $ref: '#/components/parameters/ProfileHeader'
+        - $ref: '#/components/parameters/SortQueryParam'
+        - $ref: '#/components/parameters/LimitQueryParam'
+        - $ref: '#/components/parameters/CursorQueryParams'
+        - name: status
+          in: query
+          description: Filter by status
+          required: false
+          schema:
+            $ref: '#/components/schemas/PaymentRequestStatus'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/CursorPagination'
+                  - type: object
+                    required:
+                      - data
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/PaymentRequest'
+        4XX:
+          $ref: '#/components/responses/PaymentRequestError4XX'
+        5XX:
+          $ref: '#/components/responses/PaymentRequestError4XX'
     post:
       tags:
         - PaymentLinks
@@ -4098,6 +4311,207 @@ components:
               maxItems: 100
               items:
                 $ref: '#/components/schemas/Pairs'
+    UpdatePaymentLinkReq:
+      type: object
+      properties:
+        quote_amount:
+          $ref: '#/components/schemas/NullableDecimal'
+        quote_currency:
+          $ref: '#/components/schemas/NullableCurrency'
+        target_amount:
+          $ref: '#/components/schemas/NullableDecimal'
+        target_currency:
+          allOf:
+            - $ref: '#/components/schemas/Currency'
+        name:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+          enum:
+            - pending
+            - active
+        require_extra_info:
+          type: array
+          items:
+            $ref: '#/components/schemas/PaymentLinkExtraInfo'
+        logo:
+          type: string
+          format: url
+          nullable: true
+    CreatePaymentLinkReq:
+      type: object
+      required:
+        - fixed
+        - one_time
+        - name
+        - description
+        - title
+        - target_currency
+      properties:
+        fixed:
+          type: boolean
+        one_time:
+          type: boolean
+        name:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        quote_amount:
+          $ref: '#/components/schemas/Decimal'
+        quote_currency:
+          allOf:
+            - $ref: '#/components/schemas/Currency'
+        target_amount:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+        target_currency:
+          allOf:
+            - $ref: '#/components/schemas/Currency'
+        require_extra_info:
+          type: array
+          items:
+            $ref: '#/components/schemas/PaymentLinkExtraInfo'
+        logo:
+          type: string
+          format: url
+        dry_run:
+          type: boolean
+          description: if true, will not create a payment transfer
+    PaymentLink:
+      type: object
+      required:
+        - id
+        - profile_id
+        - fixed
+        - one_time
+        - name
+        - title
+        - description
+        - target_currency
+        - status
+        - created_at
+        - updated_at
+      properties:
+        id:
+          $ref: '#/components/schemas/NanoID'
+        profile_id:
+          $ref: '#/components/schemas/NanoID'
+        fixed:
+          x-order: 3
+          type: boolean
+          example: false
+          description: |
+            If true it will use the fixed amount, otherwise it will use the dynamic amount
+        one_time:
+          x-order: 4
+          type: boolean
+          example: false
+          description: |
+            If true it is a one-time link, otherwise it is a reusable link
+        name:
+          x-order: 5
+          type: string
+          example: Payment Link
+        title:
+          x-order: 6
+          type: string
+          description: |
+            The display title shown to customers
+        description:
+          x-order: 7
+          type: string
+          description: |
+            The display description shown to customers
+        quote_amount:
+          x-order: 8
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: |
+            The amount to be paid for the product/service pegged to a fiat currency (quote currency)
+        quote_currency:
+          x-order: 9
+          allOf:
+            - $ref: '#/components/schemas/Currency'
+          description: |
+            The fiat currency to display amounts in, which is converted from the source amount
+        target_amount:
+          x-order: 10
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: |
+            The amount to be paid for the product/service in a crypto currency (target currency)
+        target_currency:
+          x-order: 11
+          allOf:
+            - $ref: '#/components/schemas/Currency'
+          description: |
+            The crypto currency to which payment is to be received in
+        meta:
+          x-order: 12
+          allOf:
+            - $ref: '#/components/schemas/PaymentLinkMeta'
+        status:
+          x-order: 13
+          allOf:
+            - $ref: '#/components/schemas/PaymentLinkStatus'
+        pub_key:
+          type: string
+        created_at:
+          x-order: 14
+          allOf:
+            - $ref: '#/components/schemas/TimeStamp'
+        updated_at:
+          x-order: 15
+          allOf:
+            - $ref: '#/components/schemas/TimeStamp'
+        expires_at:
+          x-order: 16
+          allOf:
+            - $ref: '#/components/schemas/TimeStamp'
+    PaymentLinkStatus:
+      type: string
+      enum:
+        - pending
+        - active
+        - expired
+        - deleted
+    PaymentLinkMeta:
+      type: object
+      properties:
+        logo:
+          type: string
+          format: url
+        require_extra_info:
+          type: array
+          items:
+            $ref: '#/components/schemas/PaymentLinkExtraInfo'
+    PaymentLinkExtraInfo:
+      type: object
+      required:
+        - field_name
+        - required
+      properties:
+        field_name:
+          type: string
+        required:
+          type: boolean
+    PaymentLinkListResponse:
+      allOf:
+        - $ref: '#/components/schemas/CursorPagination'
+        - type: object
+          required:
+            - data
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/PaymentLink'
     TimeStamp:
       type: string
       format: date-time
@@ -4779,7 +5193,6 @@ components:
         - country_id
         - currency_id
         - channel
-        - bank_code
         - account_number
       properties:
         currency_id:
@@ -4808,6 +5221,8 @@ components:
       enum:
         - mobile_money
         - bank_transfer
+        - pay_bill
+        - till
       example: bank_transfer
     Recipient:
       deprecated: true
@@ -5133,9 +5548,7 @@ components:
         - currency_id
         - channel
         - account_number
-        - bank_code
         - account_name
-        - bank_name
       properties:
         country_id:
           $ref: '#/components/schemas/CountryID'
@@ -6107,6 +6520,34 @@ components:
               $ref: '#/components/examples/InternalServerError'
             service_unavailable_error:
               $ref: '#/components/examples/ServiceUnavailableError'
+    PaymentLinkError5XX:
+      description: Default
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            internal_server_error:
+              $ref: '#/components/examples/InternalServerError'
+            service_unavailable_error:
+              $ref: '#/components/examples/ServiceUnavailableError'
+    PaymentLinkError4XX:
+      description: Default
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            default:
+              $ref: '#/components/examples/DefaultError'
+            not_found_error:
+              $ref: '#/components/examples/NotFoundError'
+            unauthorized_error:
+              $ref: '#/components/examples/UnAuthorizedError'
+            request_validation_error:
+              $ref: '#/components/examples/RequestValidationError'
+            schema_validation_error:
+              $ref: '#/components/examples/SchemaValidationError'
     PaymentRequestError4XX:
       description: Default
       content:
