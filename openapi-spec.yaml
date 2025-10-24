@@ -1292,6 +1292,14 @@ paths:
                   type: mpesa_mobile_money
                   phone_number: +254 712345678
                   account_name: Samuel Kiprotich
+              kes_business_mobile_money:
+                summary: Recipient creation BUSINESS MOBILE MONEY (2025-07-11)
+                value:
+                  currency: KES
+                  country_code: KE
+                  type: business_mobile_money
+                  phone_number: +254 712345678
+                  account_name: Samuel Kiprotich
               crypto_btc:
                 summary: Recipient creation BTC (2025-07-11)
                 value:
@@ -3176,6 +3184,7 @@ components:
       description: A valid phone number. format `{{calling_code}} {{number}}`
       x-oapi-codegen-extra-tags:
         validate: phone
+        mapstructure: phone_number,omitempty
     BVNField:
       type: string
       description: Bank Verification Number (BVN)
@@ -4134,6 +4143,7 @@ components:
             - address
             - bank_transfer
             - mobile_money
+            - business_mobile_money
             - balance
         recipient_id:
           type: string
@@ -5293,6 +5303,11 @@ components:
       required:
         - type
       properties:
+        channel:
+          type: string
+          description: Channel for the transfer (business_mobile_money only)
+          x-oapi-codegen-extra-tags:
+            mapstructure: channel,omitempty
         currency:
           type: string
           description: Currency code for the recipient
@@ -5313,6 +5328,7 @@ components:
             - mpesa_mobile_money
             - mtn_mobile_money
             - crypto
+            - business_mobile_money
           x-oapi-codegen-extra-tags:
             mapstructure: ',omitempty'
         entity_type:
@@ -5380,10 +5396,7 @@ components:
           x-oapi-codegen-extra-tags:
             mapstructure: iban,omitempty
         phone_number:
-          type: string
-          description: Phone number (for mobile money transfers)
-          x-oapi-codegen-extra-tags:
-            mapstructure: phone_number,omitempty
+          $ref: '#/components/schemas/PhoneField'
         network:
           type: string
           description: Blockchain network (for crypto transfers)
