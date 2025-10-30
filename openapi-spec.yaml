@@ -4893,6 +4893,8 @@ components:
           $ref: '#/components/schemas/Decimal'
         target_amount:
           $ref: '#/components/schemas/Decimal'
+        limit_price:
+          $ref: '#/components/schemas/Decimal'
     CreateQuoteRequest:
       type: object
       required:
@@ -4986,6 +4988,9 @@ components:
           allOf:
             - $ref: '#/components/schemas/Decimal'
           x-order: 5
+        limit_price:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
         maximum_sale:
           allOf:
             - $ref: '#/components/schemas/Decimal'
@@ -5608,6 +5613,9 @@ components:
         - rewards
         - loans
         - savings
+        - savings.withdrawals
+        - savings.deposit
+        - savings.interests
         - deposits
         - withdrawals
         - sends
@@ -6435,17 +6443,6 @@ components:
               $ref: '#/components/examples/RequestValidationError'
             schema_validation_error:
               $ref: '#/components/examples/SchemaValidationError'
-    LoanError5XX:
-      description: Server error when processing the loan request
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorResponse'
-          examples:
-            internal_server_error:
-              $ref: '#/components/examples/InternalServerError'
-            service_unavailable_error:
-              $ref: '#/components/examples/ServiceUnavailableError'
     LookupResponses:
       description: Successful Response
       content:
