@@ -3588,7 +3588,7 @@ components:
         - recurring_amount
         - terms
         - status
-        - estimated_term_amount
+        - estimated_interest_amount
         - source_amount
         - created_at
         - updated_at
@@ -3678,7 +3678,7 @@ components:
           x-order: 14
         status:
           x-order: 15
-        estimated_term_amount:
+        estimated_interest_amount:
           allOf:
             - $ref: '#/components/schemas/EarnAmountType'
           x-order: 16
@@ -3716,6 +3716,9 @@ components:
         product:
           type: string
           example: BTCUSDT
+        rate_explained:
+          type: string
+          example: 1 BTC = 1000 USDT
         source_currency:
           $ref: '#/components/schemas/Currency'
         target_currency:
@@ -6250,34 +6253,6 @@ components:
               $ref: '#/components/examples/InternalServerError'
             service_unavailable_error:
               $ref: '#/components/examples/ServiceUnavailableError'
-    CardsError5XX:
-      description: Default
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorResponse'
-          examples:
-            internal_server_error:
-              $ref: '#/components/examples/InternalServerError'
-            service_unavailable_error:
-              $ref: '#/components/examples/ServiceUnavailableError'
-    CardsError4XX:
-      description: Default
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorResponse'
-          examples:
-            default:
-              $ref: '#/components/examples/DefaultError'
-            not_found_error:
-              $ref: '#/components/examples/NotFoundError'
-            unauthorized_error:
-              $ref: '#/components/examples/UnAuthorizedError'
-            request_validation_error:
-              $ref: '#/components/examples/RequestValidationError'
-            schema_validation_error:
-              $ref: '#/components/examples/SchemaValidationError'
     CurrenciesError4XX:
       description: Error from customer resource.
       content:
