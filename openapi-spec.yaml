@@ -130,7 +130,7 @@ info:
 servers:
   - url: https://api.sandbox.busha.so
     description: Sandbox Environment
-  - url: https://api.busha.co
+  - url: https://api.busha.io
     description: Production Environment
 tags:
   - name: Balances
@@ -4182,6 +4182,9 @@ components:
           example: NG
         provider:
           type: string
+        iban:
+          type: string
+          example: NG12345678901234567890
         currency:
           type: string
         phone_number:
@@ -4962,6 +4965,7 @@ components:
         - source_amount
         - target_amount
         - rate
+        - rate_explained
         - maximum_sale
         - minimum_sale
         - minimum_purchase
@@ -4990,6 +4994,9 @@ components:
         rate:
           allOf:
             - $ref: '#/components/schemas/Decimal'
+          x-order: 5
+        rate_explained:
+          type: string
           x-order: 5
         limit_price:
           allOf:
