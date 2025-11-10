@@ -2756,6 +2756,7 @@ components:
             - national-id
             - drivers-license
             - selfie_video
+            - bvn
           description: The category of identification document provided by the customer
         number:
           type: string
