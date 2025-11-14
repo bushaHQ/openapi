@@ -1298,6 +1298,7 @@ paths:
                   currency: KES
                   country_code: KE
                   type: business_mobile_money
+                  channel: pay_bill/till
                   phone_number: +254 712345678
                   account_name: Samuel Kiprotich
               crypto_btc:
