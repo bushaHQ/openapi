@@ -136,6 +136,9 @@ tags:
   - name: Balances
     description: Handles account balances across different currencies
     x-displayName: Balances
+  - name: Bills
+    description: Lorem Ipsum
+    x-displayName: Bills
   - name: Cards
     description: Lorem Ipsum
     x-displayName: Cards
@@ -170,6 +173,10 @@ tags:
     x-displayName: Transactions
   - name: Transfers
     x-displayName: Transfers
+  - name: Vouchers
+    x-internal: false
+    description: Endpoints related to voucher purchase, providers, and countries
+    x-displayName: Vouchers
 paths:
   /v1/balances:
     post:
@@ -271,6 +278,154 @@ paths:
       security:
         - Auth:
             - balances:read
+            - api:read
+  /v1/bills:
+    post:
+      operationId: createBillPurchase
+      description: This creates a bill purchase
+      summary: Create Bill Purchase
+      security:
+        - Auth:
+            - bills:write
+            - api:write
+      parameters:
+        - $ref: '#/components/parameters/ProfileHeader'
+      tags:
+        - Bills
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBillReq'
+      responses:
+        '200':
+          $ref: '#/components/responses/BillResponses'
+        4XX:
+          $ref: '#/components/responses/BillsError4XX'
+        5XX:
+          $ref: '#/components/responses/BillsError5XX'
+    get:
+      operationId: listBillPurchases
+      description: This lists bill purchases
+      summary: List Bill Purchase
+      parameters:
+        - $ref: '#/components/parameters/ProfileHeader'
+        - $ref: '#/components/parameters/CursorQueryParams'
+        - $ref: '#/components/parameters/SortQueryParam'
+        - $ref: '#/components/parameters/LimitQueryParam'
+        - name: type
+          in: query
+          explode: false
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/BillType'
+      tags:
+        - Bills
+      responses:
+        '200':
+          $ref: '#/components/responses/BillListResponses'
+        4XX:
+          $ref: '#/components/responses/BillsError4XX'
+        5XX:
+          $ref: '#/components/responses/BillsError5XX'
+      security:
+        - Auth:
+            - bills:read
+            - api:read
+  /v1/bills/{id}:
+    get:
+      operationId: getBillPurchase
+      description: This fetches a bill purchase
+      summary: Get Bill Purchase
+      parameters:
+        - $ref: '#/components/parameters/ProfileHeader'
+        - $ref: '#/components/parameters/PathParamNanoID'
+      tags:
+        - Bills
+      responses:
+        '200':
+          $ref: '#/components/responses/BillResponses'
+        4XX:
+          $ref: '#/components/responses/BillsError4XX'
+        5XX:
+          $ref: '#/components/responses/BillsError5XX'
+      security:
+        - Auth:
+            - bills:read
+            - api:read
+  /v1/bills/networks:
+    get:
+      summary: List Networks for Airtime & Data
+      description: |
+        This list the available networks for airtime and data
+      tags:
+        - Bills
+      operationId: listNetworks
+      parameters:
+        - $ref: '#/components/parameters/ProfileHeader'
+        - $ref: '#/components/parameters/CountryQueryParam'
+      responses:
+        '200':
+          $ref: '#/components/responses/AirtimeDataNetworkResponses'
+        4XX:
+          $ref: '#/components/responses/BillsError4XX'
+        5XX:
+          $ref: '#/components/responses/BillsError5XX'
+      security:
+        - Auth:
+            - bills:read
+            - api:read
+  /v1/bills/networks/{code}/plans:
+    get:
+      summary: List Network Plans
+      description: |
+        This list the available plans for data
+      tags:
+        - Bills
+      operationId: listNetworkPlans
+      parameters:
+        - $ref: '#/components/parameters/ProfileHeader'
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+            example: MTN
+      responses:
+        '200':
+          $ref: '#/components/responses/ListNetworkPlanResponses'
+        4XX:
+          $ref: '#/components/responses/BillsError4XX'
+        5XX:
+          $ref: '#/components/responses/BillsError5XX'
+      security:
+        - Auth:
+            - bills:read
+            - api:read
+  /v1/bills/bets/platforms:
+    get:
+      summary: List Bet Platforms
+      tags:
+        - Bills
+      operationId: listBetPlatforms
+      parameters:
+        - $ref: '#/components/parameters/ProfileHeader'
+        - name: country
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/CountryID'
+      responses:
+        '200':
+          $ref: '#/components/responses/BetPlatformsResp'
+        4XX:
+          $ref: '#/components/responses/BillsError4XX'
+        5XX:
+          $ref: '#/components/responses/BillsError5XX'
+      security:
+        - Auth:
+            - bills:read
             - api:read
   /v1/currencies:
     get:
@@ -1028,6 +1183,32 @@ paths:
                     properties:
                       data:
                         $ref: '#/components/schemas/PaymentRequest'
+        4XX:
+          $ref: '#/components/responses/PaymentRequestError4XX'
+        5XX:
+          $ref: '#/components/responses/PaymentRequestError5XX'
+    get:
+      tags:
+        - PaymentRequests
+      security:
+        - Auth:
+            - transfers:read
+            - api:read
+      summary: List payment requests
+      description: List payment requests
+      operationId: listPaymentRequests
+      parameters:
+        - $ref: '#/components/parameters/ProfileHeader'
+        - $ref: '#/components/parameters/CursorQueryParams'
+        - $ref: '#/components/parameters/SortQueryParam'
+        - $ref: '#/components/parameters/LimitQueryParam'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentRequestListResponse'
         4XX:
           $ref: '#/components/responses/PaymentRequestError4XX'
         5XX:
@@ -2027,6 +2208,177 @@ paths:
         - Auth:
             - transfers:read
             - api:read
+  /v1/vouchers:
+    post:
+      x-rate-limit: 20
+      x-internal: false
+      security:
+        - Auth:
+            - vouchers:write
+            - api:write
+      operationId: createVoucherPurchase
+      description: This creates a voucher purchase
+      summary: Create Voucher Purchase
+      tags:
+        - Vouchers
+      parameters:
+        - $ref: '#/components/parameters/ProfileHeader'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateVoucherReq'
+      responses:
+        '201':
+          $ref: '#/components/responses/VoucherResponse'
+        4XX:
+          $ref: '#/components/responses/VoucherError4XX'
+        5XX:
+          $ref: '#/components/responses/VoucherError5XX'
+    get:
+      x-internal: false
+      summary: List voucher purchases
+      description: |
+        Fetch all voucher purchases made by the user.
+        Optionally filter by `active` or `status`.
+      operationId: listVoucherPurchases
+      tags:
+        - Vouchers
+      parameters:
+        - $ref: '#/components/parameters/ProfileHeader'
+        - $ref: '#/components/parameters/CursorQueryParams'
+        - $ref: '#/components/parameters/SortQueryParam'
+        - $ref: '#/components/parameters/LimitQueryParam'
+        - name: active
+          in: query
+          required: false
+          schema:
+            type: boolean
+          description: Filter vouchers by active state.
+          example: true
+        - name: status
+          in: query
+          required: false
+          style: form
+          explode: false
+          schema:
+            type: array
+            items:
+              type: string
+          description: Filter vouchers by status (can accept multiple values).
+          example:
+            - used
+            - pending
+      responses:
+        '200':
+          $ref: '#/components/responses/VoucherListResponse'
+        4XX:
+          $ref: '#/components/responses/VoucherError4XX'
+        5XX:
+          $ref: '#/components/responses/VoucherError5XX'
+      security:
+        - Auth:
+            - vouchers:read
+            - api:read
+  /v1/vouchers/{id}:
+    get:
+      operationId: getVoucherPurchase
+      description: This fetches a voucher purchase by ID
+      summary: Get Voucher Purchase
+      parameters:
+        - $ref: '#/components/parameters/ProfileHeader'
+        - $ref: '#/components/parameters/PathParamNanoID'
+      tags:
+        - Vouchers
+      responses:
+        '200':
+          $ref: '#/components/responses/VoucherResponse'
+        4XX:
+          $ref: '#/components/responses/VoucherError4XX'
+        5XX:
+          $ref: '#/components/responses/VoucherError5XX'
+      security:
+        - Auth:
+            - vouchers:read
+            - api:read
+  /v1/vouchers/merchants:
+    get:
+      summary: List voucher merchants
+      description: Fetches all merchants offering vouchers. Supports filtering by featured status and country code.
+      operationId: listVoucherMerchants
+      tags:
+        - Vouchers
+      parameters:
+        - name: featured
+          in: query
+          required: false
+          description: Filter merchants that are featured
+          schema:
+            type: boolean
+        - name: country
+          in: query
+          required: true
+          description: The ISO country code (e.g. NG, US, GH)
+          schema:
+            $ref: '#/components/schemas/CountryID'
+      responses:
+        '200':
+          $ref: '#/components/responses/VoucherMerchantListResponse'
+        4XX:
+          $ref: '#/components/responses/VoucherError4XX'
+        5XX:
+          $ref: '#/components/responses/VoucherError5XX'
+      security:
+        - Auth:
+            - vouchers:read
+            - api:read
+  /v1/vouchers/merchants/{id}:
+    get:
+      summary: Get a merchant by ID
+      description: Fetch detailed information about a specific voucher merchant.
+      operationId: getVoucherMerchant
+      tags:
+        - Vouchers
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: The unique ID of the merchant to retrieve.
+          example: 0d3e7a09-6fee-4f98-891f-7c1e0fb761c7
+      responses:
+        '200':
+          $ref: '#/components/responses/VoucherMerchantResponse'
+        4XX:
+          $ref: '#/components/responses/VoucherError4XX'
+        5XX:
+          $ref: '#/components/responses/VoucherError5XX'
+      security:
+        - Auth:
+            - vouchers:read
+            - api:read
+  /v1/vouchers/countries:
+    get:
+      summary: List Supported Voucher Countries
+      description: |
+        This returns all countries where voucher purchases are supported.
+      tags:
+        - Vouchers
+      operationId: listVoucherCountries
+      parameters:
+        - $ref: '#/components/parameters/ProfileHeader'
+      responses:
+        '200':
+          $ref: '#/components/responses/VoucherCountryResponse'
+        4XX:
+          $ref: '#/components/responses/VoucherError4XX'
+        5XX:
+          $ref: '#/components/responses/VoucherError5XX'
+      security:
+        - Auth:
+            - vouchers:read
+            - api:read
 components:
   parameters:
     ProfileHeader:
@@ -2037,6 +2389,49 @@ components:
       schema:
         type: string
         example: BUS_YOK8tp5Zga01qOKEsqp07
+    CursorQueryParams:
+      name: cursor
+      in: query
+      description: The cursor
+      schema:
+        type: string
+        format: string
+    SortQueryParam:
+      name: sort
+      in: query
+      description: The order to sort the results
+      schema:
+        type: string
+        enum:
+          - asc
+          - desc
+        example: asc
+    LimitQueryParam:
+      name: limit
+      in: query
+      description: The number of items to return
+      schema:
+        type: integer
+        example: 10
+        x-go-type: uint64
+    PathParamNanoID:
+      in: path
+      name: id
+      required: true
+      schema:
+        type: string
+        format: nanoid
+        example: bus_123456789
+      x-oapi-codegen-extra-tags:
+        validate: required|nanoid
+    CountryQueryParam:
+      name: country
+      in: query
+      x-oapi-codegen-extra-tags:
+        validate: alpha2
+        filter: trim|upper
+      schema:
+        type: string
     CurrencyCodePathParam:
       name: code
       in: path
@@ -2060,41 +2455,6 @@ components:
             filter: trim|upper
       style: form
       explode: false
-    CursorQueryParams:
-      name: cursor
-      in: query
-      description: The cursor
-      schema:
-        type: string
-        format: string
-    LimitQueryParam:
-      name: limit
-      in: query
-      description: The number of items to return
-      schema:
-        type: integer
-        example: 10
-        x-go-type: uint64
-    SortQueryParam:
-      name: sort
-      in: query
-      description: The order to sort the results
-      schema:
-        type: string
-        enum:
-          - asc
-          - desc
-        example: asc
-    PathParamNanoID:
-      in: path
-      name: id
-      required: true
-      schema:
-        type: string
-        format: nanoid
-        example: bus_123456789
-      x-oapi-codegen-extra-tags:
-        validate: required|nanoid
     XBuPublicKey:
       in: header
       name: X-BU-PUBLIC-KEY
@@ -2148,14 +2508,6 @@ components:
         x-go-type: string
       x-oapi-codegen-extra-tags:
         validate: required|uuid
-    CountryQueryParam:
-      name: country
-      in: query
-      x-oapi-codegen-extra-tags:
-        validate: alpha2
-        filter: trim|upper
-      schema:
-        type: string
     X-BU-Version:
       in: header
       name: X-BU-Version
@@ -2360,6 +2712,261 @@ components:
         error:
           name: bad_request
           message: Invalid Request
+    ValidateBetAccount:
+      type: object
+      required:
+        - valid
+        - account_id
+        - platform
+        - firstName
+        - lastName
+        - surname
+      properties:
+        valid:
+          type: boolean
+        account_id:
+          type: string
+        platform:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        surname:
+          type: string
+    ValidateBetAccountReq:
+      type: object
+      required:
+        - currency
+        - account_id
+        - platform
+      properties:
+        currency:
+          $ref: '#/components/schemas/Currency'
+        account_id:
+          type: string
+        platform:
+          type: string
+    CreateBillReq:
+      allOf:
+        - $ref: '#/components/schemas/CreateBillCommonReq'
+        - oneOf:
+            - $ref: '#/components/schemas/CreateBillBetReq'
+            - $ref: '#/components/schemas/CreateBillAirtimeReq'
+            - $ref: '#/components/schemas/CreateBillDataReq'
+    CreateBillCommonReq:
+      type: object
+      required:
+        - type
+        - target_currency
+        - source_currency
+        - phone
+      properties:
+        type:
+          $ref: '#/components/schemas/BillType'
+        target_currency:
+          $ref: '#/components/schemas/Currency'
+        source_currency:
+          $ref: '#/components/schemas/Currency'
+        phone:
+          $ref: '#/components/schemas/PhoneField'
+        recipient_id:
+          type: string
+          description: Optional recipient identifier
+        amount:
+          $ref: '#/components/schemas/Decimal'
+        dry_run:
+          type: boolean
+    CreateBillAirtimeReq:
+      type: object
+      required:
+        - network
+      properties:
+        network:
+          type: string
+        data_code:
+          type: string
+    CreateBillDataReq:
+      type: object
+      required:
+        - data_code
+      properties:
+        data_code:
+          type: string
+    CreateBillBetReq:
+      type: object
+      required:
+        - platform
+        - account_id
+      properties:
+        platform:
+          type: string
+        account_id:
+          type: string
+    AirtimeDataNetwork:
+      required:
+        - code
+        - name
+        - country
+        - currency
+        - cashback
+        - minimum
+        - maximum
+      properties:
+        code:
+          type: string
+        name:
+          type: string
+        country:
+          $ref: '#/components/schemas/CountryID'
+        currency:
+          $ref: '#/components/schemas/Currency'
+        cashback:
+          $ref: '#/components/schemas/Decimal'
+        minimum:
+          $ref: '#/components/schemas/Decimal'
+        maximum:
+          $ref: '#/components/schemas/Decimal'
+    BetPlatform:
+      required:
+        - name
+        - currency
+        - logo
+        - minimum
+        - maximum
+      properties:
+        name:
+          type: string
+        logo:
+          type: string
+        currency:
+          $ref: '#/components/schemas/Currency'
+        minimum:
+          $ref: '#/components/schemas/Decimal'
+        maximum:
+          $ref: '#/components/schemas/Decimal'
+    NetworkDataPlan:
+      required:
+        - code
+        - currency
+        - value
+        - validity
+      properties:
+        currency:
+          $ref: '#/components/schemas/Currency'
+        value:
+          type: string
+        size:
+          type: string
+        code:
+          type: string
+        validity:
+          type: string
+    Bill:
+      allOf:
+        - $ref: '#/components/schemas/BillCommon'
+        - oneOf:
+            - $ref: '#/components/schemas/BillBet'
+            - $ref: '#/components/schemas/BillAirtime'
+    BillCommon:
+      type: object
+      required:
+        - id
+        - profile_id
+        - type
+        - reference
+        - amount
+        - currency
+        - created_at
+        - updated_at
+      properties:
+        id:
+          $ref: '#/components/schemas/NanoID'
+        profile_id:
+          $ref: '#/components/schemas/NanoID'
+        type:
+          $ref: '#/components/schemas/BillType'
+        reference:
+          $ref: '#/components/schemas/NanoID'
+        amount:
+          $ref: '#/components/schemas/Decimal'
+        currency:
+          $ref: '#/components/schemas/Currency'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    BillBet:
+      type: object
+      required:
+        - platform
+      properties:
+        platform:
+          type: string
+          example: busha
+        fee:
+          $ref: '#/components/schemas/Decimal'
+    BillAirtime:
+      type: object
+      required:
+        - network
+        - number
+        - status
+      properties:
+        network:
+          type: string
+        number:
+          type: string
+        status:
+          type: string
+        cashback_amount:
+          $ref: '#/components/schemas/Decimal'
+        mobile_data_code:
+          type: string
+    BillType:
+      type: string
+      enum:
+        - airtime
+        - data
+        - bet
+    ExampleBillsResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseSchema'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                greeting:
+                  type: string
+                  example: Welcome to the bills service!
+    NanoID:
+      type: string
+      x-order: 2
+      example: bus_123456789
+      format: nanoid
+      description: A valid id
+      x-oapi-codegen-extra-tags:
+        validate: required|nanoid
+    PhoneField:
+      type: string
+      example: +234 8012345678
+      format: phone
+      description: A valid phone number. format `{{calling_code}} {{number}}`
+      x-oapi-codegen-extra-tags:
+        validate: phone
+        mapstructure: phone_number,omitempty
+    CountryID:
+      type: string
+      example: NG
+      format: alpha2
+      description: A valid country id
+      minLength: 2
+      maxLength: 2
+      x-oapi-codegen-extra-tags:
+        validate: alpha2
     CardInfoResponse:
       type: object
       required:
@@ -2441,14 +3048,6 @@ components:
       x-order: 1
       example: bus_123456789
       format: string
-      description: A valid id
-      x-oapi-codegen-extra-tags:
-        validate: required|nanoid
-    NanoID:
-      type: string
-      x-order: 2
-      example: bus_123456789
-      format: nanoid
       description: A valid id
       x-oapi-codegen-extra-tags:
         validate: required|nanoid
@@ -3156,11 +3755,6 @@ components:
       type: string
       example: John
       description: A valid name
-      minLength: 3
-      maxLength: 70
-      x-oapi-codegen-extra-tags:
-        validate: regex:^[-a-zA-Z0-9]+$|minLen:3|maxLen:70
-        filter: trim|lower|ucFirst
     EmailField:
       type: string
       example: bCnW7@example.com
@@ -3170,23 +3764,6 @@ components:
         validate: required|email|check_temp_email
         filter: trim|lower
       x-go-type: string
-    CountryID:
-      type: string
-      example: NG
-      format: alpha2
-      description: A valid country id
-      minLength: 2
-      maxLength: 2
-      x-oapi-codegen-extra-tags:
-        validate: alpha2
-    PhoneField:
-      type: string
-      example: +234 8012345678
-      format: phone
-      description: A valid phone number. format `{{calling_code}} {{number}}`
-      x-oapi-codegen-extra-tags:
-        validate: phone
-        mapstructure: phone_number,omitempty
     BVNField:
       type: string
       description: Bank Verification Number (BVN)
@@ -3738,6 +4315,22 @@ components:
           enum:
             - FIXED
           example: FIXED
+    LoanAdjustmentActionStatus:
+      type: string
+      enum:
+        - repay
+        - borrow_more
+        - borrow_more_with_collateral
+        - collateral_add
+        - collateral_withdraw
+      description: |
+        Type of adjustment:
+        - `borrow_more`: Borrow more using gains from collateral appreciation (no new collateral)
+        - `borrow_more_with_collateral`: Borrow more by adding new collateral
+        - `collateral_add`: Add collateral without borrowing more
+        - `collateral_withdraw`: Remove excess collateral
+        - `repay`: Repay part or all of the loan
+      example: borrow_more
     DepositAddressWarnings:
       type: object
       required:
@@ -4224,6 +4817,10 @@ components:
               type: string
               x-order: 16
               example: 31b99c79e2fb7554d0a9421867a53a80e6810cdfd2b06826eec1b2a22974b171
+            from_address:
+              type: string
+              x-order: 16
+              example: 31b99c79e2fb7554d0a9421867a53a80e6810cdfd2b06826eec1b2a22974b171
             expires_at:
               type: string
               format: date-time
@@ -4409,6 +5006,7 @@ components:
         - fixed
         - one_time
         - name
+        - link
         - title
         - description
         - target_currency
@@ -4432,6 +5030,10 @@ components:
           example: false
           description: |
             If true it is a one-time link, otherwise it is a reusable link
+        link:
+          type: string
+          format: url
+          example: https://pay.busha.io/charges/123456789
         name:
           x-order: 5
           type: string
@@ -4565,6 +5167,12 @@ components:
           description: email address for the payment request
         phone_number:
           $ref: '#/components/schemas/PhoneField'
+        name:
+          $ref: '#/components/schemas/NameField'
+        source:
+          type: string
+          description: The source of the payment request
+          example: web
     MerchantInfo:
       type: object
       required:
@@ -5449,6 +6057,11 @@ components:
           example: CHASUS33
           x-oapi-codegen-extra-tags:
             mapstructure: intermediary_swift_code,omitempty
+        busha_wallet:
+          type: boolean
+          description: Whether the recipient is a a busha wallet
+          x-oapi-codegen-extra-tags:
+            mapstructure: busha_wallet,omitempty
     RecipientCreate-2025-07-11:
       allOf:
         - $ref: '#/components/schemas/RecipientBase-2025-07-11'
@@ -6233,6 +6846,185 @@ components:
           type: string
           format: date-time
           example: '2023-01-01T00:00:00Z'
+    CreateVoucherReq:
+      type: object
+      required:
+        - amount
+        - merchant_id
+        - source_currency
+        - target_currency
+      properties:
+        amount:
+          $ref: '#/components/schemas/Decimal'
+        merchant_id:
+          type: string
+          example: 5b7db87c-1447-4651-abbc-3f67d628918a
+        source_currency:
+          $ref: '#/components/schemas/Currency'
+        target_currency:
+          $ref: '#/components/schemas/Currency'
+        dry_run:
+          type: boolean
+    Voucher:
+      type: object
+      description: A summarized view of a user's voucher, including value, status, and redemption history.
+      required:
+        - id
+        - merchant_name
+        - voucher_code
+        - currency
+        - status
+        - picture
+        - current_value
+        - voucher_value
+        - expires_at
+        - created_at
+      properties:
+        id:
+          $ref: '#/components/schemas/NanoID'
+        merchant_name:
+          type: string
+          example: SPAR
+        voucher_code:
+          type: string
+          example: '58556806'
+        voucher_pin:
+          type: string
+        currency:
+          $ref: '#/components/schemas/Currency'
+        status:
+          type: string
+          example: used
+        picture:
+          $ref: '#/components/schemas/UrlField'
+        current_value:
+          $ref: '#/components/schemas/Decimal'
+        voucher_value:
+          $ref: '#/components/schemas/Decimal'
+        redemptions:
+          type: array
+          description: History of partial or full voucher redemptions.
+          items:
+            $ref: '#/components/schemas/VoucherRedemption'
+        expires_at:
+          $ref: '#/components/schemas/TimeStamp'
+        created_at:
+          $ref: '#/components/schemas/TimeStamp'
+    VoucherRedemption:
+      type: object
+      required:
+        - amount_used
+        - timestamp
+        - point_of_usage
+      properties:
+        amount_used:
+          $ref: '#/components/schemas/Decimal'
+        timestamp:
+          $ref: '#/components/schemas/TimeStamp'
+        point_of_usage:
+          type: string
+          example: Gold Cat Wigs Store 1
+    VoucherMerchant:
+      type: object
+      description: Detailed information about a voucher merchant including images, locations, and redemption rules.
+      required:
+        - id
+        - featured
+        - currency
+        - country
+        - provider
+        - name
+        - picture
+        - short_code
+        - description
+        - cashback
+        - minimum_price
+        - data
+        - active
+      properties:
+        id:
+          $ref: '#/components/schemas/NanoID'
+        currency:
+          $ref: '#/components/schemas/Currency'
+        country:
+          $ref: '#/components/schemas/CountryID'
+        featured:
+          type: boolean
+          description: Indicates if this merchant is featured.
+          example: true
+        provider:
+          type: string
+          example: SUREGIFTS
+          description: Name of the provider managing the merchant.
+        name:
+          type: string
+          example: Adam n Eve
+        picture:
+          $ref: '#/components/schemas/UrlField'
+        short_code:
+          type: string
+          example: AdamEve
+        description:
+          type: string
+          example: Home and Living for classy people
+        cashback:
+          $ref: '#/components/schemas/Decimal'
+        minimum_price:
+          $ref: '#/components/schemas/Decimal'
+        data:
+          $ref: '#/components/schemas/VoucherMerchantData'
+        active:
+          type: boolean
+          example: true
+    VoucherMerchantData:
+      type: object
+      required:
+        - store_locations
+        - redemption_details
+      properties:
+        store_locations:
+          type: array
+          items:
+            $ref: '#/components/schemas/VoucherMerchantStoreLocation'
+        redemption_details:
+          type: array
+          items:
+            $ref: '#/components/schemas/VoucherMerchantRedemptionDetails'
+    VoucherMerchantStoreLocation:
+      type: object
+      properties:
+        location:
+          type: string
+          example: 8, Isaac John Street, Ikeja GRA, Ikeja, Lagos, Nigeria
+        store_id:
+          type: integer
+          example: 1004
+        store_location_id:
+          type: integer
+          example: 2058
+    VoucherMerchantRedemptionDetails:
+      type: object
+      properties:
+        detail:
+          type: string
+          example: Recipients can swap merchant for another.
+        store_id:
+          type: integer
+          example: 1004
+        redemption_detail_id:
+          type: integer
+    VoucherCountry:
+      required:
+        - code
+        - name
+        - currency
+      properties:
+        code:
+          type: string
+        name:
+          type: string
+        currency:
+          $ref: '#/components/schemas/Currency'
   responses:
     BalanceError4XX:
       description: 409 error when a balance with the same currency already exists for a user
@@ -6262,6 +7054,120 @@ components:
               $ref: '#/components/examples/InternalServerError'
             service_unavailable_error:
               $ref: '#/components/examples/ServiceUnavailableError'
+    ValidateBetAccountResp:
+      description: Default
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/BaseSchema'
+              - type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ValidateBetAccount'
+    BillResponses:
+      description: Default
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/BaseSchema'
+              - type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Bill'
+    BillListResponses:
+      description: Default
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/CursorPagination'
+              - type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Bill'
+    AirtimeDataNetworkResponses:
+      description: Default
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/BaseSchema'
+              - type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AirtimeDataNetwork'
+    ListNetworkPlanResponses:
+      description: Default
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/BaseSchema'
+              - type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/NetworkDataPlan'
+    BetPlatformsResp:
+      description: Default
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/BaseSchema'
+              - type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/BetPlatform'
+    BillsError5XX:
+      description: Default
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            internal_server_error:
+              $ref: '#/components/examples/InternalServerError'
+            service_unavailable_error:
+              $ref: '#/components/examples/ServiceUnavailableError'
+    BillsError4XX:
+      description: Default
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            default:
+              $ref: '#/components/examples/DefaultError'
+            not_found_error:
+              $ref: '#/components/examples/NotFoundError'
+            unauthorized_error:
+              $ref: '#/components/examples/UnAuthorizedError'
+            request_validation_error:
+              $ref: '#/components/examples/RequestValidationError'
+            schema_validation_error:
+              $ref: '#/components/examples/SchemaValidationError'
     CurrenciesError4XX:
       description: Error from customer resource.
       content:
@@ -6775,6 +7681,97 @@ components:
                       $ref: '#/components/schemas/Transfer'
                 required:
                   - data
+    VoucherResponse:
+      description: Default
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/BaseSchema'
+              - type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Voucher'
+    VoucherListResponse:
+      description: Default
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/CursorPagination'
+              - type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Voucher'
+    VoucherMerchantResponse:
+      description: Default
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/BaseSchema'
+              - type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/VoucherMerchant'
+    VoucherMerchantListResponse:
+      description: Default
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/BaseSchema'
+              - type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/VoucherMerchant'
+    VoucherCountryResponse:
+      description: Default
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/BaseSchema'
+              - type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/VoucherCountry'
+    VoucherError4XX:
+      description: Default
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            not_found_error:
+              $ref: '#/components/examples/NotFoundError'
+            request_validation_error:
+              $ref: '#/components/examples/RequestValidationError'
+    VoucherError5XX:
+      description: Default
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            internal_server_error:
+              $ref: '#/components/examples/InternalServerError'
   securitySchemes:
     Auth:
       type: http
