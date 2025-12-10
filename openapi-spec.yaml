@@ -142,6 +142,9 @@ tags:
   - name: Cards
     description: Lorem Ipsum
     x-displayName: Cards
+  - name: Cashback
+    description: Main tag for cashback service endpoints
+    x-displayName: Cashback
   - name: Currencies
     description: |
       Endpoints to manage supported currencies, their properties, and network details.
@@ -2455,6 +2458,15 @@ components:
             filter: trim|upper
       style: form
       explode: false
+    CashbackEntryTypeParam:
+      name: entry_type
+      in: query
+      required: false
+      explode: false
+      schema:
+        type: array
+        items:
+          $ref: '#/components/schemas/CashbackEntryType'
     XBuPublicKey:
       in: header
       name: X-BU-PUBLIC-KEY
@@ -3101,6 +3113,38 @@ components:
           example: '12345'
           x-oapi-codegen-extra-tags:
             mapstructure: postal_code
+    CashbackMetaData:
+      type: object
+      properties:
+        network:
+          $ref: '#/components/schemas/CashbackNetwork'
+    CashbackNetwork:
+      type: object
+      required:
+        - code
+        - name
+        - country
+        - currency
+      properties:
+        code:
+          type: string
+        name:
+          type: string
+        country:
+          $ref: '#/components/schemas/CountryID'
+        currency:
+          $ref: '#/components/schemas/Currency'
+    CashbackEntryType:
+      type: string
+      enum:
+        - airtime
+        - voucher
+        - data
+    TimeStamp:
+      type: string
+      format: date-time
+      example: '2023-10-15T12:15:30Z'
+      x-go-type: time.Time
     Currencies:
       type: object
       required:
@@ -4076,10 +4120,14 @@ components:
           allOf:
             - $ref: '#/components/schemas/Decimal'
           x-order: 1
-        apy:
+        duration_in_months:
           allOf:
             - $ref: '#/components/schemas/Decimal'
           x-order: 2
+        apy:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          x-order: 3
     CreatePlanRequest:
       type: object
       required:
@@ -5132,11 +5180,6 @@ components:
               type: array
               items:
                 $ref: '#/components/schemas/PaymentLink'
-    TimeStamp:
-      type: string
-      format: date-time
-      example: '2023-10-15T12:15:30Z'
-      x-go-type: time.Time
     NullableCurrency:
       type: string
       x-order: 20
@@ -6215,6 +6258,607 @@ components:
           type: string
           description: Name of receiving bank
           example: Trust Bank
+    CreateSavingsPlanRequest:
+      type: object
+      required:
+        - product_id
+      properties:
+        name:
+          type: string
+          minLength: 3
+          maxLength: 50
+          example: My Savings Plan
+          description: Name of the savings plan
+          x-oapi-codegen-extra-tags:
+            validate: min_len:3|max_len:50
+            filter: trim|ucWord|escapeHtml
+          x-order: 1
+        product_id:
+          allOf:
+            - $ref: '#/components/schemas/NanoID'
+          x-order: 2
+        amount:
+          type: string
+          description: Amount in the product's base currency. Either `amount` or `source_amount` must be set.
+          example: '100'
+          x-go-type: decimal.Decimal
+          x-go-type-import:
+            path: github.com/shopspring/decimal
+            name: decimal
+          x-order: 3
+        source_currency:
+          allOf:
+            - $ref: '#/components/schemas/Currency'
+          description: Optional. Currency to fund from. If different from product currency, conversion will be applied.
+          x-order: 4
+        source_amount:
+          type: string
+          description: Amount in source currency. Use with source_currency for currency conversion.
+          example: '50000'
+          x-go-type: decimal.Decimal
+          x-go-type-import:
+            path: github.com/shopspring/decimal
+            name: decimal
+          x-order: 5
+        is_compounding:
+          type: boolean
+          description: Should the plan compound the interest. Defaults to false.
+          example: true
+          x-order: 6
+        goal:
+          type: string
+          description: Goal for the plan, e.g. 'vacation', 'home', 'car'
+          example: home
+          x-oapi-codegen-extra-tags:
+            validate: max_len:100
+            filter: trim|ucWord|escapeHtml
+          x-order: 7
+        duration_in_days:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          x-order: 8
+    UpdateSavingsPlanRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          description: New name for the plan
+          x-order: 1
+    CreateSavingsAdjustmentRequest:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          allOf:
+            - $ref: '#/components/schemas/SavingsAdjustmentType'
+          description: 'Type of adjustment: deposit to add funds, withdrawal to remove funds'
+          x-order: 1
+        amount:
+          type: string
+          description: 'Amount in the plan''s currency. For deposits: target amount to add. For withdrawals: amount to withdraw.'
+          example: '100'
+          x-go-type: decimal.Decimal
+          x-go-type-import:
+            path: github.com/shopspring/decimal
+            name: decimal
+          x-order: 2
+        source_currency:
+          allOf:
+            - $ref: '#/components/schemas/Currency'
+          description: 'For deposits: Optional currency to fund from.'
+          x-order: 3
+        source_amount:
+          type: string
+          description: 'For deposits: Amount in source currency to convert.'
+          example: '50000'
+          x-go-type: decimal.Decimal
+          x-go-type-import:
+            path: github.com/shopspring/decimal
+            name: decimal
+          x-order: 4
+        full_withdrawal:
+          type: boolean
+          description: 'For withdrawals: If true, withdraw all remaining funds.'
+          example: false
+          x-order: 5
+    SavingsProduct:
+      type: object
+      required:
+        - id
+        - name
+        - currency
+        - flexible
+        - active
+        - minimum
+        - terms
+        - type
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/NanoID'
+          x-order: 1
+        name:
+          type: string
+          x-order: 2
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/Currency'
+          description: Base currency of the product
+          x-order: 3
+        flexible:
+          type: boolean
+          description: True if flexible plan, false if fixed
+          x-order: 4
+        active:
+          type: boolean
+          x-order: 5
+        minimum:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: Minimum amount to create a plan
+          x-order: 6
+        maximum:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: Maximum amount allowed
+          x-order: 7
+        description:
+          type: string
+          x-order: 8
+        provider:
+          type: object
+          properties:
+            name:
+              type: string
+          x-order: 9
+        risk_score:
+          type: string
+          x-order: 10
+        ideal_for:
+          type: string
+          x-order: 11
+        type:
+          allOf:
+            - $ref: '#/components/schemas/SavingsProductType'
+          x-order: 12
+        terms:
+          type: array
+          items:
+            $ref: '#/components/schemas/SavingsTerms'
+          x-order: 13
+    SavingsPlan:
+      type: object
+      required:
+        - id
+        - profile_id
+        - product_id
+        - name
+        - currency
+        - balance
+        - flexible
+        - status
+        - terms
+        - interest
+        - summary
+        - created_at
+        - updated_at
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/NanoID'
+          x-order: 1
+        profile_id:
+          allOf:
+            - $ref: '#/components/schemas/NanoID'
+          x-order: 2
+        product_id:
+          allOf:
+            - $ref: '#/components/schemas/NanoID'
+          x-order: 3
+        name:
+          type: string
+          x-order: 4
+        goal:
+          type: string
+          x-order: 5
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/Currency'
+          description: Currency of the plan
+          x-order: 6
+        balance:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: Current balance in plan currency
+          x-order: 7
+        balance_fiat:
+          allOf:
+            - $ref: '#/components/schemas/AmountWithCurrency'
+          description: Balance converted to user's display currency
+          x-order: 8
+        accruing_interest:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: Interest accrued but not yet distributed
+          x-order: 9
+        is_compound:
+          type: boolean
+          x-order: 10
+        flexible:
+          type: boolean
+          description: True if flexible plan, false if fixed
+          x-order: 11
+        status:
+          allOf:
+            - $ref: '#/components/schemas/SavingsPlanStatus'
+          x-order: 12
+        terms:
+          allOf:
+            - $ref: '#/components/schemas/SavingsTerms'
+          x-order: 13
+        interest:
+          allOf:
+            - $ref: '#/components/schemas/SavingsInterest'
+          description: Estimated interest (daily/monthly for flexible, term for fixed)
+          x-order: 14
+        summary:
+          allOf:
+            - $ref: '#/components/schemas/SavingsPlanSummary'
+          x-order: 15
+        locked_until:
+          type: string
+          format: date-time
+          description: 'For fixed plans: when the lock period ends'
+          x-order: 16
+        next_distribution_date:
+          type: string
+          format: date-time
+          description: Next date interest will be distributed
+          x-order: 17
+        created_at:
+          type: string
+          format: date-time
+          x-order: 18
+        updated_at:
+          type: string
+          format: date-time
+          x-order: 19
+    SavingsPlanQuote:
+      type: object
+      required:
+        - id
+        - profile_id
+        - product_id
+        - name
+        - currency
+        - amount
+        - flexible
+        - terms
+        - created_at
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/NanoID'
+          x-order: 1
+        profile_id:
+          type: string
+          x-order: 2
+        product_id:
+          allOf:
+            - $ref: '#/components/schemas/NanoID'
+          x-order: 3
+        name:
+          type: string
+          x-order: 4
+        source_amount:
+          allOf:
+            - $ref: '#/components/schemas/AmountWithCurrency'
+          description: Original amount in source currency (if conversion applied)
+          x-order: 5
+        exchange_rate:
+          type: string
+          description: Exchange rate used (e.g., '1 USDC = 1,478.24 NGN')
+          x-order: 6
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/Currency'
+          description: Currency of the plan
+          x-order: 7
+        amount:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: Amount that will be deposited
+          x-order: 8
+        interest:
+          allOf:
+            - $ref: '#/components/schemas/SavingsInterest'
+          description: Estimated interest
+          x-order: 9
+        maturity_amount:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: 'For fixed plans: total at maturity (principal + interest)'
+          x-order: 10
+        flexible:
+          type: boolean
+          x-order: 11
+        terms:
+          allOf:
+            - $ref: '#/components/schemas/SavingsTerms'
+          x-order: 12
+        created_at:
+          type: string
+          format: date-time
+          x-order: 13
+    SavingsAdjustment:
+      type: object
+      required:
+        - id
+        - plan_id
+        - type
+        - reference
+        - currency
+        - amount
+        - created_at
+      properties:
+        id:
+          type: string
+          x-order: 1
+        profile_id:
+          type: string
+          x-order: 2
+        plan_id:
+          allOf:
+            - $ref: '#/components/schemas/NanoID'
+          x-order: 3
+        type:
+          allOf:
+            - $ref: '#/components/schemas/SavingsAdjustmentType'
+          x-order: 4
+        reference:
+          type: string
+          x-order: 5
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/Currency'
+          description: Currency of the plan
+          x-order: 6
+        source_amount:
+          allOf:
+            - $ref: '#/components/schemas/AmountWithCurrency'
+          description: 'For deposits: original amount in source currency'
+          x-order: 7
+        exchange_rate:
+          type: string
+          description: 'For deposits: exchange rate used'
+          x-order: 8
+        amount:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: Amount of the adjustment in plan currency
+          x-order: 9
+        current_state:
+          allOf:
+            - $ref: '#/components/schemas/SavingsAdjustmentState'
+          description: Plan state before adjustment
+          x-order: 10
+        projected_state:
+          allOf:
+            - $ref: '#/components/schemas/SavingsAdjustmentState'
+          description: Plan state after adjustment
+          x-order: 11
+        penalty:
+          allOf:
+            - $ref: '#/components/schemas/SavingsAdjustmentPenalty'
+          description: 'For withdrawals: penalty details if applicable'
+          x-order: 12
+        source:
+          type: string
+          description: 'For deposits: source (standard, plan, recurring, compounding)'
+          x-order: 13
+        is_fast:
+          type: boolean
+          description: 'For withdrawals: if processed immediately'
+          x-order: 14
+        created_at:
+          type: string
+          format: date-time
+          x-order: 15
+    SavingsActivity:
+      type: object
+      required:
+        - id
+        - plan_id
+        - type
+        - currency
+        - amount
+        - reference
+        - title
+        - created_at
+      properties:
+        id:
+          type: string
+          x-order: 1
+        plan_id:
+          allOf:
+            - $ref: '#/components/schemas/NanoID'
+          x-order: 2
+        type:
+          allOf:
+            - $ref: '#/components/schemas/SavingsActivityType'
+          x-order: 3
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/Currency'
+          x-order: 4
+        amount:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: Amount in plan currency
+          x-order: 5
+        reference:
+          type: string
+          x-order: 6
+        title:
+          type: string
+          x-order: 7
+        source:
+          type: string
+          description: 'For deposits: source type'
+          x-order: 8
+        source_amount:
+          allOf:
+            - $ref: '#/components/schemas/AmountWithCurrency'
+          description: 'For deposits: original source amount'
+          x-order: 9
+        exchange_rate:
+          type: string
+          description: 'For deposits: exchange rate used'
+          x-order: 10
+        interest:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: 'For interest activities: interest amount'
+          x-order: 11
+        status:
+          type: string
+          description: 'For withdrawals: status'
+          x-order: 12
+        penalty_fee:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: 'For withdrawals: penalty fee if applicable'
+          x-order: 13
+        penalty_reason:
+          type: string
+          x-order: 14
+        is_fast:
+          type: boolean
+          description: 'For withdrawals: if processed immediately'
+          x-order: 15
+        created_at:
+          type: string
+          format: date-time
+          x-order: 16
+        updated_at:
+          type: string
+          format: date-time
+          x-order: 17
+    SavingsTerms:
+      type: object
+      required:
+        - duration_in_days
+        - apy
+      properties:
+        duration_in_days:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          x-order: 1
+        apy:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          x-order: 2
+    SavingsInterest:
+      type: object
+      description: Estimated interest amounts (simple decimals in plan currency)
+      properties:
+        daily:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: 'For flexible plans: estimated daily interest'
+          x-order: 1
+        monthly:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: 'For flexible plans: estimated monthly interest'
+          x-order: 2
+        term:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: 'For fixed plans: estimated interest for the full term'
+          x-order: 3
+    SavingsAdjustmentState:
+      type: object
+      required:
+        - balance
+        - interest
+      properties:
+        balance:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: Plan balance at this state
+          x-order: 1
+        interest:
+          allOf:
+            - $ref: '#/components/schemas/SavingsInterest'
+          description: Estimated interest at this state
+          x-order: 2
+    SavingsAdjustmentPenalty:
+      type: object
+      properties:
+        fee:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: Penalty fee amount
+          x-order: 1
+        reason:
+          type: string
+          x-order: 2
+        net_amount:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: Amount after penalty deduction
+          x-order: 3
+    SavingsPlanSummary:
+      type: object
+      required:
+        - deposited
+        - withdrawn
+        - earned
+      properties:
+        deposited:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: Total amount deposited
+          x-order: 1
+        withdrawn:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: Total amount withdrawn
+          x-order: 2
+        earned:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: Total interest earned
+          x-order: 3
+    SavingsPlanStatus:
+      type: string
+      description: Status of the savings plan
+      enum:
+        - active
+        - inactive
+        - matured
+        - redeemed
+    SavingsProductType:
+      type: string
+      description: Type of savings product
+      enum:
+        - savings
+        - investments
+    SavingsAdjustmentType:
+      type: string
+      description: Type of adjustment
+      enum:
+        - deposit
+        - withdrawal
+    SavingsActivityType:
+      type: string
+      description: Type of activity
+      enum:
+        - deposit
+        - withdrawal
+        - interest
     TransactionsListResponse:
       allOf:
         - $ref: '#/components/schemas/CursorPagination'
@@ -6895,6 +7539,12 @@ components:
         status:
           type: string
           example: used
+          enum:
+            - pending
+            - used
+            - expired
+            - new
+            - inactive
         picture:
           $ref: '#/components/schemas/UrlField'
         current_value:
@@ -6978,9 +7628,6 @@ components:
           example: true
     VoucherMerchantData:
       type: object
-      required:
-        - store_locations
-        - redemption_details
       properties:
         store_locations:
           type: array
@@ -7573,6 +8220,114 @@ components:
               $ref: '#/components/examples/InternalServerError'
             service_unavailable_error:
               $ref: '#/components/examples/ServiceUnavailableError'
+    SavingsError4XX:
+      description: Something went wrong in Savings resource
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            default:
+              $ref: '#/components/examples/DefaultError'
+            not_found_error:
+              $ref: '#/components/examples/NotFoundError'
+            unauthorized_error:
+              $ref: '#/components/examples/UnAuthorizedError'
+            request_validation_error:
+              $ref: '#/components/examples/RequestValidationError'
+            schema_validation_error:
+              $ref: '#/components/examples/SchemaValidationError'
+    SavingsError5XX:
+      description: Server error when processing the savings request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            internal_server_error:
+              $ref: '#/components/examples/InternalServerError'
+            service_unavailable_error:
+              $ref: '#/components/examples/ServiceUnavailableError'
+    SavingsPlanResponse:
+      description: Successful savings plan response
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/BaseSchema'
+              - type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/SavingsPlan'
+    SavingsPlanListResponse:
+      description: Successful savings plan list response
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/BaseSchema'
+              - type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SavingsPlan'
+                  pagination:
+                    type: object
+                    required:
+                      - current_entries_size
+                    properties:
+                      next_cursor:
+                        type: string
+                      current_entries_size:
+                        type: integer
+                      previous_cursor:
+                        type: string
+    SavingsPlanQuoteResponse:
+      description: Successful savings plan quote response
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/BaseSchema'
+              - type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/SavingsPlanQuote'
+    SavingsAdjustmentResponse:
+      description: Successful adjustment response
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/BaseSchema'
+              - type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/SavingsAdjustment'
+    SavingsActivityListResponse:
+      description: Successful activity list response
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/CursorPagination'
+              - type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SavingsActivity'
     TransactionsError4XX:
       description: Default
       content:
