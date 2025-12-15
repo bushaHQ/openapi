@@ -4791,6 +4791,7 @@ components:
             - mobile_money
             - business_mobile_money
             - balance
+            - savings
         recipient_id:
           type: string
           example: 64ae8c26ea1033204c805a8a
@@ -6258,11 +6259,16 @@ components:
           type: string
           description: Name of receiving bank
           example: Trust Bank
-    CreateSavingsPlanRequest:
+    CreateSavingsPlanQuoteRequest:
       type: object
       required:
         - product_id
       properties:
+        quote_id:
+          type: string
+          description: Optional quote ID to update an existing quote instead of creating a new one
+          example: SPQ_xyz789
+          x-order: 0
         name:
           type: string
           minLength: 3
@@ -6317,6 +6323,22 @@ components:
           allOf:
             - $ref: '#/components/schemas/Decimal'
           x-order: 8
+    CreateSavingsPlanRequest:
+      type: object
+      required:
+        - quote_id
+        - accept_terms
+      properties:
+        quote_id:
+          type: string
+          description: ID of the previously created plan quote
+          example: SPQ_abc123
+          x-order: 1
+        accept_terms:
+          type: boolean
+          description: User must accept terms to create plan
+          example: true
+          x-order: 2
     UpdateSavingsPlanRequest:
       type: object
       properties:
@@ -6324,11 +6346,16 @@ components:
           type: string
           description: New name for the plan
           x-order: 1
-    CreateSavingsAdjustmentRequest:
+    CreateSavingsAdjustmentQuoteRequest:
       type: object
       required:
         - type
       properties:
+        quote_id:
+          type: string
+          description: Optional quote ID to update an existing quote instead of creating a new one
+          example: SAQ_xyz789
+          x-order: 0
         type:
           allOf:
             - $ref: '#/components/schemas/SavingsAdjustmentType'
@@ -6362,6 +6389,16 @@ components:
           description: 'For withdrawals: If true, withdraw all remaining funds.'
           example: false
           x-order: 5
+    CreateSavingsAdjustmentRequest:
+      type: object
+      required:
+        - quote_id
+      properties:
+        quote_id:
+          type: string
+          description: ID of the previously created adjustment quote
+          example: SAQ_abc123
+          x-order: 1
     SavingsProduct:
       type: object
       required:
@@ -6591,6 +6628,11 @@ components:
           type: string
           format: date-time
           x-order: 13
+        expires_at:
+          type: string
+          format: date-time
+          description: When this quote expires
+          x-order: 14
     SavingsAdjustment:
       type: object
       required:
@@ -6665,6 +6707,11 @@ components:
           type: string
           format: date-time
           x-order: 15
+        expires_at:
+          type: string
+          format: date-time
+          description: When this quote expires
+          x-order: 16
     SavingsActivity:
       type: object
       required:
