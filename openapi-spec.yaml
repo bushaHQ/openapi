@@ -5303,6 +5303,8 @@ components:
         - source_currency
         - target_amount
         - target_currency
+        - requested_amount
+        - currency
         - rate
         - fees
         - reference
@@ -5323,6 +5325,14 @@ components:
           $ref: '#/components/schemas/Decimal'
         target_currency:
           $ref: '#/components/schemas/Currency'
+        requested_amount:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: The amount requested by the merchant
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/Currency'
+          description: The currency it was requested in
         rate:
           allOf:
             - $ref: '#/components/schemas/QuoteRate'
@@ -6306,11 +6316,15 @@ components:
             path: github.com/shopspring/decimal
             name: decimal
           x-order: 5
+        pay_in:
+          allOf:
+            - $ref: '#/components/schemas/PayInObj'
+          x-order: 6
         is_compounding:
           type: boolean
           description: Should the plan compound the interest. Defaults to false.
           example: true
-          x-order: 6
+          x-order: 7
         goal:
           type: string
           description: Goal for the plan, e.g. 'vacation', 'home', 'car'
@@ -6318,11 +6332,11 @@ components:
           x-oapi-codegen-extra-tags:
             validate: max_len:100
             filter: trim|ucWord|escapeHtml
-          x-order: 7
-        duration_in_days:
-          allOf:
-            - $ref: '#/components/schemas/Decimal'
           x-order: 8
+        duration_in_days:
+          type: integer
+          description: Duration of the plan in days.
+          x-order: 9
     CreateSavingsPlanRequest:
       type: object
       required:
@@ -6490,6 +6504,10 @@ components:
             - $ref: '#/components/schemas/NanoID'
           x-order: 2
         product_id:
+          allOf:
+            - $ref: '#/components/schemas/NanoID'
+          x-order: 3
+        transfer_quote_id:
           allOf:
             - $ref: '#/components/schemas/NanoID'
           x-order: 3
