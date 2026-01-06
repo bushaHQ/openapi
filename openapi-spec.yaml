@@ -379,6 +379,27 @@ paths:
         - Auth:
             - bills:read
             - api:read
+  /countries:
+    get:
+      summary: List supported countries for bills
+      description: |
+        Returns supported countries and the bill services available per country
+      operationId: listBillCountries
+      tags:
+        - Bills
+      parameters:
+        - $ref: '#/components/parameters/ProfileHeader'
+      responses:
+        '200':
+          $ref: '#/components/responses/CountriesResponses'
+        4XX:
+          $ref: '#/components/responses/BillsError4XX'
+        5XX:
+          $ref: '#/components/responses/BillsError5XX'
+      security:
+        - Auth:
+            - bills:read
+            - api:read
   /v1/bills/networks/{code}/plans:
     get:
       summary: List Network Plans
