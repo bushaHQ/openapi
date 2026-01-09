@@ -2992,6 +2992,7 @@ components:
       required:
         - id
         - name
+        - calling_code
         - internet_data
         - airtime
         - voucher
@@ -3003,6 +3004,9 @@ components:
         name:
           type: string
           example: Nigeria
+        calling_code:
+          type: string
+          example: 234
         internet_data:
           type: boolean
           example: true
@@ -6096,6 +6100,7 @@ components:
           description: Type of recipient account
           enum:
             - ngn_bank
+            - kes_bank
             - usd_bank
             - gbp_bank
             - mpesa_mobile_money
