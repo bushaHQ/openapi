@@ -421,6 +421,16 @@ paths:
         - $ref: '#/components/parameters/ProfileHeader'
         - $ref: '#/components/parameters/CursorQueryParams'
         - $ref: '#/components/parameters/LimitQueryParam'
+        - name: q
+          in: query
+          x-internal: false
+          x-oapi-codegen-extra-tags:
+            validate: min_len:3|max_len:100
+          schema:
+            type: string
+            maxLength: 100
+            minLength: 3
+            example: kay@busha.co
       responses:
         '200':
           $ref: '#/components/responses/CustomerListResponse'
@@ -479,6 +489,28 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/CustomerResponse'
+        4XX:
+          $ref: '#/components/responses/CustomerError4XX'
+        5XX:
+          $ref: '#/components/responses/CustomerError5XX'
+    delete:
+      x-rate-limit: 20
+      x-internal: false
+      security:
+        - Auth:
+            - customers:write
+            - api:write
+      summary: Delete a customer
+      description: Delete a customer by their unique ID
+      operationId: deleteCustomer
+      tags:
+        - Customers
+      parameters:
+        - $ref: '#/components/parameters/PathParamNanoID'
+        - $ref: '#/components/parameters/ProfileHeader'
+      responses:
+        '204':
+          description: Successfully deleted the customer (No Content)
         4XX:
           $ref: '#/components/responses/CustomerError4XX'
         5XX:
