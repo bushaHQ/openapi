@@ -1150,6 +1150,17 @@ paths:
             format: date
             description: Filter by date in ISO 8601 format
             example: '2023-10-01'
+        - name: type
+          in: query
+          required: false
+          description: filter by type
+          schema:
+            type: string
+            description: Payment Type
+            enum:
+              - donation
+              - checkout
+              - invoice
       responses:
         '200':
           description: Successful response
@@ -4820,6 +4831,12 @@ components:
         - multiple_deposits
         - under_payment
         - over_payment
+    PaymentRequestType:
+      type: string
+      enum:
+        - donation
+        - checkout
+        - invoice
     AdditionalInfo:
       type: object
       required:
@@ -4931,6 +4948,7 @@ components:
         - additional_info
         - merchant_info
         - status
+        - type
         - created_at
         - updated_at
         - expires_at
@@ -4966,6 +4984,8 @@ components:
           type: string
         status:
           $ref: '#/components/schemas/PaymentRequestStatus'
+        type:
+          $ref: '#/components/schemas/PaymentRequestType'
         additional_info:
           $ref: '#/components/schemas/AdditionalInfo'
         merchant_info:
