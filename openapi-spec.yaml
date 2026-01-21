@@ -761,7 +761,7 @@ paths:
         - name: id
           in: query
           x-oapi-codegen-extra-tags:
-            validate: min_len:6|max_len:20
+            validate: min_len:4|max_len:20
             filter: trim|upper
           schema:
             type: string
@@ -784,14 +784,14 @@ paths:
         - name: base
           in: query
           x-oapi-codegen-extra-tags:
-            validate: min_len:3|max_len:10
+            validate: min_len:2|max_len:10
             filter: trim|upper
           schema:
             $ref: '#/components/schemas/Currency'
         - name: counter
           in: query
           x-oapi-codegen-extra-tags:
-            validate: min_len:3|max_len:10
+            validate: min_len:2|max_len:10
             filter: trim|upper
           schema:
             $ref: '#/components/schemas/Currency'
