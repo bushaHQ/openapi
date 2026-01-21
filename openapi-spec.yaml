@@ -705,6 +705,26 @@ paths:
           $ref: '#/components/responses/MiscellaneousError4XX'
         5XX:
           $ref: '#/components/responses/MiscellaneousError5XX'
+  /v1/addresses/{code}:
+    get:
+      x-rate-limit: 5
+      security:
+        - Auth:
+            - addresses:write
+            - api:write
+      tags:
+        - Miscellaneous
+      summary: Get deposit address
+      description: Get an address for a currency
+      operationId: getDepositAddress
+      parameters:
+        - $ref: '#/components/parameters/ProfileHeader'
+        - $ref: '#/components/parameters/CurrencyCodePathParam'
+      responses:
+        4XX:
+          $ref: '#/components/responses/MiscellaneousError4XX'
+        5XX:
+          $ref: '#/components/responses/MiscellaneousError5XX'
   /v1/virtual_bank_accounts/{code}:
     get:
       x-rate-limit: 5
@@ -2523,6 +2543,32 @@ components:
       description: A valid id
       x-oapi-codegen-extra-tags:
         validate: required|nanoid
+    QuoteRate:
+      type: object
+      properties:
+        product:
+          type: string
+          example: BTCUSDT
+        rate_explained:
+          type: string
+          example: 1 BTC = 1000 USDT
+        source_currency:
+          $ref: '#/components/schemas/Currency'
+        target_currency:
+          $ref: '#/components/schemas/Currency'
+        rate:
+          $ref: '#/components/schemas/Decimal'
+        side:
+          type: string
+          enum:
+            - buy
+            - sell
+          example: sell
+        type:
+          type: string
+          enum:
+            - FIXED
+          example: FIXED
     PhoneField:
       type: string
       example: +234 8012345678
@@ -3597,8 +3643,6 @@ components:
         - flexible
         - minimum
         - description
-        - created_at
-        - updated_at
         - provider
         - risk_score
         - ideal_for
@@ -3683,12 +3727,18 @@ components:
         - duration_in_days
       properties:
         duration_in_days:
+          deprecated: true
           allOf:
             - $ref: '#/components/schemas/Decimal'
           x-order: 1
         duration_in_months:
+          deprecated: true
           allOf:
             - $ref: '#/components/schemas/Decimal'
+          x-order: 2
+        duration:
+          allOf:
+            - $ref: '#/components/schemas/Duration'
           x-order: 2
         apy:
           allOf:
@@ -3753,8 +3803,13 @@ components:
             validate: max_len:100
             filter: trim|ucWord|escapeHtml
         duration_in_days:
+          deprecated: true
           allOf:
             - $ref: '#/components/schemas/Decimal'
+          x-order: 6
+        duration:
+          allOf:
+            - $ref: '#/components/schemas/Duration'
           x-order: 6
     UpdatePlanRequest:
       type: object
@@ -3903,32 +3958,6 @@ components:
                 - $ref: '#/components/schemas/AmountWithCurrency'
               description: amount in fiat
               x-order: 3
-    QuoteRate:
-      type: object
-      properties:
-        product:
-          type: string
-          example: BTCUSDT
-        rate_explained:
-          type: string
-          example: 1 BTC = 1000 USDT
-        source_currency:
-          $ref: '#/components/schemas/Currency'
-        target_currency:
-          $ref: '#/components/schemas/Currency'
-        rate:
-          $ref: '#/components/schemas/Decimal'
-        side:
-          type: string
-          enum:
-            - buy
-            - sell
-          example: sell
-        type:
-          type: string
-          enum:
-            - FIXED
-          example: FIXED
     LoanAdjustmentActionStatus:
       type: string
       enum:
@@ -5405,6 +5434,8 @@ components:
           x-order: 13
           enum:
             - pending
+            - accepted
+            - expired
           example: pending
         expires_at:
           type: string
@@ -5981,9 +6012,14 @@ components:
             filter: trim|ucWord|escapeHtml
           x-order: 8
         duration_in_days:
+          deprecated: true
           type: integer
           description: Duration of the plan in days.
           x-order: 9
+        duration:
+          allOf:
+            - $ref: '#/components/schemas/Duration'
+          x-order: 10
     CreateSavingsPlanRequest:
       type: object
       required:
@@ -6465,9 +6501,11 @@ components:
       type: object
       required:
         - duration_in_days
+        - duration
         - apy
       properties:
         duration_in_days:
+          deprecated: true
           allOf:
             - $ref: '#/components/schemas/Decimal'
           x-order: 1
@@ -6475,6 +6513,10 @@ components:
           allOf:
             - $ref: '#/components/schemas/Decimal'
           x-order: 2
+        duration:
+          allOf:
+            - $ref: '#/components/schemas/Duration'
+          x-order: 1
     SavingsInterest:
       type: object
       description: Estimated interest amounts (simple decimals in plan currency)
