@@ -1720,6 +1720,33 @@ paths:
                 validate: nanoid
           style: form
           explode: false
+        - name: phone_number
+          in: query
+          description: Filter recipients by phone number
+          required: false
+          explode: false
+          schema:
+            type: array
+            items:
+              type: string
+        - name: account_number
+          in: query
+          description: Filter recipients by account number
+          required: false
+          explode: false
+          schema:
+            type: array
+            items:
+              type: string
+        - name: username
+          in: query
+          description: Filter recipients by username
+          required: false
+          explode: false
+          schema:
+            type: array
+            items:
+              type: string
       responses:
         '200':
           description: Recipients retrieved successfully
