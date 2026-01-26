@@ -725,6 +725,32 @@ paths:
           $ref: '#/components/responses/MiscellaneousError4XX'
         5XX:
           $ref: '#/components/responses/MiscellaneousError5XX'
+  /v1/addresses/regenerate:
+    post:
+      x-rate-limit: 5
+      security:
+        - Auth:
+            - addresses:write
+            - api:write
+      tags:
+        - Miscellaneous
+      summary: Regenerate deposit address
+      description: Regenerate an address for a network
+      operationId: regenerateDepositAddress
+      parameters:
+        - $ref: '#/components/parameters/ProfileHeader'
+      requestBody:
+        description: Regenerate deposit address request
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegenerateDepositAddressReq'
+      responses:
+        4XX:
+          $ref: '#/components/responses/MiscellaneousError4XX'
+        5XX:
+          $ref: '#/components/responses/MiscellaneousError5XX'
   /v1/virtual_bank_accounts/{code}:
     get:
       x-rate-limit: 5
@@ -4237,6 +4263,16 @@ components:
           example: memo
           description: |
             This refers to the memo required for blockchain networks that mandate a memo for cryptocurrency transactions.
+    RegenerateDepositAddressReq:
+      type: object
+      required:
+        - network
+        - currency
+      properties:
+        network:
+          $ref: '#/components/schemas/Currency'
+        currency:
+          $ref: '#/components/schemas/Currency'
     ListBankResponse:
       allOf:
         - $ref: '#/components/schemas/BaseSchema'
@@ -6206,6 +6242,7 @@ components:
         - terms
         - interest
         - summary
+        - summary_fiat
         - created_at
         - updated_at
       properties:
@@ -6272,6 +6309,10 @@ components:
           description: Estimated interest (daily/monthly for flexible, term for fixed)
           x-order: 14
         summary:
+          allOf:
+            - $ref: '#/components/schemas/SavingsPlanSummary'
+          x-order: 15
+        summary_fiat:
           allOf:
             - $ref: '#/components/schemas/SavingsPlanSummary'
           x-order: 15
@@ -6601,6 +6642,7 @@ components:
         - deposited
         - withdrawn
         - earned
+        - currency
       properties:
         deposited:
           allOf:
@@ -6617,6 +6659,11 @@ components:
             - $ref: '#/components/schemas/Decimal'
           description: Total interest earned
           x-order: 3
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/Currency'
+          description: Currency of the summary
+          x-order: 4
     SavingsPlanStatus:
       type: string
       description: Status of the savings plan
