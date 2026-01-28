@@ -4065,6 +4065,41 @@ components:
           type: string
           format: date-time
           example: '2024-01-01T00:00:00.000Z'
+        meta:
+          $ref: '#/components/schemas/VirtualBankAccountMeta'
+    VirtualBankAccountMeta:
+      type: object
+      description: Additional metadata for the virtual bank account
+      required:
+        - method
+      properties:
+        method:
+          type: string
+          description: The payment method for this virtual bank account
+          enum:
+            - ACH
+          example: ACH
+        address:
+          $ref: '#/components/schemas/VirtualBankAccountAddress'
+    VirtualBankAccountAddress:
+      type: object
+      description: Physical address associated with the virtual bank account
+      properties:
+        street:
+          type: string
+          example: 1801 Main St
+        city:
+          type: string
+          example: Kansas City
+        state:
+          type: string
+          example: MO
+        country:
+          type: string
+          example: US
+        post_code:
+          type: string
+          example: '64108'
     DepositAddressWarnings:
       type: object
       required:
@@ -4394,6 +4429,17 @@ components:
           type: string
           example: 0-15 minutes
           description: The average time to process via the payment option.
+    DepositEnrolmentData:
+      type: object
+      properties:
+        status:
+          type: string
+          description: The enrolment status
+          example: pending
+        hosted_url:
+          type: string
+          description: URL to complete the enrolment process
+          example: https://example.com/enrol/abc123
     PaymentOptionObj:
       type: object
       required:
@@ -7516,6 +7562,17 @@ components:
               $ref: '#/components/examples/RequestValidationError'
             schema_validation_error:
               $ref: '#/components/examples/SchemaValidationError'
+    DepositEnrolmentResponse:
+      description: Successful Response
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/BaseSchema'
+              - type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/DepositEnrolmentData'
     VirtualBankAccountResponse:
       description: Successful Response
       content:
