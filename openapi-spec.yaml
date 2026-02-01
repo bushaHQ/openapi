@@ -4071,16 +4071,21 @@ components:
       type: object
       description: Additional metadata for the virtual bank account
       required:
-        - method
+        - methods
       properties:
-        method:
-          type: string
-          description: The payment method for this virtual bank account
-          enum:
+        methods:
+          type: array
+          items:
+            type: string
+            enum:
+              - ACH
+              - WIRE
+          example:
             - ACH
-          example: ACH
+          description: The payment methods for this virtual bank account
         address:
-          $ref: '#/components/schemas/VirtualBankAccountAddress'
+          type: string
+          example: 1800 North Pole St., Orlando, FL 32801
     VirtualBankAccountAddress:
       type: object
       description: Physical address associated with the virtual bank account
