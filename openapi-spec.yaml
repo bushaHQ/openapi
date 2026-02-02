@@ -538,6 +538,41 @@ paths:
           $ref: '#/components/responses/CustomerError4XX'
         5XX:
           $ref: '#/components/responses/CustomerError5XX'
+  /v1/customers/{id}/token-share:
+    post:
+      x-rate-limit: 20
+      x-internal: false
+      security:
+        - Auth:
+            - customers:write
+            - api:write
+      summary: Share customer token
+      description: Token sharing.
+      operationId: customerTokenShare
+      tags:
+        - Customers
+      parameters:
+        - $ref: '#/components/parameters/PathParamNanoID'
+        - $ref: '#/components/parameters/ProfileHeader'
+      requestBody:
+        required: true
+        description: JWT token to be shared for the customer
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomerTokenShareRequest'
+            examples:
+              default:
+                summary: Token share request
+                value:
+                  token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+      responses:
+        '200':
+          $ref: '#/components/responses/GeneralResponse'
+        4XX:
+          $ref: '#/components/responses/CustomerError4XX'
+        5XX:
+          $ref: '#/components/responses/CustomerError5XX'
   /v1/customers/industries:
     get:
       x-internal: false
@@ -3455,6 +3490,14 @@ components:
       enum:
         - individual
         - business
+    CustomerTokenShareRequest:
+      type: object
+      required:
+        - token
+      properties:
+        token:
+          type: string
+          description: JWT token
     NameField:
       type: string
       example: John
@@ -4439,6 +4482,12 @@ components:
       properties:
         status:
           type: string
+          enum:
+            - pending
+            - verified
+            - under_review
+            - rejected
+            - incomplete
           description: The enrolment status
           example: pending
         hosted_url:
