@@ -2808,6 +2808,15 @@ components:
           example: '12345'
           x-oapi-codegen-extra-tags:
             mapstructure: postal_code
+    PasswordField:
+      type: string
+      example: password
+      description: A secure password
+      format: password
+      minLength: 8
+      maxLength: 100
+      x-oapi-codegen-extra-tags:
+        validate: required|min_len:8|max_len:100
     CashbackMetaData:
       type: object
       properties:
