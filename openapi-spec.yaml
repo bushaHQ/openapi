@@ -2942,6 +2942,8 @@ components:
         - id
         - name
         - status
+        - deposit
+        - withdrawal
       properties:
         id:
           type: string
@@ -2956,6 +2958,12 @@ components:
           type: string
           example: active
           description: The current operational status of the network.
+        withdrawal:
+          type: boolean
+          description: Indicates if withdrawals are supported for this network.
+        deposit:
+          type: boolean
+          description: Indicates if deposits are supported for this network.
         transaction_link:
           $ref: '#/components/schemas/UrlField'
         address_link:
