@@ -808,6 +808,28 @@ paths:
           $ref: '#/components/responses/MiscellaneousError4XX'
         5XX:
           $ref: '#/components/responses/MiscellaneousError5XX'
+  /v1/virtual_bank_accounts/{code}/terms:
+    get:
+      x-rate-limit: 10
+      security:
+        - Auth:
+            - virtual_bank_accounts:read
+            - api:read
+      parameters:
+        - $ref: '#/components/parameters/ProfileHeader'
+        - $ref: '#/components/parameters/CurrencyCodePathParam'
+      tags:
+        - Miscellaneous
+      operationId: getVirtualBankAccountTerms
+      summary: Get virtual bank account terms
+      description: Get the terms and conditions for a virtual bank account by currency code
+      responses:
+        '200':
+          $ref: '#/components/responses/VirtualBankAccountTermsResponse'
+        4XX:
+          $ref: '#/components/responses/MiscellaneousError4XX'
+        5XX:
+          $ref: '#/components/responses/MiscellaneousError5XX'
   /v1/pairs:
     get:
       tags:
@@ -4165,6 +4187,144 @@ components:
         post_code:
           type: string
           example: '64108'
+    VirtualBankAccountTerms:
+      type: object
+      description: Terms and conditions for a virtual bank account
+      required:
+        - title
+        - subtitle
+        - setup_and_fees
+        - payment_methods
+        - processing_time
+        - limits
+        - accepted_payments
+      properties:
+        title:
+          type: string
+          example: Account terms of use
+          description: The main title for the terms screen
+        subtitle:
+          type: string
+          example: To create a USD account, review & accept these usage terms
+          description: The subtitle explaining the purpose
+        setup_and_fees:
+          $ref: '#/components/schemas/SetupAndFees'
+        payment_methods:
+          type: array
+          items:
+            $ref: '#/components/schemas/PaymentMethodFee'
+          description: List of payment methods and their associated fees
+        processing_time:
+          $ref: '#/components/schemas/ProcessingTime'
+        limits:
+          $ref: '#/components/schemas/DepositLimits'
+        accepted_payments:
+          type: array
+          items:
+            type: string
+          description: List of accepted payment descriptions
+          example:
+            - Receive unlimited deposit from accounts in your name, from registered business entities or from family members who share your surname.
+            - Payments from sources other than those listed above (3rd party deposits) are also accepted, subject to limits.
+    SetupAndFees:
+      type: object
+      description: Setup and fees information for the virtual bank account
+      required:
+        - setup_time
+        - activation_fee
+        - monthly_maintenance_fee
+        - minimum_deposit
+      properties:
+        setup_time:
+          $ref: '#/components/schemas/FeeItem'
+        activation_fee:
+          $ref: '#/components/schemas/FeeItem'
+        monthly_maintenance_fee:
+          $ref: '#/components/schemas/FeeItem'
+        minimum_deposit:
+          $ref: '#/components/schemas/FeeItem'
+    FeeItem:
+      type: object
+      description: A fee or setup item with label, value and optional description
+      required:
+        - label
+        - value
+      properties:
+        label:
+          type: string
+          example: Setup time
+          description: The display label for the item
+        value:
+          type: string
+          example: 1-2 days
+          description: The value or amount for the item
+        description:
+          type: string
+          example: Getting your account takes
+          description: Additional description for the item
+        is_free:
+          type: boolean
+          default: false
+          description: Whether this item is free (for badge display)
+    PaymentMethodFee:
+      type: object
+      description: Payment method and its associated fee
+      required:
+        - method
+        - fee
+      properties:
+        method:
+          type: string
+          example: ACH
+          description: The payment method name
+        fee:
+          type: string
+          example: 1% of deposit
+          description: The fee description for this payment method
+        supported:
+          type: boolean
+          default: true
+          description: Whether this payment method is supported
+    ProcessingTime:
+      type: object
+      description: Processing time information
+      required:
+        - description
+      properties:
+        title:
+          type: string
+          example: Processing time
+          description: The section title
+        description:
+          type: string
+          example: Incoming deposits take 1-3 business days to arrive, depending on the payment method used
+          description: Detailed processing time description
+    DepositLimits:
+      type: object
+      description: Deposit limits for different party types
+      required:
+        - first_party
+        - third_party
+      properties:
+        first_party:
+          $ref: '#/components/schemas/LimitItem'
+        third_party:
+          $ref: '#/components/schemas/LimitItem'
+    LimitItem:
+      type: object
+      description: A limit item with label and value
+      required:
+        - label
+        - value
+      properties:
+        label:
+          type: string
+          example: 1st party deposits
+          description: The limit type label
+        value:
+          type: string
+          example: $100,000 max/deposit
+          description: The limit value description
     DepositAddressWarnings:
       type: object
       required:
@@ -7657,6 +7817,19 @@ components:
                 properties:
                   data:
                     $ref: '#/components/schemas/VirtualBankAccount'
+    VirtualBankAccountTermsResponse:
+      description: Successful Response
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/BaseSchema'
+              - type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/VirtualBankAccountTerms'
     LookupResponses:
       description: Successful Response
       content:
