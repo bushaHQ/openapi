@@ -1540,16 +1540,24 @@ paths:
                   country_code: KE
                   type: mpesa_mobile_money
                   phone_number: +254 712345678
-                  account_name: Samuel Kiprotich
-              kes_business_mobile_money:
-                summary: Recipient creation BUSINESS MOBILE MONEY (2025-07-11)
+                  account_name: Business Account
+              kes_business_mobile_money_till:
+                summary: Recipient creation BUSINESS MOBILE MONEY - Till (2025-07-11)
                 value:
                   currency: KES
                   country_code: KE
-                  type: business_mobile_money
-                  channel: pay_bill/till
-                  phone_number: +254 712345678
-                  account_name: Samuel Kiprotich
+                  type: till
+                  till_number: '20029'
+                  account_name: Busines Name
+              kes_business_mobile_money_paybill:
+                summary: Recipient creation BUSINESS MOBILE MONEY - Paybill (2025-07-11)
+                value:
+                  currency: KES
+                  country_code: KE
+                  type: paybill
+                  paybill: '254701548525'
+                  account_number: '63902'
+                  account_name: Business Account
               crypto_btc:
                 summary: Recipient creation BTC (2025-07-11)
                 value:
@@ -1708,6 +1716,41 @@ paths:
                       owned_by_customer: true
                       phone_number: +254 712345678
                       type: mpesa_mobile_money
+                kes_business_mobile_money_till:
+                  summary: Recipient response BUSINESS MOBILE MONEY - Till (2025-07-11)
+                  value:
+                    status: success
+                    message: Recipient created successfully
+                    data:
+                      id: 6984a536631abd8caf69cf45
+                      profile_id: 01b044c7-dff6-464c-9792-f49b3c3c02c3
+                      account_name: Account Name
+                      active: true
+                      category: mobile_money
+                      country_code: KE
+                      currency: KES
+                      object: recipients
+                      owned_by_customer: true
+                      paybill: '20029'
+                      type: paybill
+                kes_business_mobile_money_paybill:
+                  summary: Recipient response BUSINESS MOBILE MONEY - Paybill (2025-07-11)
+                  value:
+                    status: success
+                    message: Recipient created successfully
+                    data:
+                      id: 6984a536631abd8caf69cf45
+                      profile_id: 01b044c7-dff6-464c-9792-f49b3c3c02c3
+                      account_name: Samuel Kiprotich
+                      account_number: '63902'
+                      active: true
+                      category: mobile_money
+                      country_code: KE
+                      currency: KES
+                      object: recipients
+                      owned_by_customer: true
+                      paybill: '254701548525'
+                      type: paybill
                 crypto_btc:
                   summary: Recipient response BTC (2025-07-11)
                   value:
@@ -4762,7 +4805,8 @@ components:
             - address
             - bank_transfer
             - mobile_money
-            - business_mobile_money
+            - paybill
+            - till
             - balance
             - savings
         recipient_id:
@@ -6025,7 +6069,8 @@ components:
             - mpesa_mobile_money
             - mtn_mobile_money
             - crypto
-            - business_mobile_money
+            - paybill
+            - till
           x-oapi-codegen-extra-tags:
             mapstructure: ',omitempty'
         entity_type:
@@ -6087,6 +6132,16 @@ components:
           description: Account number (for domestic transfers)
           x-oapi-codegen-extra-tags:
             mapstructure: account_number,omitempty
+        till_number:
+          type: string
+          description: Till number (for domestic transfers)
+          x-oapi-codegen-extra-tags:
+            mapstructure: till_number,omitempty
+        paybill:
+          type: string
+          description: Paybill (for domestic transfers)
+          x-oapi-codegen-extra-tags:
+            mapstructure: paybill,omitempty
         iban:
           type: string
           description: IBAN (for international transfers)
