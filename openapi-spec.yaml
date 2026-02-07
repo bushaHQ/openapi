@@ -1306,6 +1306,36 @@ paths:
           $ref: '#/components/responses/PaymentRequestError4XX'
         5XX:
           $ref: '#/components/responses/PaymentRequestError5XX'
+  /v1/payments/requests/{id}/finalize:
+    post:
+      tags:
+        - PaymentRequests
+      security:
+        - Auth:
+            - transfers:write
+            - api:write
+      summary: Finalize a payment request
+      description: Finalize a payment request
+      operationId: finalizePaymentRequest
+      parameters:
+        - $ref: '#/components/parameters/PathParamNanoID'
+        - $ref: '#/components/parameters/ProfileHeader'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FinalizePaymentRequest'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentRequestResponse'
+        4XX:
+          $ref: '#/components/responses/PaymentRequestError4XX'
+        5XX:
+          $ref: '#/components/responses/PaymentRequestError5XX'
   /v1/quotes:
     post:
       x-rate-limit: 20
@@ -2484,6 +2514,16 @@ components:
         x-go-type: string
       x-oapi-codegen-extra-tags:
         validate: required|uuid
+    PathParamIndexID:
+      in: path
+      name: index_id
+      required: true
+      schema:
+        type: string
+        format: nanoid
+        example: idx_123456789
+      x-oapi-codegen-extra-tags:
+        validate: required|nanoid
     X-BU-Version:
       in: header
       name: X-BU-Version
@@ -4136,6 +4176,601 @@ components:
                 - $ref: '#/components/schemas/AmountWithCurrency'
               description: amount in fiat
               x-order: 3
+    IndexStatus:
+      type: string
+      description: Status of the index
+      enum:
+        - draft
+        - live
+        - paused
+        - archived
+    StatusAction:
+      type: string
+      description: Action to transition index status
+      enum:
+        - publish
+        - pause
+        - resume
+        - archive
+    RiskLevel:
+      type: string
+      description: Risk level classification
+      enum:
+        - low
+        - medium
+        - high
+    IndexCurrency:
+      type: object
+      required:
+        - id
+        - currency_id
+        - target_weight
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/NanoID'
+          x-order: 1
+        currency_id:
+          type: string
+          description: Currency code (e.g., BTC, ETH)
+          example: BTC
+          x-order: 2
+        target_weight:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: Target allocation weight (1.0-99.0, all must sum to 100)
+          example: '50.0'
+          x-order: 3
+        current_weight:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: Current allocation weight based on market value
+          example: '52.5'
+          x-order: 4
+        value:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: Current value in quote currency
+          example: '1000000.00'
+          x-order: 5
+        drift:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: Drift from target weight (current_weight - target_weight)
+          example: '2.5'
+          x-order: 6
+        created_at:
+          type: string
+          format: date-time
+          x-order: 7
+        updated_at:
+          type: string
+          format: date-time
+          x-order: 8
+    IndexDocument:
+      type: object
+      required:
+        - id
+        - index_id
+        - name
+        - file_type
+        - file_size
+        - created_at
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/NanoID'
+          x-order: 1
+        index_id:
+          allOf:
+            - $ref: '#/components/schemas/NanoID'
+          x-order: 2
+        name:
+          type: string
+          description: Document name
+          example: Q4 2024 Factsheet
+          x-order: 3
+        file_type:
+          type: string
+          description: File type (pdf, jpg)
+          example: pdf
+          x-order: 4
+        file_size:
+          type: integer
+          description: File size in bytes
+          example: 1048576
+          x-order: 5
+        download_url:
+          type: string
+          format: url
+          description: Pre-signed URL for downloading the document
+          x-order: 6
+        created_at:
+          type: string
+          format: date-time
+          x-order: 7
+        updated_at:
+          type: string
+          format: date-time
+          x-order: 8
+    IndexPrice:
+      type: object
+      required:
+        - id
+        - index_id
+        - buy_price
+        - sell_price
+        - recorded_at
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/NanoID'
+          x-order: 1
+        index_id:
+          allOf:
+            - $ref: '#/components/schemas/NanoID'
+          x-order: 2
+        buy_price:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: Buy price per unit
+          example: '100.50'
+          x-order: 3
+        sell_price:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: Sell price per unit
+          example: '100.00'
+          x-order: 4
+        recorded_at:
+          type: string
+          format: date-time
+          description: Timestamp when the price was recorded
+          x-order: 5
+    Index:
+      type: object
+      required:
+        - id
+        - profile_id
+        - name
+        - ticker
+        - status
+        - listed
+        - initial_unit_price
+        - unit_price
+        - aum
+        - currency
+        - management_fee_bps
+        - subscription_fee_bps
+        - redemption_fee_bps
+        - drift_threshold_pct
+        - currencies
+        - created_at
+        - updated_at
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/NanoID'
+          x-order: 1
+        profile_id:
+          allOf:
+            - $ref: '#/components/schemas/NanoID'
+          x-order: 2
+        name:
+          type: string
+          description: Index name
+          maxLength: 100
+          example: Busha Top 5 Index
+          x-order: 3
+        ticker:
+          type: string
+          description: Unique ticker symbol
+          maxLength: 20
+          example: BTI5
+          x-order: 4
+        ticker_logo_url:
+          type: string
+          format: url
+          description: URL for the ticker logo
+          x-order: 5
+        description:
+          type: string
+          description: Index description
+          example: A diversified index tracking the top 5 cryptocurrencies by market cap
+          x-order: 6
+        risk_level:
+          allOf:
+            - $ref: '#/components/schemas/RiskLevel'
+          x-order: 7
+        status:
+          allOf:
+            - $ref: '#/components/schemas/IndexStatus'
+          x-order: 8
+        listed:
+          type: boolean
+          description: Whether the index is listed in the storefront
+          example: false
+          x-order: 9
+        initial_unit_price:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: Initial unit price at creation (immutable after publish)
+          example: '100.00'
+          x-order: 10
+        unit_price:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: Current unit price (NAV per unit)
+          example: '105.50'
+          x-order: 11
+        aum:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: Assets Under Management in quote currency
+          example: '1000000.00'
+          x-order: 12
+        currency:
+          type: string
+          description: Quote currency for the index (e.g., NGN, USD)
+          example: NGN
+          x-order: 13
+        management_fee_bps:
+          type: integer
+          description: Annual management fee in basis points (0-5000)
+          minimum: 0
+          maximum: 5000
+          example: 100
+          x-order: 14
+        subscription_fee_bps:
+          type: integer
+          description: One-time subscription fee in basis points (0-5000)
+          minimum: 0
+          maximum: 5000
+          example: 50
+          x-order: 15
+        redemption_fee_bps:
+          type: integer
+          description: Redemption fee in basis points (0-5000)
+          minimum: 0
+          maximum: 5000
+          example: 50
+          x-order: 16
+        drift_threshold_pct:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: Drift threshold percentage for rebalancing alerts (0.5-20.0)
+          example: '5.0'
+          x-order: 17
+        reference_url:
+          type: string
+          format: url
+          description: External reference URL for index methodology
+          x-order: 18
+        currencies:
+          type: array
+          items:
+            $ref: '#/components/schemas/IndexCurrency'
+          description: List of currencies in the index
+          x-order: 19
+        documents:
+          type: array
+          items:
+            $ref: '#/components/schemas/IndexDocument'
+          description: List of documents attached to the index
+          x-order: 20
+        published_at:
+          type: string
+          format: date-time
+          description: Timestamp when index was published
+          x-order: 21
+        created_at:
+          type: string
+          format: date-time
+          x-order: 22
+        updated_at:
+          type: string
+          format: date-time
+          x-order: 23
+    IndexListSummary:
+      type: object
+      description: Summary statistics for the index list
+      properties:
+        total_count:
+          type: integer
+          description: Total number of indexes
+          example: 10
+          x-order: 1
+        total_aum:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: Total AUM across all indexes
+          example: '5000000.00'
+          x-order: 2
+    CreateIndexCurrencyRequest:
+      type: object
+      required:
+        - currency_id
+        - target_weight
+      properties:
+        currency_id:
+          type: string
+          description: Currency code (e.g., BTC, ETH)
+          example: BTC
+          x-oapi-codegen-extra-tags:
+            validate: required|min_len:2|max_len:10
+            filter: trim|upper
+        target_weight:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: Target allocation weight (1.0-99.0)
+          example: '50.0'
+          x-oapi-codegen-extra-tags:
+            validate: required|num
+    CreateIndexRequest:
+      type: object
+      required:
+        - name
+        - ticker
+        - initial_unit_price
+        - currency
+        - currencies
+        - drift_threshold_pct
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Index name
+          example: Busha Top 5 Index
+          x-oapi-codegen-extra-tags:
+            validate: required|min_len:1|max_len:100
+            filter: trim|escapeHtml
+          x-order: 1
+        ticker:
+          type: string
+          minLength: 1
+          maxLength: 20
+          description: Unique ticker symbol (alphanumeric with optional hyphens)
+          example: BTI5
+          x-oapi-codegen-extra-tags:
+            validate: required|min_len:1|max_len:20|alphaDash
+            filter: trim|upper
+          x-order: 2
+        ticker_logo_url:
+          type: string
+          format: url
+          description: URL for the ticker logo
+          x-oapi-codegen-extra-tags:
+            validate: url
+          x-order: 3
+        description:
+          type: string
+          maxLength: 1000
+          description: Index description
+          x-oapi-codegen-extra-tags:
+            validate: max_len:1000
+            filter: trim|escapeHtml
+          x-order: 4
+        risk_level:
+          allOf:
+            - $ref: '#/components/schemas/RiskLevel'
+          x-oapi-codegen-extra-tags:
+            validate: in:low,medium,high
+          x-order: 5
+        initial_unit_price:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: Initial unit price (must be > 0)
+          example: '100.00'
+          x-oapi-codegen-extra-tags:
+            validate: required|num
+          x-order: 6
+        currency:
+          type: string
+          description: Quote currency for the index
+          example: NGN
+          x-oapi-codegen-extra-tags:
+            validate: required|min_len:3|max_len:10
+            filter: trim|upper
+          x-order: 7
+        management_fee_bps:
+          type: integer
+          minimum: 0
+          maximum: 5000
+          default: 0
+          description: Annual management fee in basis points
+          example: 100
+          x-oapi-codegen-extra-tags:
+            validate: num|min:0|max:5000
+          x-order: 8
+        subscription_fee_bps:
+          type: integer
+          minimum: 0
+          maximum: 5000
+          default: 0
+          description: One-time subscription fee in basis points
+          example: 50
+          x-oapi-codegen-extra-tags:
+            validate: num|min:0|max:5000
+          x-order: 9
+        redemption_fee_bps:
+          type: integer
+          minimum: 0
+          maximum: 5000
+          default: 0
+          description: Redemption fee in basis points
+          example: 50
+          x-oapi-codegen-extra-tags:
+            validate: num|min:0|max:5000
+          x-order: 10
+        drift_threshold_pct:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: Drift threshold percentage (0.5-20.0)
+          example: '5.0'
+          x-oapi-codegen-extra-tags:
+            validate: required|num
+          x-order: 11
+        reference_url:
+          type: string
+          format: url
+          description: External reference URL
+          x-oapi-codegen-extra-tags:
+            validate: url
+          x-order: 12
+        currencies:
+          type: array
+          minItems: 2
+          items:
+            $ref: '#/components/schemas/CreateIndexCurrencyRequest'
+          description: List of currencies with target weights (must sum to 100)
+          x-oapi-codegen-extra-tags:
+            validate: required|min_len:2
+          x-order: 13
+    UpdateIndexRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Index name
+          x-oapi-codegen-extra-tags:
+            validate: min_len:1|max_len:100
+            filter: trim|escapeHtml
+          x-order: 1
+        ticker_logo_url:
+          type: string
+          format: url
+          description: URL for the ticker logo
+          x-oapi-codegen-extra-tags:
+            validate: url
+          x-order: 2
+        description:
+          type: string
+          maxLength: 1000
+          description: Index description
+          x-oapi-codegen-extra-tags:
+            validate: max_len:1000
+            filter: trim|escapeHtml
+          x-order: 3
+        risk_level:
+          allOf:
+            - $ref: '#/components/schemas/RiskLevel'
+          x-oapi-codegen-extra-tags:
+            validate: in:low,medium,high
+          x-order: 4
+        management_fee_bps:
+          type: integer
+          minimum: 0
+          maximum: 5000
+          description: Annual management fee in basis points
+          x-oapi-codegen-extra-tags:
+            validate: num|min:0|max:5000
+          x-order: 5
+        subscription_fee_bps:
+          type: integer
+          minimum: 0
+          maximum: 5000
+          description: One-time subscription fee in basis points
+          x-oapi-codegen-extra-tags:
+            validate: num|min:0|max:5000
+          x-order: 6
+        redemption_fee_bps:
+          type: integer
+          minimum: 0
+          maximum: 5000
+          description: Redemption fee in basis points
+          x-oapi-codegen-extra-tags:
+            validate: num|min:0|max:5000
+          x-order: 7
+        drift_threshold_pct:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: Drift threshold percentage (0.5-20.0)
+          x-oapi-codegen-extra-tags:
+            validate: num
+          x-order: 8
+        reference_url:
+          type: string
+          format: url
+          description: External reference URL
+          x-oapi-codegen-extra-tags:
+            validate: url
+          x-order: 9
+        currencies:
+          type: array
+          minItems: 2
+          items:
+            $ref: '#/components/schemas/CreateIndexCurrencyRequest'
+          description: List of currencies with target weights (only modifiable in draft/paused status)
+          x-oapi-codegen-extra-tags:
+            validate: min_len:2
+          x-order: 10
+    ReplaceCurrenciesRequest:
+      type: object
+      required:
+        - currencies
+      properties:
+        currencies:
+          type: array
+          minItems: 2
+          items:
+            $ref: '#/components/schemas/CreateIndexCurrencyRequest'
+          description: New currency composition (must sum to 100)
+          x-oapi-codegen-extra-tags:
+            validate: required|min_len:2
+    StatusTransitionRequest:
+      type: object
+      required:
+        - action
+      properties:
+        action:
+          allOf:
+            - $ref: '#/components/schemas/StatusAction'
+          description: Action to perform on the index
+          x-oapi-codegen-extra-tags:
+            validate: required|in:publish,pause,resume,archive
+    CreateDocumentRequest:
+      type: object
+      required:
+        - name
+        - file_key
+        - file_type
+        - file_size
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: Document name
+          example: Q4 2024 Factsheet
+          x-oapi-codegen-extra-tags:
+            validate: required|min_len:1|max_len:255
+            filter: trim|escapeHtml
+          x-order: 1
+        file_key:
+          type: string
+          description: Media service file key
+          x-oapi-codegen-extra-tags:
+            validate: required
+          x-order: 2
+        file_type:
+          type: string
+          description: File type (pdf, jpg)
+          example: pdf
+          x-oapi-codegen-extra-tags:
+            validate: required|in:pdf,jpg
+          x-order: 3
+        file_size:
+          type: integer
+          minimum: 1
+          maximum: 5242880
+          description: File size in bytes (max 5MB)
+          example: 1048576
+          x-oapi-codegen-extra-tags:
+            validate: required|num|min:1|max:5242880
+          x-order: 4
     LoanAdjustmentActionStatus:
       type: string
       enum:
@@ -5256,6 +5891,27 @@ components:
         - donation
         - checkout
         - invoice
+    TwoStep:
+      type: object
+      required:
+        - type
+        - message
+        - resend_allowed
+      x-order: 17
+      properties:
+        type:
+          type: string
+          enum:
+            - authenticator
+          example: authenticator
+          description: the type of two step verification required
+        message:
+          type: string
+          example: Enter your 2FA code to continue
+        resend_allowed:
+          type: boolean
+          example: false
+          description: If the code can be resent
     AdditionalInfo:
       type: object
       required:
@@ -5373,63 +6029,98 @@ components:
         - expires_at
       properties:
         id:
-          $ref: '#/components/schemas/NanoID'
+          allOf:
+            - $ref: '#/components/schemas/NanoID'
+          x-order: 1
+        type:
+          allOf:
+            - $ref: '#/components/schemas/PaymentRequestType'
+          x-order: 2
+        status:
+          allOf:
+            - $ref: '#/components/schemas/PaymentRequestStatus'
+          x-order: 3
         source_amount:
-          $ref: '#/components/schemas/Decimal'
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          x-order: 4
         source_currency:
-          $ref: '#/components/schemas/Currency'
+          allOf:
+            - $ref: '#/components/schemas/Currency'
+          x-order: 5
         target_amount:
-          $ref: '#/components/schemas/Decimal'
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          x-order: 6
         target_currency:
-          $ref: '#/components/schemas/Currency'
+          allOf:
+            - $ref: '#/components/schemas/Currency'
+          x-order: 7
         requested_amount:
           allOf:
             - $ref: '#/components/schemas/Decimal'
           description: The amount requested by the merchant
+          x-order: 8
         currency:
           allOf:
             - $ref: '#/components/schemas/Currency'
           description: The currency it was requested in
+          x-order: 9
         rate:
           allOf:
             - $ref: '#/components/schemas/QuoteRate'
+          x-order: 10
         fees:
           type: array
           items:
             $ref: '#/components/schemas/Fee'
+          x-order: 11
         pay_in:
-          $ref: '#/components/schemas/PaymentObj'
+          allOf:
+            - $ref: '#/components/schemas/PaymentObj'
+          x-order: 12
+        two_step:
+          allOf:
+            - $ref: '#/components/schemas/TwoStep'
+          x-order: 13
         reference:
           type: string
-        status:
-          $ref: '#/components/schemas/PaymentRequestStatus'
-        type:
-          $ref: '#/components/schemas/PaymentRequestType'
+          x-order: 14
         additional_info:
-          $ref: '#/components/schemas/AdditionalInfo'
+          allOf:
+            - $ref: '#/components/schemas/AdditionalInfo'
+          x-order: 15
         merchant_info:
-          $ref: '#/components/schemas/MerchantInfo'
+          allOf:
+            - $ref: '#/components/schemas/MerchantInfo'
+          x-order: 16
         source:
           type: string
           description: The source of the payment request
+          x-order: 17
         source_id:
-          description: The source id of the payment request
           type: string
+          description: The source id of the payment request
+          x-order: 18
         timeline:
           allOf:
             - $ref: '#/components/schemas/TransferTimeline'
+          x-order: 19
         created_at:
           type: string
           format: date-time
           example: '2023-10-15T12:15:30Z'
+          x-order: 20
         updated_at:
           type: string
           format: date-time
           example: '2023-10-15T12:15:30Z'
+          x-order: 21
         expires_at:
           type: string
           format: date-time
           example: '2023-10-15T12:15:30Z'
+          x-order: 22
     CreatePaymentRequestForLinkReq:
       type: object
       required:
@@ -5508,6 +6199,13 @@ components:
           type: string
           description: reference for the payment request
           example: busha-123
+    FinalizePaymentRequest:
+      type: object
+      properties:
+        code:
+          type: string
+          maxLength: 6
+          description: Optional auth code required for MFA
     PaymentRequestMeta:
       type: object
       properties:
@@ -5838,27 +6536,6 @@ components:
           example: '2023-10-15T12:20:45Z'
         two_step:
           $ref: '#/components/schemas/TwoStep'
-    TwoStep:
-      type: object
-      required:
-        - type
-        - message
-        - resend_allowed
-      x-order: 17
-      properties:
-        type:
-          type: string
-          enum:
-            - authenticator
-          example: authenticator
-          description: the type of two step verification required
-        message:
-          type: string
-          example: Enter your 2FA code to continue
-        resend_allowed:
-          type: boolean
-          example: false
-          description: If the code can be resent
     CreateRecipientRequest:
       oneOf:
         - $ref: '#/components/schemas/RecipientCreate-2025-07-11'
@@ -7848,6 +8525,34 @@ components:
               $ref: '#/components/examples/RequestValidationError'
             schema_validation_error:
               $ref: '#/components/examples/SchemaValidationError'
+    IndexError4XX:
+      description: Client error response
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            default:
+              $ref: '#/components/examples/DefaultError'
+            not_found_error:
+              $ref: '#/components/examples/NotFoundError'
+            unauthorized_error:
+              $ref: '#/components/examples/UnAuthorizedError'
+            request_validation_error:
+              $ref: '#/components/examples/RequestValidationError'
+            schema_validation_error:
+              $ref: '#/components/examples/SchemaValidationError'
+    IndexError5XX:
+      description: Server error response
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            internal_server_error:
+              $ref: '#/components/examples/InternalServerError'
+            service_unavailable_error:
+              $ref: '#/components/examples/ServiceUnavailableError'
     DepositEnrolmentResponse:
       description: Successful Response
       content:
