@@ -167,6 +167,9 @@ tags:
   - name: PaymentRequests
     description: Payment request
     x-displayName: PaymentRequests
+  - name: PriceAlerts
+    description: Price alert management endpoints
+    x-displayName: PriceAlerts
   - name: Quotes
     description: Handle quotes requests and responses
     x-displayName: Quotes
@@ -4791,6 +4794,11 @@ components:
           format: date-time
           example: '2023-10-15T12:15:30Z'
           x-order: 22
+        quote_rate:
+          allOf:
+            - $ref: '#/components/schemas/QuoteRate'
+          x-order: 23
+          description: This shows the rate of quote currency to source currency if quote currency is provided.
     CreatePaymentRequestForLinkReq:
       type: object
       required:
@@ -4898,6 +4906,59 @@ components:
           properties:
             phone:
               $ref: '#/components/schemas/PhoneField'
+    PriceAlert:
+      type: object
+      required:
+        - id
+        - product
+        - price
+        - status
+        - is_buy
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          description: ID
+          example: 507f1f77bcf86cd799439011
+        product:
+          type: string
+          description: Trading pair product code
+          example: BTCUSDT
+        price:
+          type: string
+          description: Target price
+          example: '50000000.00'
+        status:
+          allOf:
+            - $ref: '#/components/schemas/PriceAlertStatus'
+        is_buy:
+          type: boolean
+          description: True if the alert is for a buy signal (price <= target), false for sell signal (price >= target)
+          example: true
+        created_at:
+          allOf:
+            - $ref: '#/components/schemas/TimeStamp'
+        updated_at:
+          allOf:
+            - $ref: '#/components/schemas/TimeStamp'
+    PriceAlertStatus:
+      type: string
+      enum:
+        - pending
+        - triggered
+      description: Current status of the price alert
+    PriceAlertListResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseSchema'
+        - type: object
+          required:
+            - data
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/PriceAlert'
     ExampleQuoteResponse:
       allOf:
         - $ref: '#/components/schemas/BaseSchema'
@@ -5102,6 +5163,11 @@ components:
           example: '2023-10-15T12:20:45Z'
         two_step:
           $ref: '#/components/schemas/TwoStep'
+        quote_rate:
+          allOf:
+            - $ref: '#/components/schemas/QuoteRate'
+          x-order: 17
+          description: This shows the rate of quote currency to source currency if quote currency is provided.
     CreateRecipientRequest:
       oneOf:
         - $ref: '#/components/schemas/RecipientCreate-2025-07-11'
