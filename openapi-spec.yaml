@@ -4953,9 +4953,9 @@ components:
           description: Trading pair product code
           example: BTCUSDT
         price:
-          type: string
-          description: Target price
-          example: '50000000.00'
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: Target price for the alert
         status:
           allOf:
             - $ref: '#/components/schemas/PriceAlertStatus'
