@@ -153,6 +153,8 @@ tags:
     x-internal: false
     description: Handle customer requests and responses
     x-displayName: Customers
+  - name: Mandate
+    x-displayName: Mandate
   - name: Miscellaneous
     description: Provides auxiliary APIs to complement and enhance other services.
     x-displayName: Miscellaneous
@@ -635,6 +637,12 @@ paths:
       parameters:
         - $ref: '#/components/parameters/CurrencyQueryParam'
         - $ref: '#/components/parameters/CountryQueryParam'
+        - name: direct_debit
+          in: query
+          required: false
+          description: Filter by direct debit support
+          schema:
+            type: boolean
       responses:
         '200':
           description: Successful response
@@ -2281,6 +2289,12 @@ paths:
         - Transfers
       parameters:
         - $ref: '#/components/parameters/ProfileHeader'
+        - name: id
+          in: query
+          description: Filter by ID
+          required: false
+          schema:
+            type: string
         - name: start_date
           in: query
           description: Filter by start date
@@ -2315,12 +2329,7 @@ paths:
             filter: trim|upper
           schema:
             type: string
-        - name: status
-          in: query
-          description: Filter by status
-          required: false
-          schema:
-            type: string
+        - $ref: '#/components/parameters/StatusQueryParam'
         - name: referred
           in: query
           description: Specify whether to get referred transfers or not
@@ -2510,6 +2519,18 @@ components:
         enum:
           - '2025-06-01'
           - '2025-07-11'
+    StatusQueryParam:
+      name: status
+      in: query
+      description: Filter by status (comma-separated)
+      required: false
+      style: form
+      explode: false
+      schema:
+        type: array
+        items:
+          $ref: '#/components/schemas/TransferStatus'
+      example: funds_refunded,funds_converted
   schemas:
     Balance:
       type: object
@@ -4893,6 +4914,7 @@ components:
             - address
             - mobile_money
             - temporary_bank_account
+            - direct_debit
             - balance
         network:
           type: string
@@ -4906,6 +4928,11 @@ components:
           properties:
             phone:
               $ref: '#/components/schemas/PhoneField'
+            recipient_id:
+              type: string
+              example: 64ae8c26ea1033204c805a8a
+              description: |
+                This represents the recipient ID (mandate ID), used for `direct_debit` types.
     PriceAlert:
       type: object
       required:
@@ -6204,17 +6231,9 @@ components:
             - $ref: '#/components/schemas/PaymentObj'
           x-order: 13
         status:
-          type: string
+          allOf:
+            - $ref: '#/components/schemas/TransferStatus'
           x-order: 14
-          enum:
-            - pending
-            - processing
-            - cancelled
-            - funds_converted
-            - funds_received
-            - outgoing_payment_sent
-            - funds_delivered
-          example: pending
         timeline:
           allOf:
             - $ref: '#/components/schemas/TransferTimeline'
@@ -6241,6 +6260,19 @@ components:
       properties:
         quote_id:
           $ref: '#/components/schemas/NanoID'
+    TransferStatus:
+      type: string
+      description: Status of a transfer
+      enum:
+        - pending
+        - processing
+        - cancelled
+        - funds_converted
+        - funds_received
+        - outgoing_payment_sent
+        - funds_delivered
+        - funds_not_delivered
+        - funds_refunded
   responses:
     BalanceError4XX:
       description: 409 error when a balance with the same currency already exists for a user
