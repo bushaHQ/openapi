@@ -4938,9 +4938,9 @@ components:
       required:
         - id
         - product
-        - price
+        - target_price
         - status
-        - is_buy
+        - alert_type
         - created_at
         - updated_at
       properties:
@@ -4952,17 +4952,20 @@ components:
           type: string
           description: Trading pair product code
           example: BTCUSDT
-        price:
+        target_price:
           allOf:
             - $ref: '#/components/schemas/Decimal'
           description: Target price for the alert
         status:
           allOf:
             - $ref: '#/components/schemas/PriceAlertStatus'
-        is_buy:
-          type: boolean
-          description: True if the alert is for a buy signal (price <= target), false for sell signal (price >= target)
-          example: true
+        alert_type:
+          type: string
+          enum:
+            - ABOVE
+            - BELOW
+          description: Type of alert
+          example: ABOVE
         created_at:
           allOf:
             - $ref: '#/components/schemas/TimeStamp'
@@ -4972,7 +4975,7 @@ components:
     PriceAlertStatus:
       type: string
       enum:
-        - pending
+        - active
         - triggered
       description: Current status of the price alert
     PriceAlertListResponse:
