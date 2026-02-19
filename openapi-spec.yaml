@@ -6276,6 +6276,52 @@ components:
         - funds_delivered
         - funds_not_delivered
         - funds_refunded
+    WebhookAction:
+      type: object
+      required:
+        - id
+        - status
+        - category
+        - event
+        - created_at
+      properties:
+        id:
+          x-order: 1
+          type: string
+          description: Webhook action ID
+        status:
+          x-order: 2
+          type: string
+          description: Whether the event was successfully sent to the provider
+          enum:
+            - success
+            - pending
+        category:
+          x-order: 3
+          type: string
+          description: Event category derived from event name
+          example: Transfer
+        event:
+          x-order: 4
+          type: string
+          description: The event name
+          example: transfer.pending
+        created_at:
+          x-order: 5
+          allOf:
+            - $ref: '#/components/schemas/TimeStamp'
+          description: Timestamp when the event was created
+    WebhookActionListResponse:
+      allOf:
+        - $ref: '#/components/schemas/CursorPagination'
+        - type: object
+          required:
+            - data
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/WebhookAction'
   responses:
     BalanceError4XX:
       description: 409 error when a balance with the same currency already exists for a user
