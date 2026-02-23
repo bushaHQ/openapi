@@ -3167,6 +3167,7 @@ components:
               - proof_of_wealth
               - proof_of_address
               - selfie_video
+              - others
           description: Purposes for which the document is being submitted
         file:
           type: string
