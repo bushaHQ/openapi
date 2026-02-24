@@ -4221,6 +4221,37 @@ components:
               type: string
               format: date-time
               example: '2023-10-15T12:15:30Z'
+    UnAuthPayInObj:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          example: address
+          enum:
+            - address
+            - mobile_money
+            - temporary_bank_account
+            - direct_debit
+            - balance
+        network:
+          type: string
+          example: BTC
+          description: |
+            This specifies the blockchain network associated with the address receiving the payment, typically used with address type payouts.
+    PayInObj:
+      allOf:
+        - $ref: '#/components/schemas/UnAuthPayInObj'
+        - type: object
+          properties:
+            phone:
+              $ref: '#/components/schemas/PhoneField'
+            recipient_id:
+              type: string
+              example: 64ae8c26ea1033204c805a8a
+              description: |
+                This represents the recipient ID (mandate ID), used for `direct_debit` types.
     NullableDecimal:
       type: string
       description: nullable decimal value
@@ -4665,6 +4696,7 @@ components:
             - funds_received
             - outgoing_payment_sent
             - funds_delivered
+            - reverse_fund_conversion
             - failed
             - completed
         title:
@@ -4903,37 +4935,6 @@ components:
           type: string
           maxLength: 6
           description: Optional auth code required for MFA
-    UnAuthPayInObj:
-      type: object
-      required:
-        - type
-      properties:
-        type:
-          type: string
-          example: address
-          enum:
-            - address
-            - mobile_money
-            - temporary_bank_account
-            - direct_debit
-            - balance
-        network:
-          type: string
-          example: BTC
-          description: |
-            This specifies the blockchain network associated with the address receiving the payment, typically used with address type payouts.
-    PayInObj:
-      allOf:
-        - $ref: '#/components/schemas/UnAuthPayInObj'
-        - type: object
-          properties:
-            phone:
-              $ref: '#/components/schemas/PhoneField'
-            recipient_id:
-              type: string
-              example: 64ae8c26ea1033204c805a8a
-              description: |
-                This represents the recipient ID (mandate ID), used for `direct_debit` types.
     PriceAlert:
       type: object
       required:
@@ -5081,6 +5082,11 @@ components:
             name: decimal
             x-oapi-codegen-extra-tags:
               validate: requiredWith:quote_currency|num
+        reversal_policy:
+          type: string
+          description: This optional field specifies the reversal policy for the conversion. Allowed values are 'conversion_only'.
+          enum:
+            - conversion_only
         reference:
           $ref: '#/components/schemas/QuoteReference'
         source_amount:
@@ -5682,6 +5688,50 @@ components:
           type: string
           description: Name of receiving bank
           example: Trust Bank
+    RequestLog:
+      type: object
+      required:
+        - request_id
+        - method
+        - path
+        - status_code
+        - timestamp
+      properties:
+        request_id:
+          x-order: 1
+          type: string
+          description: Unique request identifier
+        method:
+          x-order: 2
+          type: string
+          description: HTTP method
+          example: POST
+        path:
+          x-order: 3
+          type: string
+          description: Request path
+          example: /v1/transfers
+        status_code:
+          x-order: 4
+          type: integer
+          description: HTTP response status code
+          example: 200
+        timestamp:
+          x-order: 5
+          allOf:
+            - $ref: '#/components/schemas/TimeStamp'
+          description: Timestamp when the request was made
+    RequestLogListResponse:
+      allOf:
+        - $ref: '#/components/schemas/CursorPagination'
+        - type: object
+          required:
+            - data
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/RequestLog'
     TransactionsListResponse:
       allOf:
         - $ref: '#/components/schemas/CursorPagination'
@@ -6277,6 +6327,7 @@ components:
         - funds_delivered
         - funds_not_delivered
         - funds_refunded
+        - reverse_fund_conversion
     WebhookAction:
       type: object
       required:
