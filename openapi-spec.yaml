@@ -177,6 +177,9 @@ tags:
     x-displayName: Quotes
   - name: Recipients
     x-displayName: Recipients
+  - name: RequestLogs
+    description: API request logs and activities
+    x-displayName: RequestLogs
   - name: Transactions
     x-displayName: Transactions
   - name: Transfers
@@ -4139,6 +4142,7 @@ components:
             - till
             - balance
             - savings
+            - direct_debit
         recipient_id:
           type: string
           example: 64ae8c26ea1033204c805a8a
@@ -5688,50 +5692,6 @@ components:
           type: string
           description: Name of receiving bank
           example: Trust Bank
-    RequestLog:
-      type: object
-      required:
-        - request_id
-        - method
-        - path
-        - status_code
-        - timestamp
-      properties:
-        request_id:
-          x-order: 1
-          type: string
-          description: Unique request identifier
-        method:
-          x-order: 2
-          type: string
-          description: HTTP method
-          example: POST
-        path:
-          x-order: 3
-          type: string
-          description: Request path
-          example: /v1/transfers
-        status_code:
-          x-order: 4
-          type: integer
-          description: HTTP response status code
-          example: 200
-        timestamp:
-          x-order: 5
-          allOf:
-            - $ref: '#/components/schemas/TimeStamp'
-          description: Timestamp when the request was made
-    RequestLogListResponse:
-      allOf:
-        - $ref: '#/components/schemas/CursorPagination'
-        - type: object
-          required:
-            - data
-          properties:
-            data:
-              type: array
-              items:
-                $ref: '#/components/schemas/RequestLog'
     TransactionsListResponse:
       allOf:
         - $ref: '#/components/schemas/CursorPagination'
