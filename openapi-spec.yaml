@@ -5890,6 +5890,9 @@ components:
           $ref: '#/components/schemas/TxnMetaSaving'
         service:
           $ref: '#/components/schemas/TxnMetaService'
+        third_party_reference:
+          type: string
+          description: Reference from external payment service i.e till, paybill, mobile_money
         fee:
           $ref: '#/components/schemas/TxnMetaFee'
         amounts:
