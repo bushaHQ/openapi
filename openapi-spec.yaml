@@ -5543,6 +5543,10 @@ components:
       allOf:
         - $ref: '#/components/schemas/RecipientBase-2025-07-11'
         - type: object
+          properties:
+            one_time:
+              type: boolean
+              description: Whether the recipient is a one-time recipient. One-time recipients are stored but not returned in list or get responses.
     Recipient-2025-07-11:
       allOf:
         - $ref: '#/components/schemas/RecipientBase-2025-07-11'
