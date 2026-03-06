@@ -153,6 +153,9 @@ tags:
     x-internal: false
     description: Handle customer requests and responses
     x-displayName: Customers
+  - name: Files
+    description: Provides APIs to handle files upload
+    x-displayName: Files
   - name: Mandate
     x-displayName: Mandate
   - name: Miscellaneous
@@ -602,6 +605,38 @@ paths:
         - Auth:
             - customers:read
             - api:read
+  /v1/files:
+    post:
+      x-rate-limit: 10
+      security:
+        - Auth:
+            - presign_url:write
+            - api:write
+      tags:
+        - Files
+      summary: Generate presigned upload URL
+      description: Generates a presigned URL for uploading files directly to storage
+      operationId: generatePresignedURL
+      parameters:
+        - $ref: '#/components/parameters/ProfileHeader'
+      requestBody:
+        description: Request parameters for presigned URL
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PresignedUrlRequest'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PresignedUrlResponse'
+        4XX:
+          $ref: '#/components/responses/FilesError4XX'
+        5XX:
+          $ref: '#/components/responses/FilesError5XX'
   /v1/validate:
     post:
       x-rate-limit: 5
@@ -3128,6 +3163,7 @@ components:
             - national-id
             - drivers-license
             - selfie_video
+            - selfie
             - bvn
           description: The category of identification document provided by the customer
         number:
@@ -3143,11 +3179,11 @@ components:
         image_front:
           type: string
           format: base64
-          description: Base64 encoded image of the front side of the identification document. The maximum file size is 4MB.
+          description: URL or Base64 encoded image of the front side of the identification document. The maximum file size is 4MB.
         image_back:
           type: string
           format: base64
-          description: Base64 encoded image of the reverse side of the identification document. The maximum file size is 4MB.
+          description: URL or Base64 encoded image of the reverse side of the identification document. The maximum file size is 4MB.
     CustomerDocument:
       type: object
       required:
@@ -3170,11 +3206,12 @@ components:
               - proof_of_wealth
               - proof_of_address
               - selfie_video
+              - selfie
               - others
           description: Purposes for which the document is being submitted
         file:
           type: string
-          description: Document file content in base64 format. The maximum file size is 4MB.
+          description: URL or Document file content in base64 format. The maximum file size is 4MB.
     CustomerBusinessOwner:
       type: object
       required:
@@ -3569,6 +3606,61 @@ components:
                 - $ref: '#/components/schemas/AmountWithCurrency'
               description: amount in fiat
               x-order: 3
+    PresignedUrlRequest:
+      type: object
+      required:
+        - category
+      properties:
+        category:
+          type: string
+          enum:
+            - generic
+            - avatar
+            - document
+            - usd_payment_proof
+            - checkout-logo
+            - business-logo
+            - compliance-docs
+            - index
+          default: generic
+        file_type:
+          type: string
+          example: application/pdf
+        file_name:
+          type: string
+          example: document.pdf
+        document_id:
+          type: string
+          example: '123'
+        key_only:
+          type: boolean
+          default: false
+    PresignedUrlResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseSchema'
+        - type: object
+          required:
+            - data
+          properties:
+            data:
+              $ref: '#/components/schemas/PresignedUrlResponseObject'
+    PresignedUrlResponseObject:
+      type: object
+      required:
+        - upload_url
+        - public_link
+        - expires_at
+      properties:
+        upload_url:
+          type: string
+          example: https://s3.amazonaws.com/bucket/key?signature=...
+        public_link:
+          type: string
+          example: https://cdn.busha.co/generic/123/document.pdf
+        expires_at:
+          type: string
+          format: date-time
+          example: '2024-01-01T00:00:00Z'
     VirtualBankAccount:
       type: object
       required:
@@ -3603,6 +3695,9 @@ components:
         status:
           type: string
           example: active
+        reference:
+          type: string
+          example: '1234567890'
         created_at:
           type: string
           format: date-time
@@ -3628,6 +3723,9 @@ components:
         address:
           type: string
           example: 1800 North Pole St., Orlando, FL 32801
+        sort_code:
+          type: string
+          example: 26-74-90
     VirtualBankAccountTerms:
       type: object
       description: Terms and conditions for a virtual bank account
@@ -4255,7 +4353,7 @@ components:
               type: string
               example: 64ae8c26ea1033204c805a8a
               description: |
-                This represents the recipient ID (mandate ID), used for `direct_debit` types.
+                This represents the recipient ID. Used for `direct_debit` types (mandate ID).
     NullableDecimal:
       type: string
       description: nullable decimal value
@@ -6477,6 +6575,34 @@ components:
           schema:
             allOf:
               - $ref: '#/components/schemas/BaseSchema'
+    FilesError5XX:
+      description: Server error when processing the miscellaneous request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            internal_server_error:
+              $ref: '#/components/examples/InternalServerError'
+            service_unavailable_error:
+              $ref: '#/components/examples/ServiceUnavailableError'
+    FilesError4XX:
+      description: Default
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            default:
+              $ref: '#/components/examples/DefaultError'
+            not_found_error:
+              $ref: '#/components/examples/NotFoundError'
+            unauthorized_error:
+              $ref: '#/components/examples/UnAuthorizedError'
+            request_validation_error:
+              $ref: '#/components/examples/RequestValidationError'
+            schema_validation_error:
+              $ref: '#/components/examples/SchemaValidationError'
     VirtualBankAccountResponse:
       description: Successful Response
       content:
