@@ -4177,6 +4177,27 @@ components:
           type: string
           example: 0-15 minutes
           description: The average time to process via the payment option.
+    PaymentMethodLimitObj:
+      type: object
+      properties:
+        max_amount:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: The maximum allowed amount for this payment method.
+    PaymentOptionMeta:
+      type: object
+      description: |
+        Optional metadata for the payment option. Contains additional context-specific
+        information such as per-payment-method limits resolved based on the requesting
+        profile type (personal or business).
+      properties:
+        payment_method_limits:
+          type: object
+          description: |
+            Maximum amount limits keyed by payment method ID. The limits returned
+            are resolved server-side based on the requesting profile type.
+          additionalProperties:
+            $ref: '#/components/schemas/PaymentMethodLimitObj'
     PaymentOptionObj:
       type: object
       required:
@@ -4224,6 +4245,8 @@ components:
           type: boolean
         support_conversion:
           type: boolean
+        meta:
+          $ref: '#/components/schemas/PaymentOptionMeta'
     PayOutObj:
       type: object
       required:
