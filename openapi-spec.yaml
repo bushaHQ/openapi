@@ -183,6 +183,9 @@ tags:
   - name: RequestLogs
     description: API request logs and activities
     x-displayName: RequestLogs
+  - name: Spend
+    description: Core spend domain operations
+    x-displayName: Spend
   - name: Transactions
     x-displayName: Transactions
   - name: Transfers
