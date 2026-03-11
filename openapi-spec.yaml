@@ -190,6 +190,9 @@ tags:
     x-displayName: Transactions
   - name: Transfers
     x-displayName: Transfers
+  - name: Widget
+    description: Widget operations
+    x-displayName: Widget
 paths:
   /v1/balances:
     post:
@@ -1522,6 +1525,18 @@ paths:
           schema:
             type: number
             example: 1500
+        - name: purpose
+          in: query
+          required: false
+          description: Filter payment options by intended use case.
+          schema:
+            type: string
+            enum:
+              - wallet
+              - auto_save
+              - auto_buy
+              - savings
+              - loans
       responses:
         '200':
           $ref: '#/components/responses/PaymentOptionsListResponse'
