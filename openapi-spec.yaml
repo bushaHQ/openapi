@@ -180,9 +180,6 @@ tags:
     x-displayName: Quotes
   - name: Recipients
     x-displayName: Recipients
-  - name: RequestLogs
-    description: API request logs and activities
-    x-displayName: RequestLogs
   - name: Spend
     description: Core spend domain operations
     x-displayName: Spend
@@ -4202,6 +4199,17 @@ components:
           allOf:
             - $ref: '#/components/schemas/Decimal'
           description: The maximum allowed amount for this payment method.
+    FieldRequirement:
+      type: object
+      description: Describes the requirement condition for a field.
+      properties:
+        required:
+          type: boolean
+          description: Whether this field is always required.
+        required_above:
+          type: string
+          description: The field is required when the amount exceeds this threshold.
+          example: '10000'
     PaymentOptionMeta:
       type: object
       description: |
@@ -4216,6 +4224,13 @@ components:
             are resolved server-side based on the requesting profile type.
           additionalProperties:
             $ref: '#/components/schemas/PaymentMethodLimitObj'
+        field_requirements:
+          type: object
+          description: |
+            Describes which additional fields are required when creating a withdrawal
+            for this payment option. Keyed by field name.
+          additionalProperties:
+            $ref: '#/components/schemas/FieldRequirement'
     PaymentOptionObj:
       type: object
       required:
@@ -4302,6 +4317,17 @@ components:
           example: memo
           description: |
             This refers to the memo required for blockchain networks that mandate a memo for cryptocurrency transactions.
+        narration:
+          type: string
+          example: Payment for services
+          description: |
+            A narration or description for the withdrawal. Required for USD bank transfer withdrawals.
+        payment_invoice_url:
+          type: string
+          example: https://example.com/invoice.pdf
+          description: |
+            URL of the payment invoice or supporting document. Required for business account USD withdrawals
+            and personal account USD withdrawals exceeding $10,000.
     RecipientDetails:
       type: object
       properties:
