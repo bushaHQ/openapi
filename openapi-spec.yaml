@@ -1128,6 +1128,39 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreatePaymentLinkReq'
+            examples:
+              invoice:
+                summary: Create an invoice
+                value:
+                  type: invoice
+                  fixed: true
+                  one_time: true
+                  name: Invoice for Consulting Services
+                  title: Consulting Services - March 2024
+                  description: Payment for consulting services rendered
+                  target_currency: USDC
+                  target_amount: '500.00'
+                  customer_email: client@example.com
+                  customer_name: John Doe
+                  due_date: '2024-04-15T00:00:00Z'
+                  note: Thank you for your business!
+                  items:
+                    - item: Consulting Hours
+                      quantity: 10
+                      amount: '40.00'
+                    - item: Documentation Fee
+                      quantity: 1
+                      amount: '100.00'
+              payment_link:
+                summary: Create a payment link
+                value:
+                  fixed: true
+                  one_time: false
+                  name: Product Purchase
+                  title: Buy Our Product
+                  description: Payment for product purchase
+                  target_currency: BTC
+                  target_amount: '0.01'
       responses:
         '201':
           description: Successful response
@@ -1142,6 +1175,39 @@ paths:
                     properties:
                       data:
                         $ref: '#/components/schemas/PaymentLink'
+              examples:
+                invoice:
+                  summary: Invoice created successfully
+                  value:
+                    status: success
+                    message: Payment link created successfully
+                    data:
+                      id: PAYL_abc123xyz
+                      profile_id: PROF_user123
+                      type: invoice
+                      fixed: true
+                      one_time: true
+                      link: https://pay.busha.io/charges/PAYL_abc123xyz
+                      name: Invoice for Consulting Services
+                      title: Consulting Services - March 2024
+                      description: Payment for consulting services rendered
+                      target_currency: USDC
+                      target_amount: '500.00'
+                      meta:
+                        customer_email: client@example.com
+                        customer_name: John Doe
+                        due_date: '2024-04-15T00:00:00Z'
+                        note: Thank you for your business!
+                        items:
+                          - item: Consulting Hours
+                            quantity: 10
+                            amount: '40.00'
+                          - item: Documentation Fee
+                            quantity: 1
+                            amount: '100.00'
+                      status: active
+                      created_at: '2024-03-10T12:00:00Z'
+                      updated_at: '2024-03-10T12:00:00Z'
         4XX:
           $ref: '#/components/responses/PaymentLinkError4XX'
         5XX:
@@ -1174,6 +1240,15 @@ paths:
             type: array
             items:
               $ref: '#/components/schemas/PaymentLinkStatus'
+        - name: type
+          in: query
+          required: false
+          style: form
+          description: Filter by type (payment_link or invoice)
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/PaymentLinkType'
       responses:
         '200':
           description: Successful response
@@ -1364,6 +1439,38 @@ paths:
           $ref: '#/components/responses/PaymentRequestError4XX'
         5XX:
           $ref: '#/components/responses/PaymentRequestError4XX'
+  /v1/payments/links/{id}/activate:
+    post:
+      tags:
+        - PaymentLinks
+      security:
+        - Auth:
+            - transfers:write
+            - api:write
+      operationId: activateInvoice
+      summary: Activate a draft invoice
+      description: Transitions an invoice from draft status to active and sends email notification to customer
+      parameters:
+        - $ref: '#/components/parameters/PathParamNanoID'
+        - $ref: '#/components/parameters/ProfileHeader'
+      responses:
+        '200':
+          description: Invoice activated successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseSchema'
+                  - type: object
+                    required:
+                      - data
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PaymentLink'
+        4XX:
+          $ref: '#/components/responses/PaymentLinkError4XX'
+        5XX:
+          $ref: '#/components/responses/PaymentLinkError5XX'
   /v1/payments/requests:
     post:
       tags:
@@ -3819,6 +3926,15 @@ components:
                 - in_review
                 - rejected
               x-order: 9
+            kyc_status:
+              type: string
+              enum:
+                - pending
+                - unverified
+                - verified
+                - expiry_soon
+                - expired
+              x-order: 9
             country_id:
               $ref: '#/components/schemas/CountryID'
             type:
@@ -4835,6 +4951,11 @@ components:
               maxItems: 100
               items:
                 $ref: '#/components/schemas/Pairs'
+    PaymentLinkType:
+      type: string
+      enum:
+        - payment_link
+        - invoice
     UpdatePaymentLinkReq:
       type: object
       properties:
@@ -4873,6 +4994,26 @@ components:
           $ref: '#/components/schemas/AmountLimit'
         allow_quantity_selection:
           type: boolean
+        customer_email:
+          type: string
+          format: email
+          description: Can update customer email for existing invoices
+        customer_name:
+          type: string
+          description: Can update customer name for existing invoices
+        due_date:
+          type: string
+          format: date-time
+          description: Can update due date for existing invoices (must be in the future)
+        note:
+          type: string
+          maxLength: 250
+          description: Can update note for existing invoices (max 250 characters)
+        items:
+          type: array
+          description: Update line items for existing invoices
+          items:
+            $ref: '#/components/schemas/InvoiceItem'
     CreatePaymentLinkReq:
       type: object
       required:
@@ -4883,6 +5024,9 @@ components:
         - title
         - target_currency
       properties:
+        type:
+          $ref: '#/components/schemas/PaymentLinkType'
+          description: Optional. Derived from fixed/one_time if not provided
         fixed:
           type: boolean
         one_time:
@@ -4919,6 +5063,26 @@ components:
           $ref: '#/components/schemas/AmountLimit'
         allow_quantity_selection:
           type: boolean
+        customer_email:
+          type: string
+          format: email
+          description: Required when type is invoice
+        customer_name:
+          type: string
+          description: Required when type is invoice
+        due_date:
+          type: string
+          format: date-time
+          description: Optional due date for invoice (must be in the future)
+        note:
+          type: string
+          maxLength: 250
+          description: Optional note for invoice (max 250 characters)
+        items:
+          type: array
+          description: Line items for invoice type payment links
+          items:
+            $ref: '#/components/schemas/InvoiceItem'
         dry_run:
           type: boolean
           description: if true, will not create a payment transfer
@@ -4927,6 +5091,7 @@ components:
       required:
         - id
         - profile_id
+        - type
         - fixed
         - one_time
         - name
@@ -4942,6 +5107,9 @@ components:
           $ref: '#/components/schemas/NanoID'
         profile_id:
           $ref: '#/components/schemas/NanoID'
+        type:
+          x-order: 2
+          $ref: '#/components/schemas/PaymentLinkType'
         fixed:
           x-order: 3
           type: boolean
@@ -5021,6 +5189,7 @@ components:
     PaymentLinkStatus:
       type: string
       enum:
+        - draft
         - pending
         - active
         - expired
@@ -5043,6 +5212,43 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/PaymentLinkExtraInfo'
+        customer_email:
+          type: string
+          format: email
+          description: Customer email for invoices
+        customer_name:
+          type: string
+          description: Customer name for invoices
+        due_date:
+          type: string
+          format: date-time
+          description: Due date for invoices
+        note:
+          type: string
+          maxLength: 250
+          description: Optional note for invoices
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/InvoiceItem'
+    InvoiceItem:
+      type: object
+      required:
+        - item
+        - quantity
+        - amount
+      properties:
+        item:
+          type: string
+          description: Name/description of the item
+          maxLength: 255
+        quantity:
+          type: integer
+          description: Quantity of the item
+          minimum: 1
+        amount:
+          $ref: '#/components/schemas/Decimal'
+          description: Unit price of the item
     AmountLimit:
       type: object
       required:
