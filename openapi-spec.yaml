@@ -292,22 +292,6 @@ paths:
         - Auth:
             - balances:read
             - api:read
-  /v1/bill/countries:
-    servers:
-      - url: http://localhost:3000
-        description: Local Development
-  /v1/bill/categories:
-    servers:
-      - url: http://localhost:3000
-        description: Local Development
-  /v1/bill/products/{category}:
-    servers:
-      - url: http://localhost:3000
-        description: Local Development
-  /v1/bill/validate:
-    servers:
-      - url: http://localhost:3000
-        description: Local Development
   /v1/currencies:
     get:
       security:
@@ -6591,61 +6575,87 @@ components:
           $ref: '#/components/schemas/ResourceID'
         quote_id:
           $ref: '#/components/schemas/NanoID'
+        stages:
+          type: array
+          description: Ordered pipeline steps included in the transfer flow.
+          example:
+            - deposit
+            - conversion
+          items:
+            type: string
+            enum:
+              - deposit
+              - conversion
+              - withdrawal
+          x-order: 2
+        category:
+          type: string
+          description: Computed shorthand derived from the transfer stages.
+          example: buy
+          enum:
+            - deposit
+            - withdrawal
+            - conversion
+            - buy
+            - sell
+            - send
+            - exchange
+          x-order: 3
         description:
           type: string
           example: Bought Bitcoin
-          x-order: 3
+          x-order: 4
         sub_description:
           type: string
           example: With Naira
-          x-order: 4
+          x-order: 5
         source_currency:
           allOf:
             - $ref: '#/components/schemas/Currency'
-          x-order: 5
+          x-order: 6
         target_currency:
           allOf:
             - $ref: '#/components/schemas/Currency'
-          x-order: 6
+          x-order: 7
         source_amount:
           allOf:
             - $ref: '#/components/schemas/Decimal'
-          x-order: 7
+          x-order: 8
         target_amount:
           allOf:
             - $ref: '#/components/schemas/Decimal'
-          x-order: 8
+          x-order: 9
         trade:
           type: string
           example: buy
-          x-order: 9
+          x-order: 10
         profile_id:
           $ref: '#/components/schemas/NanoID'
         rate:
           allOf:
             - $ref: '#/components/schemas/QuoteRate'
-          x-order: 10
+          x-order: 11
         fees:
           type: array
-          x-order: 11
+          x-order: 12
           items:
             $ref: '#/components/schemas/Fee'
         pay_in:
           allOf:
             - $ref: '#/components/schemas/PaymentObj'
-          x-order: 12
+          x-order: 13
         pay_out:
           allOf:
             - $ref: '#/components/schemas/PaymentObj'
-          x-order: 13
+          x-order: 14
         status:
           allOf:
             - $ref: '#/components/schemas/TransferStatus'
-          x-order: 14
+          x-order: 15
         timeline:
           allOf:
             - $ref: '#/components/schemas/TransferTimeline'
-          x-order: 15
+          x-order: 16
         expires_at:
           type: string
           x-order: 17
