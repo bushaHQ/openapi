@@ -162,6 +162,7 @@ tags:
     description: Provides auxiliary APIs to complement and enhance other services.
     x-displayName: Miscellaneous
   - name: News
+    description: News article endpoints
     x-displayName: News
   - name: Pairs
     description: Access trading pair information and rates
@@ -291,6 +292,143 @@ paths:
       security:
         - Auth:
             - balances:read
+            - api:read
+  /v1/bill/purchase:
+    post:
+      operationId: PurchaseBill
+      summary: Purchase a bill
+      description: Create a bill payment order. Holds funds from the customer's balance and initiates the purchase with the provider.
+      tags:
+        - Bill
+      security:
+        - Auth:
+            - bill:write
+            - api:write
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PurchaseRequest'
+      responses:
+        '201':
+          description: Order created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseSchema'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/BillOrder'
+  /v1/bill/quote:
+    post:
+      operationId: QuotePurchase
+      summary: Get a purchase quote
+      description: |
+        Returns a real-time cost breakdown before purchase. Shows bill amount, source amount, exchange rate (if cross-currency), fees, and total. Stateless — no DB record, no rate locking.
+      tags:
+        - Bill
+      security:
+        - Auth:
+            - bill:read
+            - api:read
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PurchaseQuoteRequest'
+      responses:
+        '200':
+          description: Quote generated
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseSchema'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PurchaseQuoteResponse'
+  /v1/bill/orders:
+    get:
+      operationId: ListBillOrders
+      summary: List customer orders
+      description: Returns bill orders for the authenticated customer, newest first.
+      tags:
+        - Bill
+      parameters:
+        - $ref: '#/components/parameters/CursorQueryParams'
+        - $ref: '#/components/parameters/LimitQueryParam'
+        - name: status
+          in: query
+          required: false
+          description: Filter by order status
+          schema:
+            type: string
+            enum:
+              - pending
+              - processing
+              - completed
+              - failed
+              - cancelled
+        - name: category
+          in: query
+          required: false
+          description: Filter by bill category
+          schema:
+            type: string
+            enum:
+              - airtime
+              - data
+              - electricity
+              - cable
+              - betting
+              - voucher
+      responses:
+        '200':
+          description: Orders retrieved
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/CursorPagination'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/BillOrder'
+      security:
+        - Auth:
+            - bill:read
+            - api:read
+  /v1/bill/orders/{id}:
+    get:
+      operationId: GetBillOrder
+      summary: Get order details
+      description: Returns a single bill order by ID, scoped to the authenticated customer.
+      tags:
+        - Bill
+      parameters:
+        - $ref: '#/components/parameters/PathParamNanoID'
+      responses:
+        '200':
+          description: Order retrieved
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseSchema'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/BillOrder'
+      security:
+        - Auth:
+            - bill:read
             - api:read
   /v1/currencies:
     get:
@@ -2565,16 +2703,6 @@ components:
       schema:
         type: string
         format: string
-    SortQueryParam:
-      name: sort
-      in: query
-      description: The order to sort the results
-      schema:
-        type: string
-        enum:
-          - asc
-          - desc
-        example: asc
     LimitQueryParam:
       name: limit
       in: query
@@ -2593,6 +2721,16 @@ components:
         example: bus_123456789
       x-oapi-codegen-extra-tags:
         validate: required|nanoid
+    SortQueryParam:
+      name: sort
+      in: query
+      description: The order to sort the results
+      schema:
+        type: string
+        enum:
+          - asc
+          - desc
+        example: asc
     CountryQueryParam:
       name: country
       in: query
@@ -2883,6 +3021,210 @@ components:
         error:
           name: bad_request
           message: Invalid Request
+    BillOrder:
+      type: object
+      required:
+        - id
+        - reference
+        - category
+        - recipient
+        - amount
+        - currency
+        - status
+        - created_at
+        - updated_at
+      properties:
+        id:
+          $ref: '#/components/schemas/ResourceID'
+        reference:
+          type: string
+          description: Unique order reference
+          example: BILL-abc123def456
+        recipient:
+          type: string
+          description: Meter number, smartcard, customer ID, etc.
+        amount:
+          type: string
+          description: Bill amount in bill currency
+          example: '1000.00'
+        currency:
+          type: string
+          description: Bill currency
+          example: NGN
+        source_amount:
+          type: string
+          description: Amount charged to customer (may differ if cross-currency)
+          example: '1000.00'
+        source_currency:
+          type: string
+          description: Currency charged to customer
+          example: NGN
+        status:
+          type: string
+          enum:
+            - pending
+            - processing
+            - completed
+            - failed
+            - cancelled
+          description: Current order status
+        provider_amount:
+          type: string
+          nullable: true
+          description: Amount delivered to the recipient by the provider
+          example: '200.00'
+        failure_reason:
+          type: string
+          nullable: true
+          description: Human-readable reason if the order failed
+        provider_reference:
+          type: string
+          nullable: true
+          description: Provider-side reference for this order
+        meta:
+          type: object
+          nullable: true
+          description: Additional order metadata (rate info, receipt, etc.)
+        created_at:
+          $ref: '#/components/schemas/TimeStamp'
+        updated_at:
+          $ref: '#/components/schemas/TimeStamp'
+    PurchaseRequest:
+      type: object
+      required:
+        - category
+        - product_code
+        - amount
+        - recipient
+      properties:
+        product_code:
+          type: string
+          description: Product code to purchase
+          x-oapi-codegen-extra-tags:
+            validate: required|min_len:1|max_len:100
+            filter: trim
+        amount:
+          type: string
+          description: Amount in bill currency
+          x-oapi-codegen-extra-tags:
+            validate: required
+        recipient:
+          type: string
+          description: Meter number, smartcard, customer ID, etc.
+          x-oapi-codegen-extra-tags:
+            validate: required|min_len:1|max_len:50
+            filter: trim
+        phone_number:
+          type: string
+          description: Phone number (required for airtime, data, electricity, cable, betting)
+          x-oapi-codegen-extra-tags:
+            validate: min_len:10|max_len:15
+            filter: trim
+        account_type:
+          type: string
+          enum:
+            - prepaid
+            - postpaid
+          description: Meter type (required for electricity, ignored otherwise)
+        source_currency:
+          type: string
+          description: Currency to charge from (defaults to bill currency if omitted)
+          x-oapi-codegen-extra-tags:
+            filter: trim|upper
+    PurchaseQuoteRequest:
+      type: object
+      required:
+        - category
+        - product_code
+        - amount
+        - recipient
+      properties:
+        product_code:
+          type: string
+          description: Product code to purchase
+          x-oapi-codegen-extra-tags:
+            validate: required|min_len:1|max_len:100
+            filter: trim
+        amount:
+          type: string
+          description: Amount in bill currency
+          x-oapi-codegen-extra-tags:
+            validate: required
+        recipient:
+          type: string
+          description: Meter number, smartcard, customer ID, etc.
+          x-oapi-codegen-extra-tags:
+            validate: required|min_len:1|max_len:50
+            filter: trim
+        source_currency:
+          type: string
+          description: Currency to charge from (defaults to bill currency if omitted)
+          x-oapi-codegen-extra-tags:
+            filter: trim|upper
+    PurchaseQuoteResponse:
+      type: object
+      required:
+        - product_name
+        - product_code
+        - category
+        - recipient
+        - amount
+        - currency
+        - source_amount
+        - source_currency
+        - fee
+        - fee_currency
+        - total
+        - total_currency
+      properties:
+        product_name:
+          type: string
+          description: Product display name
+        product_code:
+          type: string
+          description: Product code
+        category:
+          type: string
+          description: Bill category
+        recipient:
+          type: string
+          description: Recipient identifier
+        amount:
+          type: string
+          description: Amount in bill currency (sent to provider)
+          example: '1000.00'
+        currency:
+          type: string
+          description: Bill currency
+          example: NGN
+        source_amount:
+          type: string
+          description: Amount to charge customer
+          example: '0.68'
+        source_currency:
+          type: string
+          description: Customer's payment currency
+          example: USD
+        rate:
+          type: string
+          description: Human-readable rate (present only for cross-currency)
+          example: 1 USD = 1,478.24 NGN
+        fee:
+          type: string
+          description: Platform fee
+          example: '0.00'
+        fee_currency:
+          type: string
+          description: Fee currency (same as source)
+          example: USD
+        total:
+          type: string
+          description: source_amount + fee
+          example: '0.68'
+        total_currency:
+          type: string
+          description: Total currency (same as source)
+          example: USD
     ResourceID:
       type: string
       x-order: 1
@@ -2891,6 +3233,11 @@ components:
       description: A valid id
       x-oapi-codegen-extra-tags:
         validate: required|nanoid
+    TimeStamp:
+      type: string
+      format: date-time
+      example: '2023-10-15T12:15:30Z'
+      x-go-type: time.Time
     CountryID:
       type: string
       example: NG
@@ -2900,11 +3247,6 @@ components:
       maxLength: 2
       x-oapi-codegen-extra-tags:
         validate: alpha2
-    TimeStamp:
-      type: string
-      format: date-time
-      example: '2023-10-15T12:15:30Z'
-      x-go-type: time.Time
     NanoID:
       type: string
       x-order: 2
