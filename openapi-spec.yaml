@@ -978,7 +978,7 @@ paths:
           $ref: '#/components/responses/MiscellaneousError5XX'
   /v1/virtual_bank_accounts/{code}:
     get:
-      x-rate-limit: 5
+      x-rate-limit: 30
       security:
         - Auth:
             - virtual_bank_accounts:read
@@ -986,6 +986,13 @@ paths:
       parameters:
         - $ref: '#/components/parameters/ProfileHeader'
         - $ref: '#/components/parameters/CurrencyCodePathParam'
+        - name: amount
+          in: query
+          required: false
+          description: The amount to calculate fees for
+          schema:
+            type: string
+            example: '100'
       tags:
         - Miscellaneous
       operationId: getVirtualBankAccount
@@ -4175,6 +4182,8 @@ components:
           type: string
           format: date-time
           example: '2024-01-01T00:00:00.000Z'
+        fee:
+          $ref: '#/components/schemas/Decimal'
         meta:
           $ref: '#/components/schemas/VirtualBankAccountMeta'
     VirtualBankAccountMeta:
@@ -4946,19 +4955,19 @@ components:
         min_buy_amount:
           x-order: 9
           allOf:
-            - $ref: '#/components/schemas/AmountWithCurrency'
+            - $ref: '#/components/schemas/AmountWithCounter'
         min_sell_amount:
           x-order: 10
           allOf:
-            - $ref: '#/components/schemas/AmountWithCurrency'
+            - $ref: '#/components/schemas/AmountWithCounter'
         max_buy_amount:
           x-order: 11
           allOf:
-            - $ref: '#/components/schemas/AmountWithCurrency'
+            - $ref: '#/components/schemas/AmountWithCounter'
         max_sell_amount:
           x-order: 12
           allOf:
-            - $ref: '#/components/schemas/AmountWithCurrency'
+            - $ref: '#/components/schemas/AmountWithCounter'
         base_decimal:
           type: string
           x-order: 13
@@ -4970,6 +4979,18 @@ components:
         percentage_change:
           allOf:
             - $ref: '#/components/schemas/Decimal'
+    AmountWithCounter:
+      type: object
+      required:
+        - amount
+        - currency
+      properties:
+        amount:
+          $ref: '#/components/schemas/Decimal'
+        currency:
+          $ref: '#/components/schemas/Currency'
+        counter:
+          $ref: '#/components/schemas/AmountWithCurrency'
     PairsListResponse:
       allOf:
         - $ref: '#/components/schemas/BaseSchema'
