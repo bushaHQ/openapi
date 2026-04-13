@@ -4076,16 +4076,6 @@ components:
       maxLength: 11
       x-oapi-codegen-extra-tags:
         validate: num|len:11
-    EarnAmountType:
-      allOf:
-        - $ref: '#/components/schemas/AmountWithCurrency'
-        - type: object
-          properties:
-            fiat:
-              allOf:
-                - $ref: '#/components/schemas/AmountWithCurrency'
-              description: amount in fiat
-              x-order: 3
     PresignedUrlRequest:
       type: object
       required:
@@ -6430,6 +6420,16 @@ components:
           type: string
           description: Name of receiving bank
           example: Trust Bank
+    EarnAmountType:
+      allOf:
+        - $ref: '#/components/schemas/AmountWithCurrency'
+        - type: object
+          properties:
+            fiat:
+              allOf:
+                - $ref: '#/components/schemas/AmountWithCurrency'
+              description: amount in fiat
+              x-order: 3
     TransactionsListResponse:
       allOf:
         - $ref: '#/components/schemas/CursorPagination'
@@ -6635,6 +6635,9 @@ components:
           $ref: '#/components/schemas/TxnMetaFee'
         amounts:
           $ref: '#/components/schemas/TxnMetaAmounts'
+        session_id:
+          type: string
+          description: Session ID for the transaction
     TxnMetaAmounts:
       description: Transactions amounts explained
       allOf:
