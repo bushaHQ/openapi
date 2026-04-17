@@ -594,6 +594,45 @@ paths:
         - Auth:
             - customers:read
             - api:read
+  /v1/customers/export:
+    get:
+      x-internal: false
+      summary: Export Customers
+      description: Export customers to a csv file
+      operationId: exportCustomers
+      tags:
+        - Customers
+      parameters:
+        - $ref: '#/components/parameters/ProfileHeader'
+        - $ref: '#/components/parameters/CursorQueryParams'
+        - $ref: '#/components/parameters/LimitQueryParam'
+        - $ref: '#/components/parameters/SortQueryParam'
+        - name: q
+          in: query
+          x-internal: false
+          x-oapi-codegen-extra-tags:
+            validate: min_len:3|max_len:100
+          schema:
+            type: string
+            maxLength: 100
+            minLength: 3
+            example: kay@busha.co
+      responses:
+        '200':
+          description: Successful response
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+        4XX:
+          $ref: '#/components/responses/CustomerError4XX'
+        5XX:
+          $ref: '#/components/responses/CustomerError5XX'
+      security:
+        - Auth:
+            - customers:read
+            - api:read
   /v1/customers/{id}:
     get:
       x-internal: false
@@ -3075,6 +3114,10 @@ components:
             - failed
             - cancelled
           description: Current order status
+        fee:
+          type: string
+          description: Platform fee charged (0 if no fee)
+          example: '50.00'
         provider_amount:
           type: string
           nullable: true
@@ -3089,13 +3132,48 @@ components:
           nullable: true
           description: Provider-side reference for this order
         meta:
-          type: object
-          nullable: true
-          description: Additional order metadata (rate info, receipt, etc.)
+          $ref: '#/components/schemas/BillOrderMeta'
         created_at:
           $ref: '#/components/schemas/TimeStamp'
         updated_at:
           $ref: '#/components/schemas/TimeStamp'
+    BillOrderMeta:
+      type: object
+      nullable: true
+      description: Order metadata — contains delivery data for completed orders and rate info for cross-currency purchases.
+      properties:
+        pin:
+          type: string
+          description: Voucher PIN (present for completed voucher orders)
+        voucher_code:
+          type: string
+          description: Voucher redemption code
+        voucher_expires_at:
+          type: string
+          description: Voucher expiry date
+        token:
+          type: string
+          description: Electricity prepaid token (present for completed electricity orders)
+        units:
+          type: string
+          description: Electricity units purchased
+        rate:
+          type: object
+          nullable: true
+          description: Exchange rate details (present for cross-currency purchases)
+          properties:
+            rate:
+              type: string
+              description: Exchange rate value
+            from:
+              type: string
+              description: Source currency
+            to:
+              type: string
+              description: Destination currency
+        quote_id:
+          type: string
+          description: Quote ID used for cross-currency conversion
     PurchaseRequest:
       type: object
       required:
@@ -6635,9 +6713,6 @@ components:
           $ref: '#/components/schemas/TxnMetaFee'
         amounts:
           $ref: '#/components/schemas/TxnMetaAmounts'
-        session_id:
-          type: string
-          description: Session ID for the transaction
     TxnMetaAmounts:
       description: Transactions amounts explained
       allOf:
@@ -6712,6 +6787,10 @@ components:
           description: Merchant name (for vouchers)
         amount:
           $ref: '#/components/schemas/Decimal'
+        logo_url:
+          type: string
+          format: uri
+          description: Logo URL for the service provider
     TxnMetaConversion:
       type: object
       properties:
