@@ -3284,7 +3284,7 @@ components:
           example: NGN
         source_amount:
           type: string
-          description: Amount to charge customer
+          description: Grand total (amount + fee) converted to source currency; amount to charge customer
           example: '0.68'
         source_currency:
           type: string
@@ -3296,15 +3296,15 @@ components:
           example: 1 USD = 1,478.24 NGN
         fee:
           type: string
-          description: Platform fee
-          example: '0.00'
+          description: Platform fee in bill currency
+          example: '10.00'
         fee_currency:
           type: string
-          description: Fee currency (same as source)
-          example: USD
+          description: Fee currency (same as bill currency)
+          example: NGN
         total:
           type: string
-          description: source_amount + fee
+          description: Grand total charged to the customer in source currency (equal to source_amount)
           example: '0.68'
         total_currency:
           type: string
