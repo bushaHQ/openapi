@@ -181,9 +181,6 @@ tags:
     x-displayName: Quotes
   - name: Recipients
     x-displayName: Recipients
-  - name: Spend
-    description: Core spend domain operations
-    x-displayName: Spend
   - name: Transactions
     x-displayName: Transactions
   - name: Transfers
@@ -387,6 +384,20 @@ paths:
               - cable
               - betting
               - voucher
+        - name: voucher_status
+          in: query
+          required: false
+          description: |
+            Filter voucher orders by lifecycle status. `unusable` is a virtual bucket that matches fully_used OR expired OR inactive vouchers — i.e. everything the customer can no longer redeem.
+          schema:
+            type: string
+            enum:
+              - active
+              - fully_used
+              - expired
+              - inactive
+              - unknown
+              - unusable
       responses:
         '200':
           description: Orders retrieved
@@ -3127,36 +3138,118 @@ components:
           type: string
           nullable: true
           description: Human-readable reason if the order failed
-        provider_reference:
+        product_name:
           type: string
-          nullable: true
-          description: Provider-side reference for this order
+          description: Product display name
+          example: Adam n Eve
+        product_code:
+          type: string
+          description: Product code used for purchase
+          example: SGF_1
+        logo_url:
+          type: string
+          description: Product logo URL (when available)
+          example: https://example.com/logo.jpg
+        voucher:
+          $ref: '#/components/schemas/VoucherDetails'
+        electricity:
+          $ref: '#/components/schemas/ElectricityDetails'
         meta:
           $ref: '#/components/schemas/BillOrderMeta'
         created_at:
           $ref: '#/components/schemas/TimeStamp'
         updated_at:
           $ref: '#/components/schemas/TimeStamp'
-    BillOrderMeta:
+    VoucherStatus:
+      type: string
+      enum:
+        - active
+        - fully_used
+        - expired
+        - inactive
+        - unknown
+      description: Voucher lifecycle status derived from Suregifts state and local expiry.
+    VoucherTransaction:
+      type: object
+      required:
+        - amount
+        - occurred_at
+      description: A single redemption (or adjustment) reported by the provider.
+      properties:
+        amount:
+          type: string
+          description: Transaction amount in the voucher's currency
+          example: '200.00'
+        type:
+          type: string
+          description: Provider transaction type (e.g. Redemption)
+          example: Redemption
+        narration:
+          type: string
+          description: Provider-supplied description
+          example: POS redemption at Partner Store
+        occurred_at:
+          type: string
+          format: date-time
+          description: When the transaction occurred
+    VoucherDetails:
       type: object
       nullable: true
-      description: Order metadata — contains delivery data for completed orders and rate info for cross-currency purchases.
+      description: Voucher delivery artifacts and lifecycle state. Present for completed voucher orders; lifecycle fields populate after first sync with the provider.
       properties:
         pin:
           type: string
-          description: Voucher PIN (present for completed voucher orders)
-        voucher_code:
+          description: Voucher PIN
+          example: '1234'
+        code:
           type: string
           description: Voucher redemption code
-        voucher_expires_at:
+          example: '421925411392'
+        expires_at:
           type: string
-          description: Voucher expiry date
+          description: Voucher expiry date (ISO 8601)
+          example: '2027-04-13T20:50:52Z'
+        value:
+          type: string
+          description: Voucher face value
+          example: '1000.00'
+        balance:
+          type: string
+          description: Remaining redeemable balance
+          example: '300.00'
+        amount_used:
+          type: string
+          description: Amount redeemed so far (value - balance)
+          example: '700.00'
+        status:
+          $ref: '#/components/schemas/VoucherStatus'
+        last_synced_at:
+          type: string
+          format: date-time
+          description: When this voucher state was last refreshed from the provider
+        transactions:
+          type: array
+          description: Redemption history from the provider
+          items:
+            $ref: '#/components/schemas/VoucherTransaction'
+    ElectricityDetails:
+      type: object
+      nullable: true
+      description: Electricity delivery artifacts. Present for completed electricity orders.
+      properties:
         token:
           type: string
-          description: Electricity prepaid token (present for completed electricity orders)
+          description: Prepaid token delivered to the meter
+          example: 0123-4567-8901-2345-6789
         units:
           type: string
-          description: Electricity units purchased
+          description: Units purchased
+          example: '25.3'
+    BillOrderMeta:
+      type: object
+      nullable: true
+      description: Cross-cutting order metadata (rate for cross-currency purchases, quote ID). Category-specific delivery data lives on `voucher` / `electricity`.
+      properties:
         rate:
           type: object
           nullable: true
@@ -3268,9 +3361,6 @@ components:
         product_code:
           type: string
           description: Product code
-        category:
-          type: string
-          description: Bill category
         recipient:
           type: string
           description: Recipient identifier
@@ -6772,7 +6862,9 @@ components:
             - data
             - bills
             - voucher
-            - bet
+            - betting
+            - electricity
+            - cable
         provider:
           type: string
           description: Service provider
