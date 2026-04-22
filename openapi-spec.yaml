@@ -4562,6 +4562,13 @@ components:
                 type: string
                 example: asset
                 description: Type of the result
+              asset_type:
+                type: string
+                enum:
+                  - fiat
+                  - crypto
+                example: crypto
+                description: Asset class for the returned asset
               symbol:
                 type: string
                 example: ADA
