@@ -3248,7 +3248,7 @@ components:
     BillOrderMeta:
       type: object
       nullable: true
-      description: Cross-cutting order metadata (rate for cross-currency purchases, quote ID). Category-specific delivery data lives on `voucher` / `electricity`.
+      description: Cross-cutting order metadata (rate for cross-currency purchases, quote ID, category-specific display fields). Category-specific delivery artifacts live on `voucher` / `electricity`.
       properties:
         rate:
           type: object
@@ -3267,6 +3267,35 @@ components:
         quote_id:
           type: string
           description: Quote ID used for cross-currency conversion
+        bill:
+          type: object
+          nullable: true
+          description: Category-specific display fields populated at purchase time. Mirrors what ships to the ledger transaction's `service` object so mobile can render the same labels from either source.
+          properties:
+            merchant:
+              type: string
+              description: Biller-of-record display name (disco, cable provider, betting platform, voucher brand, airtime/data network)
+            meter_no:
+              type: string
+              description: Electricity meter number
+            account_type:
+              type: string
+              description: Electricity account type (prepaid or postpaid)
+            smartcard_no:
+              type: string
+              description: Cable smartcard number
+            plan_name:
+              type: string
+              description: Cable bouquet / plan name
+            bundle:
+              type: string
+              description: Data bundle name
+            customer_no:
+              type: string
+              description: Betting customer / account number
+            recipient_email:
+              type: string
+              description: Voucher recipient email (if captured)
     PurchaseRequest:
       type: object
       required:
@@ -6872,9 +6901,6 @@ components:
             - betting
             - electricity
             - cable
-        provider:
-          type: string
-          description: Service provider
         phone_number:
           type: string
           description: Phone number (for airtime)
@@ -6890,6 +6916,27 @@ components:
           type: string
           format: uri
           description: Logo URL for the service provider
+        meter_no:
+          type: string
+          description: Meter number (for electricity)
+        account_type:
+          type: string
+          description: Meter account type, e.g. prepaid/postpaid (for electricity)
+        smartcard_no:
+          type: string
+          description: Smartcard number (for cable)
+        plan_name:
+          type: string
+          description: Subscription plan name (for cable)
+        bundle:
+          type: string
+          description: Data bundle name (for data)
+        customer_no:
+          type: string
+          description: Customer/account number on the biller platform (for betting)
+        recipient_email:
+          type: string
+          description: Recipient email address (for voucher delivery)
     TxnMetaConversion:
       type: object
       properties:
