@@ -4949,6 +4949,10 @@ components:
         type:
           type: string
           example: address
+          description: |
+            The payout type. NOTE: `sweep` is reserved for Busha Business
+            dashboard sessions (master <-> sub-account internal transfers)
+            and is rejected on public API-key requests.
           enum:
             - address
             - bank_transfer
@@ -4958,6 +4962,7 @@ components:
             - balance
             - savings
             - direct_debit
+            - sweep
         recipient_id:
           type: string
           example: 64ae8c26ea1033204c805a8a
@@ -4967,7 +4972,7 @@ components:
           type: string
           example: tb1qj4263506wyu8khrz2dwce0agk8lhyjgy269rxr
           description: |
-            This could be the address, user email or username for type `address`.
+            This could be the address, user email or username for type `address`. For type `sweep`, this is the email of the destination account. Required when the sender is the master (master -> sub); optional when the sender is a sub-account (the destination master is resolved automatically from the sub's parent business).
         network:
           type: string
           example: BTC
