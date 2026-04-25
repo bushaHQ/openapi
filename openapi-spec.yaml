@@ -1287,15 +1287,7 @@ paths:
             type: array
             items:
               $ref: '#/components/schemas/PaymentLinkStatus'
-        - name: type
-          in: query
-          required: false
-          style: form
-          description: Filter by type (payment_link or invoice)
-          schema:
-            type: array
-            items:
-              $ref: '#/components/schemas/PaymentLinkType'
+        - $ref: '#/components/parameters/PaymentLinkTypeQueryParam'
       responses:
         '200':
           description: Successful response
@@ -2862,6 +2854,17 @@ components:
         x-go-type: string
       x-oapi-codegen-extra-tags:
         validate: required|uuid
+    PaymentLinkTypeQueryParam:
+      name: type
+      in: query
+      required: false
+      style: form
+      explode: false
+      description: Filter by type (payment_link or invoice)
+      schema:
+        type: array
+        items:
+          $ref: '#/components/schemas/PaymentLinkType'
     X-BU-Version:
       in: header
       name: X-BU-Version
@@ -5861,6 +5864,9 @@ components:
           $ref: '#/components/schemas/Currency'
         pay_in:
           $ref: '#/components/schemas/PayInObj'
+        dry_run:
+          type: boolean
+          description: if true, validate and preview without creating quote/payment request records
         reference:
           type: string
           description: reference for the payment request
