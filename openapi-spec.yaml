@@ -2642,6 +2642,12 @@ paths:
           required: false
           schema:
             type: string
+        - name: quote_id
+          in: query
+          description: Filter by quote ID
+          required: false
+          schema:
+            $ref: '#/components/schemas/NanoID'
         - name: start_date
           in: query
           description: Filter by start date
