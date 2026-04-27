@@ -6641,6 +6641,96 @@ components:
           type: string
           description: Name of receiving bank
           example: Trust Bank
+    RewardTransaction:
+      type: object
+      required:
+        - id
+        - reward_kind
+        - amount
+        - currency
+        - status
+        - description
+        - created_at
+      properties:
+        id:
+          type: string
+        reward_kind:
+          type: string
+          enum:
+            - cashback
+            - points
+            - tier_credit
+        amount:
+          type: string
+        currency:
+          type: string
+        status:
+          type: string
+          enum:
+            - completed
+            - inflight
+        description:
+          type: string
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+    RewardTransactionList:
+      allOf:
+        - $ref: '#/components/schemas/CursorPagination'
+        - type: object
+          required:
+            - items
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/RewardTransaction'
+    Redemption:
+      type: object
+      required:
+        - id
+        - points_redeemed
+        - fiat_amount
+        - fiat_currency
+        - status
+        - created_at
+      properties:
+        id:
+          type: string
+        points_redeemed:
+          type: string
+        fiat_amount:
+          type: string
+        fiat_currency:
+          type: string
+        status:
+          type: string
+          enum:
+            - completed
+            - pending
+            - failed
+        created_at:
+          type: string
+          format: date-time
+        resolved_at:
+          type: string
+          format: date-time
+          nullable: true
+    RedemptionList:
+      allOf:
+        - $ref: '#/components/schemas/CursorPagination'
+        - type: object
+          required:
+            - items
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/Redemption'
     EarnAmountType:
       allOf:
         - $ref: '#/components/schemas/AmountWithCurrency'
