@@ -3299,9 +3299,9 @@ components:
             bundle:
               type: string
               description: Data bundle name
-            customer_no:
+            account_no:
               type: string
-              description: Betting customer / account number
+              description: Betting account number on the biller platform
             recipient_email:
               type: string
               description: Voucher recipient email (if captured)
@@ -7038,12 +7038,18 @@ components:
         bundle:
           type: string
           description: Data bundle name (for data)
-        customer_no:
+        account_no:
           type: string
-          description: Customer/account number on the biller platform (for betting)
+          description: Account number on the biller platform (for betting)
         recipient_email:
           type: string
           description: Recipient email address (for voucher delivery)
+        account_name:
+          type: string
+          description: Account name returned by recipient validation (for electricity, cable, betting)
+        account_address:
+          type: string
+          description: Account address returned by recipient validation (for electricity)
     TxnMetaConversion:
       type: object
       properties:
