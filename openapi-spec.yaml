@@ -3165,6 +3165,23 @@ components:
           $ref: '#/components/schemas/ElectricityDetails'
         meta:
           $ref: '#/components/schemas/BillOrderMeta'
+        points_amount:
+          type: string
+          nullable: true
+          description: |
+            Bill-currency value of POINTS redeemed against this order (BKND-3987). Null when no apply-points was used.
+          example: '5000'
+        cash_paid_amount:
+          type: string
+          description: |
+            Cash leg actually charged to the customer's wallet. Equals amount when no apply-points is used; equals amount minus points_amount when apply-points is used (BKND-3987).
+          example: '5000'
+        redemption_id:
+          type: string
+          nullable: true
+          description: |
+            Reference to the reward_redemptions row that powered the apply-points discount (BKND-3987). Null when no apply-points was used.
+          example: RDM_abc123
         created_at:
           $ref: '#/components/schemas/TimeStamp'
         updated_at:
@@ -3347,6 +3364,11 @@ components:
           description: Currency to charge from (defaults to bill currency if omitted)
           x-oapi-codegen-extra-tags:
             filter: trim|upper
+        apply_points:
+          type: string
+          description: |
+            Optional. Raw POINTS count to redeem against this purchase (BKND-3987). When set, the platform debits the customer's POINTS balance + credits the rewards treasury for the discount value; the cash leg drops to face_amount - discount_value. Requires apply_points_enabled=true on the bill product. Submit as a decimal string (e.g. "5000").
+          example: '5000'
     PurchaseQuoteRequest:
       type: object
       required:
@@ -3377,6 +3399,11 @@ components:
           description: Currency to charge from (defaults to bill currency if omitted)
           x-oapi-codegen-extra-tags:
             filter: trim|upper
+        apply_points:
+          type: string
+          description: |
+            Optional. Raw POINTS count to preview against this quote. When set, the response shows the post-discount cash split (points_applied, points_amount, cash_paid_amount) and source_amount/total reflect the reduced cash leg. Validation mirrors /v1/bill/purchase — the product must have apply_points_enabled=true and the points must satisfy the redemption rate's min/max bounds. Submit as a decimal string (e.g. "5000").
+          example: '5000'
     PurchaseQuoteResponse:
       type: object
       required:
@@ -3438,6 +3465,50 @@ components:
           type: string
           description: Total currency (same as source)
           example: USD
+        points_applied:
+          type: string
+          nullable: true
+          description: |
+            Raw POINTS that would be redeemed (echo of the request's apply_points). Present only when apply_points was sent on the request.
+          example: '5000'
+        points_amount:
+          type: string
+          nullable: true
+          description: |
+            Bill-currency value of the points being previewed (= points_applied / points_per_unit). Present only when apply_points was sent on the request.
+          example: '5.00'
+        cash_paid_amount:
+          type: string
+          nullable: true
+          description: |
+            Cash portion of the bill in bill currency (= amount - points_amount). Present only when apply_points was sent on the request. The user's wallet would be charged cash_paid_amount + fee, converted to source_currency for cross-currency quotes.
+          example: '995.00'
+        reward_preview:
+          type: object
+          nullable: true
+          description: |
+            Preview of the reward the user will earn from this purchase. Computed off the post-apply-points cash leg (so applying points does not double-dip). Omitted when no campaign matches or when the rewards lookup itself errored — the quote still returns successfully in both cases (fail-soft).
+          required:
+            - kind
+            - amount
+            - currency
+          properties:
+            kind:
+              type: string
+              enum:
+                - cashback
+                - points
+              description: Type of reward credited on successful purchase.
+            amount:
+              type: string
+              description: |
+                Reward amount the user will earn, post tier multiplier and post all caps (per-txn / daily / lifetime / budget).
+              example: '27.00'
+            currency:
+              type: string
+              description: |
+                Currency of the reward. Bill currency for cashback; "POINTS" for points campaigns.
+              example: NGN
     ResourceID:
       type: string
       x-order: 1
@@ -5759,45 +5830,48 @@ components:
         reference:
           type: string
           x-order: 14
+        merchant_reference:
+          type: string
+          x-order: 15
         additional_info:
           allOf:
             - $ref: '#/components/schemas/AdditionalInfo'
-          x-order: 15
+          x-order: 16
         merchant_info:
           allOf:
             - $ref: '#/components/schemas/MerchantInfo'
-          x-order: 16
+          x-order: 17
         source:
           type: string
           description: The source of the payment request
-          x-order: 17
+          x-order: 18
         source_id:
           type: string
           description: The source id of the payment request
-          x-order: 18
+          x-order: 19
         timeline:
           allOf:
             - $ref: '#/components/schemas/TransferTimeline'
-          x-order: 19
+          x-order: 20
         created_at:
           type: string
           format: date-time
           example: '2023-10-15T12:15:30Z'
-          x-order: 20
+          x-order: 21
         updated_at:
           type: string
           format: date-time
           example: '2023-10-15T12:15:30Z'
-          x-order: 21
+          x-order: 22
         expires_at:
           type: string
           format: date-time
           example: '2023-10-15T12:15:30Z'
-          x-order: 22
+          x-order: 23
         quote_rate:
           allOf:
             - $ref: '#/components/schemas/QuoteRate'
-          x-order: 23
+          x-order: 24
           description: This shows the rate of quote currency to source currency if quote currency is provided.
     CreatePaymentRequestForLinkReq:
       type: object
@@ -5870,9 +5944,6 @@ components:
           $ref: '#/components/schemas/Currency'
         pay_in:
           $ref: '#/components/schemas/PayInObj'
-        dry_run:
-          type: boolean
-          description: if true, validate and preview without creating quote/payment request records
         reference:
           type: string
           description: reference for the payment request
@@ -6689,6 +6760,78 @@ components:
               type: array
               items:
                 $ref: '#/components/schemas/RewardTransaction'
+    RewardPointsActivity:
+      type: object
+      required:
+        - id
+        - activity_type
+        - direction
+        - points
+        - points_currency
+        - description
+        - image_url
+        - related_amount
+        - related_currency
+        - reference
+        - source_ref
+        - status
+        - created_at
+      properties:
+        id:
+          type: string
+        activity_type:
+          type: string
+          enum:
+            - earning
+            - redemption
+        direction:
+          type: string
+          enum:
+            - credit
+            - debit
+        points:
+          type: string
+          description: Positive decimal string in POINTS.
+        points_currency:
+          type: string
+          enum:
+            - POINTS
+        description:
+          type: string
+          description: Customer-facing product name for the activity.
+        image_url:
+          type: string
+          description: Customer-facing product logo or image URL for the activity.
+        related_amount:
+          type: string
+        related_currency:
+          type: string
+        reference:
+          type: string
+        source_ref:
+          type: string
+        status:
+          type: string
+          enum:
+            - completed
+        created_at:
+          type: string
+          format: date-time
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+    RewardPointsActivityList:
+      allOf:
+        - $ref: '#/components/schemas/CursorPagination'
+        - type: object
+          required:
+            - items
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/RewardPointsActivity'
     Redemption:
       type: object
       required:
