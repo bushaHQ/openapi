@@ -3404,6 +3404,33 @@ components:
           description: |
             Optional. Raw POINTS count to preview against this quote. When set, the response shows the post-discount cash split (points_applied, points_amount, cash_paid_amount) and source_amount/total reflect the reduced cash leg. Validation mirrors /v1/bill/purchase — the product must have apply_points_enabled=true and the points must satisfy the redemption rate's min/max bounds. Submit as a decimal string (e.g. "5000").
           example: '5000'
+    RewardPreviewKind:
+      type: string
+      enum:
+        - cashback
+        - points
+      description: Type of reward credited on successful purchase.
+    RewardPreview:
+      type: object
+      required:
+        - kind
+        - amount
+        - currency
+      description: |
+        Preview of the reward the user will earn from this purchase. Computed off the post-apply-points cash leg (so applying points does not double-dip). Returned only when a campaign matches; omitted when no campaign matches or when the rewards lookup itself errored — the quote still returns successfully in both cases (fail-soft).
+      properties:
+        kind:
+          $ref: '#/components/schemas/RewardPreviewKind'
+        amount:
+          type: string
+          description: |
+            Reward amount the user will earn, post tier multiplier and post all caps (per-txn / daily / lifetime / budget).
+          example: '27.00'
+        currency:
+          type: string
+          description: |
+            Currency of the reward. Bill currency for cashback; "POINTS" for points campaigns.
+          example: NGN
     PurchaseQuoteResponse:
       type: object
       required:
@@ -3484,31 +3511,7 @@ components:
             Cash portion of the bill in bill currency (= amount - points_amount). Present only when apply_points was sent on the request. The user's wallet would be charged cash_paid_amount + fee, converted to source_currency for cross-currency quotes.
           example: '995.00'
         reward_preview:
-          type: object
-          nullable: true
-          description: |
-            Preview of the reward the user will earn from this purchase. Computed off the post-apply-points cash leg (so applying points does not double-dip). Omitted when no campaign matches or when the rewards lookup itself errored — the quote still returns successfully in both cases (fail-soft).
-          required:
-            - kind
-            - amount
-            - currency
-          properties:
-            kind:
-              type: string
-              enum:
-                - cashback
-                - points
-              description: Type of reward credited on successful purchase.
-            amount:
-              type: string
-              description: |
-                Reward amount the user will earn, post tier multiplier and post all caps (per-txn / daily / lifetime / budget).
-              example: '27.00'
-            currency:
-              type: string
-              description: |
-                Currency of the reward. Bill currency for cashback; "POINTS" for points campaigns.
-              example: NGN
+          $ref: '#/components/schemas/RewardPreview'
     ResourceID:
       type: string
       x-order: 1
@@ -5523,6 +5526,7 @@ components:
         - active
         - expired
         - deleted
+        - paid
     PaymentLinkMeta:
       type: object
       properties:
