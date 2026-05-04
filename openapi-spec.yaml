@@ -6749,7 +6749,6 @@ components:
         expires_at:
           type: string
           format: date-time
-          nullable: true
         created_at:
           type: string
           format: date-time
@@ -6774,10 +6773,7 @@ components:
         - points_currency
         - description
         - image_url
-        - related_amount
-        - related_currency
         - reference
-        - source_ref
         - status
         - created_at
       properties:
@@ -6802,29 +6798,77 @@ components:
             - POINTS
         description:
           type: string
-          description: Customer-facing product name for the activity.
+          description: First-class display identity. Merchant / activity name (e.g., "Shoprite", "MTN", or "Points earned" when no linked transaction).
         image_url:
           type: string
-          description: Customer-facing product logo or image URL for the activity.
-        related_amount:
-          type: string
-        related_currency:
-          type: string
+          description: First-class activity logo or icon. Empty string when not set.
         reference:
-          type: string
-        source_ref:
           type: string
         status:
           type: string
           enum:
+            - inflight
             - completed
+            - voided
+            - failed
+            - reversed
+            - failed_settlement
+            - skipped_no_wallet
         created_at:
           type: string
           format: date-time
         expires_at:
           type: string
           format: date-time
-          nullable: true
+        linked_transaction:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/RewardPointsActivityLinkedTransaction'
+        earning_rate:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/RewardPointsActivityEarningRate'
+    RewardPointsActivityLinkedTransaction:
+      type: object
+      required:
+        - type
+        - reference
+        - amount
+        - currency
+        - date
+      properties:
+        type:
+          type: string
+          enum:
+            - bill
+            - card
+            - transfer
+          description: Discriminator for the source domain. Future values added additively.
+        reference:
+          type: string
+          description: Source-domain reference (e.g. bill order reference).
+        amount:
+          type: string
+          description: Decimal string in `currency`.
+        currency:
+          type: string
+        date:
+          type: string
+          format: date-time
+          description: When the underlying transaction happened.
+    RewardPointsActivityEarningRate:
+      type: object
+      required:
+        - points_per_unit
+        - unit_amount
+        - currency
+      properties:
+        points_per_unit:
+          type: string
+        unit_amount:
+          type: string
+        currency:
+          type: string
     RewardPointsActivityList:
       allOf:
         - $ref: '#/components/schemas/CursorPagination'
@@ -6866,7 +6910,6 @@ components:
         resolved_at:
           type: string
           format: date-time
-          nullable: true
     RedemptionList:
       allOf:
         - $ref: '#/components/schemas/CursorPagination'
