@@ -4939,13 +4939,13 @@ components:
           allOf:
             - $ref: '#/components/schemas/Decimal'
           description: |
-            The amount to be paid for the product/service pegged to a fiat currency (quote currency)
+            The amount to be paid for the product/service pegged to the quote currency
         quote_currency:
           x-order: 9
           allOf:
             - $ref: '#/components/schemas/Currency'
           description: |
-            The fiat currency to display amounts in, which is converted from the source amount
+            The currency used to price the amount, which is converted from the source amount
         target_amount:
           x-order: 10
           allOf:
@@ -5338,7 +5338,7 @@ components:
           allOf:
             - $ref: '#/components/schemas/QuoteRate'
           x-order: 24
-          description: This shows the rate of quote currency to source currency if quote currency is provided.
+          description: This shows the rate used to derive the amount when quote_currency is provided.
     CreatePaymentRequestForLinkReq:
       type: object
       required:
@@ -5398,7 +5398,7 @@ components:
         quote_currency:
           allOf:
             - $ref: '#/components/schemas/Currency'
-          description: This optional field specifies the fiat currency to display amounts in, which is converted from the source amount
+          description: This optional field specifies the currency to price the payment request in, which is converted from the source amount
           example: NGN
         source_amount:
           $ref: '#/components/schemas/Decimal'
@@ -5421,6 +5421,165 @@ components:
           type: string
           maxLength: 6
           description: Optional auth code required for MFA
+    RecipientBase-2025-07-11:
+      type: object
+      required:
+        - type
+      properties:
+        channel:
+          type: string
+          description: Channel for the transfer (business_mobile_money only)
+          x-oapi-codegen-extra-tags:
+            mapstructure: channel,omitempty
+        currency:
+          type: string
+          description: Currency code for the recipient
+          x-oapi-codegen-extra-tags:
+            mapstructure: currency,omitempty
+        country_code:
+          type: string
+          description: Country code for the recipient
+          x-oapi-codegen-extra-tags:
+            mapstructure: country_code,omitempty
+        type:
+          type: string
+          description: Type of recipient account
+          enum:
+            - ngn_bank
+            - kes_bank
+            - usd_bank
+            - gbp_bank
+            - mpesa_mobile_money
+            - mtn_mobile_money
+            - crypto
+            - paybill
+            - till
+          x-oapi-codegen-extra-tags:
+            mapstructure: ',omitempty'
+        entity_type:
+          type: string
+          additionalProperties: true
+          description: Type of legal entity (for US, GB)
+          enum:
+            - personal
+            - business
+          x-oapi-codegen-extra-tags:
+            mapstructure: entity_type,omitempty
+        transfer_type:
+          type: string
+          additionalProperties: true
+          description: Type of transfer (for US)
+          enum:
+            - ach
+            - wire
+            - swift
+          x-oapi-codegen-extra-tags:
+            mapstructure: transfer_type,omitempty
+        address_label:
+          type: string
+          description: Name of the wallet (for crypto)
+          x-oapi-codegen-extra-tags:
+            mapstructure: wallet_name,omitempty
+        account_name:
+          type: string
+          description: Name on the account
+          x-oapi-codegen-extra-tags:
+            mapstructure: account_name,omitempty
+        bank_name:
+          type: string
+          description: Name of the bank (for NG, US, GB)
+          x-oapi-codegen-extra-tags:
+            mapstructure: bank_name,omitempty
+        bank_code:
+          type: string
+          description: Bank code (for NG only)
+          x-oapi-codegen-extra-tags:
+            mapstructure: bank_code,omitempty
+        sort_code:
+          type: string
+          description: Sort code (for GB only)
+          x-oapi-codegen-extra-tags:
+            mapstructure: sort_code,omitempty
+        routing_number:
+          type: string
+          description: Routing number (for US domestic ACH/Wire)
+          x-oapi-codegen-extra-tags:
+            mapstructure: routing_number,omitempty
+        swift_code:
+          type: string
+          description: SWIFT/BIC code (for international transfers)
+          x-oapi-codegen-extra-tags:
+            mapstructure: swift_code,omitempty
+        account_number:
+          type: string
+          description: Account number (for domestic transfers)
+          x-oapi-codegen-extra-tags:
+            mapstructure: account_number,omitempty
+        till_number:
+          type: string
+          description: Till number (for domestic transfers)
+          x-oapi-codegen-extra-tags:
+            mapstructure: till_number,omitempty
+        paybill:
+          type: string
+          description: Paybill (for domestic transfers)
+          x-oapi-codegen-extra-tags:
+            mapstructure: paybill,omitempty
+        iban:
+          type: string
+          description: IBAN (for international transfers)
+          x-oapi-codegen-extra-tags:
+            mapstructure: iban,omitempty
+        phone_number:
+          $ref: '#/components/schemas/PhoneField'
+        network:
+          type: string
+          description: Blockchain network (for crypto transfers)
+          x-oapi-codegen-extra-tags:
+            mapstructure: network,omitempty
+        address:
+          type: string
+          description: Wallet address (for crypto transfers)
+          x-oapi-codegen-extra-tags:
+            mapstructure: address,omitempty
+        memo:
+          type: string
+          description: Tag/memo (for crypto transfers)
+          x-oapi-codegen-extra-tags:
+            mapstructure: memo,omitempty
+        recipient_address:
+          type: string
+          description: Address details (for international transfers)
+          x-oapi-codegen-extra-tags:
+            mapstructure: recipient_address,omitempty
+        intermediary_bank_name:
+          type: string
+          example: JPMorgan Chase Bank
+          x-oapi-codegen-extra-tags:
+            mapstructure: intermediary_bank_name,omitempty
+        intermediary_bank_address:
+          type: string
+          example: 270 Park Avenue, New York, NY 10017
+          x-oapi-codegen-extra-tags:
+            mapstructure: intermediary_bank_address,omitempty
+        intermediary_swift_code:
+          type: string
+          example: CHASUS33
+          x-oapi-codegen-extra-tags:
+            mapstructure: intermediary_swift_code,omitempty
+        busha_wallet:
+          type: boolean
+          description: Whether the recipient is a a busha wallet
+          x-oapi-codegen-extra-tags:
+            mapstructure: busha_wallet,omitempty
+    RecipientCreate-2025-07-11:
+      allOf:
+        - $ref: '#/components/schemas/RecipientBase-2025-07-11'
+        - type: object
+          properties:
+            one_time:
+              type: boolean
+              description: Whether the recipient is a one-time recipient. One-time recipients are stored but not returned in list or get responses.
     PriceAlert:
       type: object
       required:
@@ -5507,11 +5666,11 @@ components:
         quote_currency:
           allOf:
             - $ref: '#/components/schemas/Currency'
-          description: This optional field specifies the fiat currency to display amounts in, which is converted from the source amount
+          description: This optional field specifies the currency to price the quote in, which is converted from the source amount
           example: NGN
         quote_amount:
           type: string
-          description: The amount in the quote currency. Required when quote_currency is provided
+          description: The amount in the pricing currency. Required when quote_currency is provided
           example: '100'
           x-go-type: decimal.Decimal
           x-go-type-import:
@@ -5556,11 +5715,11 @@ components:
         quote_currency:
           allOf:
             - $ref: '#/components/schemas/Currency'
-          description: This optional field specifies the fiat currency to display amounts in, which is converted from the source amount
+          description: This optional field specifies the currency to price the quote in, which is converted from the source amount
           example: NGN
         quote_amount:
           type: string
-          description: The amount in the quote currency. Required when quote_currency is provided
+          description: The amount in the pricing currency. Required when quote_currency is provided
           example: '100'
           x-go-type: decimal.Decimal
           x-go-type-import:
@@ -5690,7 +5849,7 @@ components:
           allOf:
             - $ref: '#/components/schemas/QuoteRate'
           x-order: 17
-          description: This shows the rate of quote currency to source currency if quote currency is provided.
+          description: This shows the rate used to derive the amount when quote_currency is provided.
     CreateRecipientRequest:
       oneOf:
         - $ref: '#/components/schemas/RecipientCreate-2025-07-11'
@@ -5870,165 +6029,6 @@ components:
           description: List of fields containing recipient details
           items:
             $ref: '#/components/schemas/RecipientField'
-    RecipientBase-2025-07-11:
-      type: object
-      required:
-        - type
-      properties:
-        channel:
-          type: string
-          description: Channel for the transfer (business_mobile_money only)
-          x-oapi-codegen-extra-tags:
-            mapstructure: channel,omitempty
-        currency:
-          type: string
-          description: Currency code for the recipient
-          x-oapi-codegen-extra-tags:
-            mapstructure: currency,omitempty
-        country_code:
-          type: string
-          description: Country code for the recipient
-          x-oapi-codegen-extra-tags:
-            mapstructure: country_code,omitempty
-        type:
-          type: string
-          description: Type of recipient account
-          enum:
-            - ngn_bank
-            - kes_bank
-            - usd_bank
-            - gbp_bank
-            - mpesa_mobile_money
-            - mtn_mobile_money
-            - crypto
-            - paybill
-            - till
-          x-oapi-codegen-extra-tags:
-            mapstructure: ',omitempty'
-        entity_type:
-          type: string
-          additionalProperties: true
-          description: Type of legal entity (for US, GB)
-          enum:
-            - personal
-            - business
-          x-oapi-codegen-extra-tags:
-            mapstructure: entity_type,omitempty
-        transfer_type:
-          type: string
-          additionalProperties: true
-          description: Type of transfer (for US)
-          enum:
-            - ach
-            - wire
-            - swift
-          x-oapi-codegen-extra-tags:
-            mapstructure: transfer_type,omitempty
-        address_label:
-          type: string
-          description: Name of the wallet (for crypto)
-          x-oapi-codegen-extra-tags:
-            mapstructure: wallet_name,omitempty
-        account_name:
-          type: string
-          description: Name on the account
-          x-oapi-codegen-extra-tags:
-            mapstructure: account_name,omitempty
-        bank_name:
-          type: string
-          description: Name of the bank (for NG, US, GB)
-          x-oapi-codegen-extra-tags:
-            mapstructure: bank_name,omitempty
-        bank_code:
-          type: string
-          description: Bank code (for NG only)
-          x-oapi-codegen-extra-tags:
-            mapstructure: bank_code,omitempty
-        sort_code:
-          type: string
-          description: Sort code (for GB only)
-          x-oapi-codegen-extra-tags:
-            mapstructure: sort_code,omitempty
-        routing_number:
-          type: string
-          description: Routing number (for US domestic ACH/Wire)
-          x-oapi-codegen-extra-tags:
-            mapstructure: routing_number,omitempty
-        swift_code:
-          type: string
-          description: SWIFT/BIC code (for international transfers)
-          x-oapi-codegen-extra-tags:
-            mapstructure: swift_code,omitempty
-        account_number:
-          type: string
-          description: Account number (for domestic transfers)
-          x-oapi-codegen-extra-tags:
-            mapstructure: account_number,omitempty
-        till_number:
-          type: string
-          description: Till number (for domestic transfers)
-          x-oapi-codegen-extra-tags:
-            mapstructure: till_number,omitempty
-        paybill:
-          type: string
-          description: Paybill (for domestic transfers)
-          x-oapi-codegen-extra-tags:
-            mapstructure: paybill,omitempty
-        iban:
-          type: string
-          description: IBAN (for international transfers)
-          x-oapi-codegen-extra-tags:
-            mapstructure: iban,omitempty
-        phone_number:
-          $ref: '#/components/schemas/PhoneField'
-        network:
-          type: string
-          description: Blockchain network (for crypto transfers)
-          x-oapi-codegen-extra-tags:
-            mapstructure: network,omitempty
-        address:
-          type: string
-          description: Wallet address (for crypto transfers)
-          x-oapi-codegen-extra-tags:
-            mapstructure: address,omitempty
-        memo:
-          type: string
-          description: Tag/memo (for crypto transfers)
-          x-oapi-codegen-extra-tags:
-            mapstructure: memo,omitempty
-        recipient_address:
-          type: string
-          description: Address details (for international transfers)
-          x-oapi-codegen-extra-tags:
-            mapstructure: recipient_address,omitempty
-        intermediary_bank_name:
-          type: string
-          example: JPMorgan Chase Bank
-          x-oapi-codegen-extra-tags:
-            mapstructure: intermediary_bank_name,omitempty
-        intermediary_bank_address:
-          type: string
-          example: 270 Park Avenue, New York, NY 10017
-          x-oapi-codegen-extra-tags:
-            mapstructure: intermediary_bank_address,omitempty
-        intermediary_swift_code:
-          type: string
-          example: CHASUS33
-          x-oapi-codegen-extra-tags:
-            mapstructure: intermediary_swift_code,omitempty
-        busha_wallet:
-          type: boolean
-          description: Whether the recipient is a a busha wallet
-          x-oapi-codegen-extra-tags:
-            mapstructure: busha_wallet,omitempty
-    RecipientCreate-2025-07-11:
-      allOf:
-        - $ref: '#/components/schemas/RecipientBase-2025-07-11'
-        - type: object
-          properties:
-            one_time:
-              type: boolean
-              description: Whether the recipient is a one-time recipient. One-time recipients are stored but not returned in list or get responses.
     Recipient-2025-07-11:
       allOf:
         - $ref: '#/components/schemas/RecipientBase-2025-07-11'
