@@ -2800,17 +2800,29 @@ components:
             - crypto
           example: crypto
         pending:
-          $ref: '#/components/schemas/AmountWithCurrencyAndFiat'
+          $ref: '#/components/schemas/Amount'
         available:
-          $ref: '#/components/schemas/AmountWithCurrencyAndFiat'
+          $ref: '#/components/schemas/Amount'
         savings:
-          $ref: '#/components/schemas/AmountWithCurrencyAndFiat'
+          $ref: '#/components/schemas/Amount'
         investments:
-          $ref: '#/components/schemas/AmountWithCurrencyAndFiat'
+          $ref: '#/components/schemas/Amount'
         total:
-          $ref: '#/components/schemas/AmountWithCurrencyAndFiat'
+          $ref: '#/components/schemas/Amount'
     Amount:
-      $ref: '#/components/schemas/AmountWithCurrencyAndFiat'
+      type: object
+      required:
+        - amount
+        - currency
+      properties:
+        amount:
+          $ref: '#/components/schemas/Decimal'
+        fiat:
+          $ref: '#/components/schemas/AmountWithCurrency'
+        crypto:
+          $ref: '#/components/schemas/AmountWithCurrency'
+        currency:
+          $ref: '#/components/schemas/Currency'
     BalanceListResponse:
       allOf:
         - $ref: '#/components/schemas/CursorPagination'
@@ -2917,15 +2929,6 @@ components:
           $ref: '#/components/schemas/Decimal'
         currency:
           $ref: '#/components/schemas/Currency'
-    AmountWithCurrencyAndFiat:
-      allOf:
-        - $ref: '#/components/schemas/AmountWithCurrency'
-        - type: object
-          properties:
-            fiat:
-              allOf:
-                - $ref: '#/components/schemas/AmountWithCurrency'
-              description: amount in fiat
     ErrorResponse:
       type: object
       required:
@@ -2954,6 +2957,15 @@ components:
         error:
           name: bad_request
           message: Invalid Request
+    AmountWithCurrencyAndFiat:
+      allOf:
+        - $ref: '#/components/schemas/AmountWithCurrency'
+        - type: object
+          properties:
+            fiat:
+              allOf:
+                - $ref: '#/components/schemas/AmountWithCurrency'
+              description: amount in fiat
     ResourceID:
       type: string
       x-order: 1
