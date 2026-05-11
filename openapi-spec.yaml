@@ -6589,6 +6589,8 @@ components:
                     - bank_transfer
                     - wire_transfer
                     - mobile_money
+                    - paybill
+                    - till
                     - username
                     - email
                     - wallet
@@ -6758,9 +6760,18 @@ components:
         phone_number:
           type: string
           description: Phone number
+        account_number:
+          type: string
+          description: Account number
         account_name:
           type: string
           description: Account name
+        paybill:
+          type: string
+          description: Paybill number
+        till_number:
+          type: string
+          description: Till number
     TxnMetaUsernameSource:
       type: object
       description: Username Source
@@ -6867,9 +6878,18 @@ components:
         phone_number:
           type: string
           description: Phone number
+        account_number:
+          type: string
+          description: Account number
         account_name:
           type: string
           description: Account name
+        paybill:
+          type: string
+          description: Paybill number
+        till_number:
+          type: string
+          description: Till number
     TxnMetaUsernameDestination:
       type: object
       description: Username Destination
