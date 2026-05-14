@@ -4498,6 +4498,206 @@ components:
           type: boolean
         meta:
           $ref: '#/components/schemas/PaymentOptionMeta'
+    PartnerClientSummary:
+      type: object
+      required:
+        - id
+        - name
+        - status
+        - created_at
+        - updated_at
+        - redirect_uris
+        - requested_scopes
+        - approved_scopes
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: Acme Finance
+        description:
+          type: string
+          nullable: true
+        logo_url:
+          type: string
+          nullable: true
+        homepage_url:
+          type: string
+          nullable: true
+        privacy_url:
+          type: string
+          nullable: true
+        tos_url:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum:
+            - pending
+            - approved
+            - rejected
+            - suspended
+        status_reason:
+          type: string
+          nullable: true
+        client_id:
+          type: string
+          nullable: true
+          description: |
+            The OAuth2 client_id partners pass in /oauth2/auth and /oauth2/token.
+            Set only after admin approves and the create sync job completes.
+            One Hydra client per deployment — environment separation comes from
+            running separate sandbox / staging / production Hydra deployments.
+            Format: busha-oauth2-{uuid}.
+        redirect_uris:
+          type: array
+          items:
+            type: string
+        requested_scopes:
+          type: array
+          items:
+            type: string
+        approved_scopes:
+          type: array
+          items:
+            type: string
+          description: Scopes approved by admin (subset of requested_scopes)
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    SyncJobSummary:
+      type: object
+      required:
+        - id
+        - op
+        - status
+        - attempts
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        op:
+          type: string
+          enum:
+            - create_pair
+            - update_pair
+            - rotate_secret
+            - delete_pair
+        status:
+          type: string
+          enum:
+            - pending
+            - in_progress
+            - completed
+            - failed
+        attempts:
+          type: integer
+        last_error:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+    PartnerClientDetail:
+      allOf:
+        - $ref: '#/components/schemas/PartnerClientSummary'
+        - type: object
+          required:
+            - recent_sync_jobs
+          properties:
+            recent_sync_jobs:
+              type: array
+              items:
+                $ref: '#/components/schemas/SyncJobSummary'
+    PartnerClientActionResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseSchema'
+        - type: object
+          required:
+            - data
+          properties:
+            data:
+              $ref: '#/components/schemas/PartnerClientSummary'
+    RotateDeveloperSecretResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseSchema'
+        - type: object
+          required:
+            - data
+          properties:
+            data:
+              type: object
+              required:
+                - client_id
+                - new_secret
+              properties:
+                client_id:
+                  type: string
+                  description: |
+                    The OAuth2 client_id partners send to /oauth2/token alongside
+                    this new secret. This is the Hydra-registered client_id
+                    (format: busha-oauth2-{uuid}) — NOT the metadata UUID from
+                    the URL path. Pass-through verbatim; do not derive your own.
+                  example: busha-oauth2-550e8400-e29b-41d4-a716-446655440000
+                new_secret:
+                  type: string
+                  description: The new client secret. Shown exactly once — store it immediately.
+    ScopeView:
+      type: object
+      required:
+        - name
+        - description
+      properties:
+        name:
+          type: string
+          description: The wire-format scope string (e.g. "balances:read").
+          example: balances:read
+        description:
+          type: string
+          description: Human-readable description shown on the consent screen.
+          example: List your wallets and their balances.
+    ScopeGroup:
+      type: object
+      required:
+        - key
+        - name
+        - description
+        - scopes
+      properties:
+        key:
+          type: string
+          description: Stable slug-cased identifier the dashboard uses for icons / state.
+          example: wallets
+        name:
+          type: string
+          example: Wallets & balances
+        description:
+          type: string
+          example: Read balances and recent activity across the user's wallets.
+        scopes:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScopeView'
+    ScopeCatalogResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseSchema'
+        - type: object
+          required:
+            - data
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/ScopeGroup'
     PayOutObj:
       type: object
       required:
@@ -4516,6 +4716,7 @@ components:
             - mobile_money
             - paybill
             - till
+            - payout_batch
             - balance
             - savings
             - direct_debit
@@ -4525,6 +4726,7 @@ components:
           example: 64ae8c26ea1033204c805a8a
           description: |
             This represents the recipient ID, used for `mobile_money` and `bank_transfer` types.
+            For `payout_batch`, this should contain the payout batch ID.
         address:
           type: string
           example: tb1qj4263506wyu8khrz2dwce0agk8lhyjgy269rxr
