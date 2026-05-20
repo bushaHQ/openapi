@@ -6210,6 +6210,7 @@ components:
             - betting
             - electricity
             - cable
+            - card
         phone_number:
           type: string
           description: Phone number (for airtime)
