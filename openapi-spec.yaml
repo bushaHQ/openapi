@@ -134,7 +134,7 @@ servers:
     description: Production Environment
 tags:
   - name: Balances
-    description: Handles account balances across different currencies
+    description: Handles account balances across different currencies.
     x-displayName: Balances
   - name: Bills
     description: Lorem Ipsum
