@@ -6148,6 +6148,8 @@ components:
           $ref: '#/components/schemas/TxnMetaFee'
         amounts:
           $ref: '#/components/schemas/TxnMetaAmounts'
+        card_charge:
+          $ref: '#/components/schemas/TxnMetaCardCharge'
     TxnMetaAmounts:
       description: Transactions amounts explained
       allOf:
@@ -6271,6 +6273,55 @@ components:
         rate_explained:
           type: string
           description: Human readable rate explanation
+    TxnMetaMoneyAmount:
+      type: object
+      description: Decimal amount paired with its currency code
+      properties:
+        amount:
+          $ref: '#/components/schemas/Decimal'
+        currency:
+          type: string
+    TxnMetaCardCharge:
+      type: object
+      description: |
+        Multi-currency breakdown for a card spend so the detail screen can
+        render merchant local + card billing + funding amounts and the
+        applicable network/platform rates without joining back to provider
+        data.
+      properties:
+        card_scheme:
+          type: string
+          description: Card scheme, e.g. mastercard, visa
+        card_last4:
+          type: string
+          description: Last four digits of the card PAN
+        merchant:
+          allOf:
+            - $ref: '#/components/schemas/TxnMetaMoneyAmount'
+          description: What the merchant charged in their local currency
+        billing:
+          allOf:
+            - $ref: '#/components/schemas/TxnMetaMoneyAmount'
+          description: What the card network billed the card after network FX
+        funding:
+          allOf:
+            - $ref: '#/components/schemas/TxnMetaMoneyAmount'
+          description: What was debited from the user's funding wallet
+        fee:
+          allOf:
+            - $ref: '#/components/schemas/TxnMetaMoneyAmount'
+          description: Provider-charged fee in billing currency. Omitted when zero.
+        total:
+          allOf:
+            - $ref: '#/components/schemas/TxnMetaMoneyAmount'
+          description: billing + fee, in billing currency
+        rate:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: |
+            The exchange rate we applied at the time of the charge
+            (funding / billing). Omitted when funding currency matches
+            billing currency.
     TxnMetaBankTransferSource:
       type: object
       description: Bank Transfer Source
