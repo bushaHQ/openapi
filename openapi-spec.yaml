@@ -6322,6 +6322,11 @@ components:
             The exchange rate we applied at the time of the charge
             (funding / billing). Omitted when funding currency matches
             billing currency.
+        formatted_rate:
+          type: string
+          description: |
+            Human-readable form of `rate`, e.g. "1 USD = 1,350.05 NGN".
+            Omitted when `rate` is omitted.
     TxnMetaBankTransferSource:
       type: object
       description: Bank Transfer Source
