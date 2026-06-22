@@ -4393,6 +4393,7 @@ components:
             - savings
             - direct_debit
             - sweep
+            - internal
         recipient_id:
           type: string
           example: 64ae8c26ea1033204c805a8a
@@ -4404,6 +4405,7 @@ components:
           example: tb1qj4263506wyu8khrz2dwce0agk8lhyjgy269rxr
           description: |
             This could be the address, user email or username for type `address`. For type `sweep`, this is the email of the destination account. Required when the sender is the master (master -> sub); optional when the sender is a sub-account (the destination master is resolved automatically from the sub's parent business).
+            For type `internal`, this is the destination Busha profile ID, destination email, or a public key that resolves to the owning business profile.
         network:
           type: string
           example: BTC
