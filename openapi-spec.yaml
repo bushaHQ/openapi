@@ -173,6 +173,9 @@ tags:
   - name: PaymentRequests
     description: Payment request
     x-displayName: PaymentRequests
+  - name: Pledges
+    description: Customer-authorized pledge lifecycle APIs
+    x-displayName: Pledges
   - name: PriceAlerts
     description: Price alert management endpoints
     x-displayName: PriceAlerts
@@ -1549,6 +1552,277 @@ paths:
           $ref: '#/components/responses/PaymentRequestError4XX'
         5XX:
           $ref: '#/components/responses/PaymentRequestError5XX'
+  /v1/pledges/quotes:
+    post:
+      x-rate-limit: 20
+      security:
+        - Auth:
+            - api:write
+            - pledges:write
+      tags:
+        - Pledges
+      summary: Create pledge quote
+      description: Preflight a multi-asset pledge lock without moving funds. Requires an OAuth pledge grant with beneficiary context.
+      operationId: createPledgeQuote
+      parameters:
+        - $ref: '#/components/parameters/ProfileHeader'
+      requestBody:
+        description: Pledge quote request
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePledgeQuoteRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/PledgeQuoteResponse'
+        4XX:
+          $ref: '#/components/responses/PledgeError4XX'
+        5XX:
+          $ref: '#/components/responses/PledgeError5XX'
+  /v1/pledges:
+    post:
+      x-rate-limit: 20
+      security:
+        - Auth:
+            - api:write
+            - pledges:write
+      tags:
+        - Pledges
+      summary: Create pledge
+      description: Create a pledge from a valid quote and lock the quoted items. Requires an OAuth pledge grant with beneficiary context.
+      operationId: createPledge
+      parameters:
+        - $ref: '#/components/parameters/ProfileHeader'
+      requestBody:
+        description: Pledge creation request
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePledgeRequest'
+      responses:
+        '201':
+          $ref: '#/components/responses/PledgeResponse'
+        4XX:
+          $ref: '#/components/responses/PledgeError4XX'
+        5XX:
+          $ref: '#/components/responses/PledgeError5XX'
+    get:
+      security:
+        - Auth:
+            - api:read
+            - pledges:read
+      tags:
+        - Pledges
+      summary: List pledges
+      description: List pledges visible to the selected profile, or to the authenticated OAuth pledge grant when beneficiary context is present.
+      operationId: listPledges
+      parameters:
+        - $ref: '#/components/parameters/ProfileHeader'
+        - name: status
+          in: query
+          description: Filter by pledge status
+          required: false
+          style: form
+          explode: false
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/PledgeStatus'
+        - name: asset
+          in: query
+          description: Filter by pledged asset
+          required: false
+          style: form
+          explode: false
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/Currency'
+        - name: reference
+          in: query
+          description: Filter by beneficiary-supplied pledge reference
+          required: false
+          schema:
+            type: string
+        - $ref: '#/components/parameters/CursorQueryParams'
+        - $ref: '#/components/parameters/SortQueryParam'
+        - $ref: '#/components/parameters/LimitQueryParam'
+      responses:
+        '200':
+          $ref: '#/components/responses/PledgeListResponse'
+        4XX:
+          $ref: '#/components/responses/PledgeError4XX'
+        5XX:
+          $ref: '#/components/responses/PledgeError5XX'
+  /v1/pledges/{id}:
+    get:
+      security:
+        - Auth:
+            - api:read
+            - pledges:read
+      tags:
+        - Pledges
+      summary: Get pledge
+      description: Retrieve pledge state, items, and lifecycle events visible to the selected profile or OAuth pledge grant.
+      operationId: getPledge
+      parameters:
+        - $ref: '#/components/parameters/ProfileHeader'
+        - $ref: '#/components/parameters/PledgeIDParam'
+      responses:
+        '200':
+          $ref: '#/components/responses/PledgeResponse'
+        4XX:
+          $ref: '#/components/responses/PledgeError4XX'
+        5XX:
+          $ref: '#/components/responses/PledgeError5XX'
+  /v1/pledges/{id}/activate:
+    post:
+      x-rate-limit: 20
+      security:
+        - Auth:
+            - api:write
+            - pledges:write
+      tags:
+        - Pledges
+      summary: Activate pledge
+      description: Confirm that the beneficiary credit agreement is active. Requires an OAuth pledge grant with beneficiary context.
+      operationId: activatePledge
+      parameters:
+        - $ref: '#/components/parameters/ProfileHeader'
+        - $ref: '#/components/parameters/PledgeIDParam'
+      requestBody:
+        description: Pledge activation request
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActivatePledgeRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/PledgeActionResponse'
+        4XX:
+          $ref: '#/components/responses/PledgeError4XX'
+        5XX:
+          $ref: '#/components/responses/PledgeError5XX'
+  /v1/pledges/{id}/items:
+    post:
+      x-rate-limit: 20
+      security:
+        - Auth:
+            - api:write
+            - pledges:write
+      tags:
+        - Pledges
+      summary: Add pledge items
+      description: Add more customer-authorized assets to an active pledge. Requires an OAuth pledge grant with beneficiary context.
+      operationId: addPledgeItems
+      parameters:
+        - $ref: '#/components/parameters/ProfileHeader'
+        - $ref: '#/components/parameters/PledgeIDParam'
+      requestBody:
+        description: Add pledge items request
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddPledgeItemsRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/AddPledgeItemsResponse'
+        4XX:
+          $ref: '#/components/responses/PledgeError4XX'
+        5XX:
+          $ref: '#/components/responses/PledgeError5XX'
+  /v1/pledges/{id}/release:
+    post:
+      x-rate-limit: 20
+      security:
+        - Auth:
+            - api:write
+            - pledges:write
+      tags:
+        - Pledges
+      summary: Release pledge items
+      description: Release all or part of the pledged assets back to the customer. Requires an OAuth pledge grant with beneficiary context.
+      operationId: releasePledge
+      parameters:
+        - $ref: '#/components/parameters/ProfileHeader'
+        - $ref: '#/components/parameters/PledgeIDParam'
+      requestBody:
+        description: Pledge release request
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReleasePledgeRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/ReleasePledgeResponse'
+        4XX:
+          $ref: '#/components/responses/PledgeError4XX'
+        5XX:
+          $ref: '#/components/responses/PledgeError5XX'
+  /v1/pledges/{id}/liquidations:
+    post:
+      x-rate-limit: 20
+      security:
+        - Auth:
+            - api:write
+            - pledges:liquidate
+      tags:
+        - Pledges
+      summary: Request pledge liquidation
+      description: Request notice-period liquidation under the stored pledge mandate. Requires an OAuth pledge grant with beneficiary context.
+      operationId: requestPledgeLiquidation
+      parameters:
+        - $ref: '#/components/parameters/ProfileHeader'
+        - $ref: '#/components/parameters/PledgeIDParam'
+      requestBody:
+        description: Pledge liquidation request
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RequestPledgeLiquidationRequest'
+      responses:
+        '202':
+          $ref: '#/components/responses/PledgeLiquidationResponse'
+        4XX:
+          $ref: '#/components/responses/PledgeError4XX'
+        5XX:
+          $ref: '#/components/responses/PledgeError5XX'
+  /v1/pledges/{id}/liquidations/{liquidation_id}/cancel:
+    post:
+      x-rate-limit: 20
+      security:
+        - Auth:
+            - api:write
+            - pledges:liquidate
+      tags:
+        - Pledges
+      summary: Cancel pledge liquidation
+      description: Cancel a pending liquidation before processing starts. Requires an OAuth pledge grant with beneficiary context.
+      operationId: cancelPledgeLiquidation
+      parameters:
+        - $ref: '#/components/parameters/ProfileHeader'
+        - $ref: '#/components/parameters/PledgeIDParam'
+        - $ref: '#/components/parameters/LiquidationIDParam'
+      requestBody:
+        description: Pledge liquidation cancellation request
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CancelPledgeLiquidationRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/CancelPledgeLiquidationResponse'
+        4XX:
+          $ref: '#/components/responses/PledgeError4XX'
+        5XX:
+          $ref: '#/components/responses/PledgeError5XX'
   /v1/quotes:
     post:
       x-rate-limit: 20
@@ -2738,6 +3012,26 @@ components:
         type: array
         items:
           $ref: '#/components/schemas/PaymentLinkType'
+    PledgeIDParam:
+      in: path
+      name: id
+      required: true
+      description: Pledge ID
+      schema:
+        type: string
+        example: PLG_01HX...
+      x-oapi-codegen-extra-tags:
+        validate: required
+    LiquidationIDParam:
+      in: path
+      name: liquidation_id
+      required: true
+      description: Pledge liquidation ID
+      schema:
+        type: string
+        example: PLR_01JB...
+      x-oapi-codegen-extra-tags:
+        validate: required
     X-BU-Version:
       in: header
       name: X-BU-Version
@@ -5508,6 +5802,503 @@ components:
             one_time:
               type: boolean
               description: Whether the recipient is a one-time recipient. One-time recipients are stored but not returned in list or get responses.
+    CreatePledgeQuoteRequest:
+      type: object
+      required:
+        - reference
+        - items
+      properties:
+        reference:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: Beneficiary-supplied credit agreement or case reference.
+          example: credit_agreement_93b7
+          x-oapi-codegen-extra-tags:
+            validate: required|min_len:1|max_len:255
+            filter: trim
+        items:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/PledgeAmountRequest'
+        expires_at:
+          $ref: '#/components/schemas/TimeStamp'
+        meta:
+          $ref: '#/components/schemas/PledgeMeta'
+    CreatePledgeRequest:
+      type: object
+      required:
+        - quote_id
+      properties:
+        quote_id:
+          type: string
+          minLength: 1
+          description: ID of the previously created pledge quote.
+          example: PLQ_01HX...
+          x-oapi-codegen-extra-tags:
+            validate: required|min_len:1
+            filter: trim
+        meta:
+          $ref: '#/components/schemas/PledgeMeta'
+    ActivatePledgeRequest:
+      type: object
+      required:
+        - reference
+      properties:
+        reference:
+          type: string
+          minLength: 1
+          maxLength: 255
+          example: activation_disb_9f1
+          x-oapi-codegen-extra-tags:
+            validate: required|min_len:1|max_len:255
+            filter: trim
+        activated_at:
+          $ref: '#/components/schemas/TimeStamp'
+        meta:
+          $ref: '#/components/schemas/PledgeMeta'
+    AddPledgeItemsRequest:
+      type: object
+      required:
+        - reference
+        - items
+      properties:
+        reference:
+          type: string
+          minLength: 1
+          maxLength: 255
+          example: topup_7af2
+          x-oapi-codegen-extra-tags:
+            validate: required|min_len:1|max_len:255
+            filter: trim
+        items:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/PledgeAmountRequest'
+        reason:
+          type: string
+          maxLength: 255
+          example: beneficiary_requested_top_up
+        meta:
+          $ref: '#/components/schemas/PledgeMeta'
+    ReleasePledgeRequest:
+      type: object
+      required:
+        - reference
+        - full_release
+      properties:
+        reference:
+          type: string
+          minLength: 1
+          maxLength: 255
+          example: release_rel_901
+          x-oapi-codegen-extra-tags:
+            validate: required|min_len:1|max_len:255
+            filter: trim
+        full_release:
+          type: boolean
+          description: Release all remaining pledged assets when true.
+          example: false
+        reason:
+          type: string
+          maxLength: 255
+          example: partial_repayment
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PledgeItemAmountRequest'
+        meta:
+          $ref: '#/components/schemas/PledgeMeta'
+    RequestPledgeLiquidationRequest:
+      type: object
+      required:
+        - reference
+        - reason
+        - beneficiary_due
+        - items
+        - evidence
+      properties:
+        reference:
+          type: string
+          minLength: 1
+          maxLength: 255
+          example: default_case_348
+          x-oapi-codegen-extra-tags:
+            validate: required|min_len:1|max_len:255
+            filter: trim
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 255
+          example: default_under_beneficiary_terms
+          x-oapi-codegen-extra-tags:
+            validate: required|min_len:1|max_len:255
+            filter: trim
+        beneficiary_due:
+          $ref: '#/components/schemas/AmountWithCurrency'
+        items:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/PledgeItemAmountRequest'
+        evidence:
+          type: object
+          additionalProperties: true
+          description: Beneficiary evidence supporting the liquidation request.
+        meta:
+          $ref: '#/components/schemas/PledgeMeta'
+    CancelPledgeLiquidationRequest:
+      type: object
+      required:
+        - reference
+        - reason
+      properties:
+        reference:
+          type: string
+          minLength: 1
+          maxLength: 255
+          example: cancel_default_case_348
+          x-oapi-codegen-extra-tags:
+            validate: required|min_len:1|max_len:255
+            filter: trim
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 255
+          example: customer_repaid
+          x-oapi-codegen-extra-tags:
+            validate: required|min_len:1|max_len:255
+            filter: trim
+        meta:
+          $ref: '#/components/schemas/PledgeMeta'
+    PledgeAmountRequest:
+      type: object
+      required:
+        - asset
+        - amount
+      properties:
+        asset:
+          $ref: '#/components/schemas/Currency'
+        amount:
+          $ref: '#/components/schemas/Decimal'
+    PledgeItemAmountRequest:
+      type: object
+      required:
+        - pledge_item_id
+        - amount
+      properties:
+        pledge_item_id:
+          type: string
+          minLength: 1
+          example: PLI_01HX...
+          x-oapi-codegen-extra-tags:
+            validate: required|min_len:1
+            filter: trim
+        amount:
+          $ref: '#/components/schemas/Decimal'
+    PledgeQuote:
+      type: object
+      required:
+        - id
+        - status
+        - expires_at
+        - reference
+        - can_create
+        - items
+      properties:
+        id:
+          type: string
+          example: PLQ_01HX...
+        status:
+          type: string
+          enum:
+            - quoted
+          example: quoted
+        expires_at:
+          $ref: '#/components/schemas/TimeStamp'
+        reference:
+          type: string
+          example: credit_agreement_93b7
+        can_create:
+          type: boolean
+          example: true
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PledgeQuoteItem'
+    PledgeQuoteItem:
+      type: object
+      required:
+        - asset
+        - amount
+        - can_lock
+      properties:
+        asset:
+          $ref: '#/components/schemas/Currency'
+        amount:
+          $ref: '#/components/schemas/Decimal'
+        can_lock:
+          type: boolean
+          example: true
+    Pledge:
+      type: object
+      required:
+        - id
+        - status
+        - reference
+        - mandate_hash
+        - items
+      properties:
+        id:
+          type: string
+          example: PLG_01HX...
+        status:
+          $ref: '#/components/schemas/PledgeStatus'
+        customer_profile_id:
+          type: string
+          example: PRF_customer...
+        beneficiary_profile_id:
+          type: string
+          example: BUS_beneficiary...
+        reference:
+          type: string
+          example: credit_agreement_93b7
+        mandate_hash:
+          type: string
+          example: sha256:...
+        activated_at:
+          $ref: '#/components/schemas/TimeStamp'
+        expires_at:
+          $ref: '#/components/schemas/TimeStamp'
+        released_at:
+          $ref: '#/components/schemas/TimeStamp'
+        liquidated_at:
+          $ref: '#/components/schemas/TimeStamp'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PledgeItem'
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/PledgeEvent'
+    PledgeItem:
+      type: object
+      required:
+        - id
+        - asset
+        - locked_amount
+        - released_amount
+        - liquidated_amount
+        - status
+      properties:
+        id:
+          type: string
+          example: PLI_01HX...
+        asset:
+          $ref: '#/components/schemas/Currency'
+        locked_amount:
+          $ref: '#/components/schemas/Decimal'
+        released_amount:
+          $ref: '#/components/schemas/Decimal'
+        liquidated_amount:
+          $ref: '#/components/schemas/Decimal'
+        available_to_release:
+          $ref: '#/components/schemas/Decimal'
+        status:
+          $ref: '#/components/schemas/PledgeItemStatus'
+    PledgeEvent:
+      type: object
+      required:
+        - id
+        - type
+        - actor_type
+        - created_at
+      properties:
+        id:
+          type: string
+          example: PLE_01HX...
+        type:
+          type: string
+          example: pledge.activated
+        actor_type:
+          type: string
+          enum:
+            - customer
+            - beneficiary
+            - admin
+            - system
+          example: beneficiary
+        reference:
+          type: string
+          example: activation_disb_9f1
+        created_at:
+          $ref: '#/components/schemas/TimeStamp'
+    PledgeAction:
+      type: object
+      required:
+        - id
+        - status
+        - event_id
+      properties:
+        id:
+          type: string
+          example: PLG_01HX...
+        status:
+          $ref: '#/components/schemas/PledgeStatus'
+        activated_at:
+          $ref: '#/components/schemas/TimeStamp'
+        event_id:
+          type: string
+          example: PLE_01HX...
+    AddPledgeItemsResult:
+      type: object
+      required:
+        - id
+        - status
+        - items
+        - event_id
+      properties:
+        id:
+          type: string
+          example: PLG_01HX...
+        status:
+          $ref: '#/components/schemas/PledgeStatus'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PledgeItem'
+        event_id:
+          type: string
+          example: PLE_01HZ...
+    ReleasePledgeResult:
+      type: object
+      required:
+        - id
+        - status
+        - released_items
+        - event_id
+      properties:
+        id:
+          type: string
+          example: PLG_01HX...
+        status:
+          $ref: '#/components/schemas/PledgeStatus'
+        released_items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReleasedPledgeItem'
+        event_id:
+          type: string
+          example: PLE_01JA...
+    ReleasedPledgeItem:
+      type: object
+      required:
+        - pledge_item_id
+        - asset
+        - released_amount
+        - remaining_locked_amount
+      properties:
+        pledge_item_id:
+          type: string
+          example: PLI_01HX...
+        asset:
+          $ref: '#/components/schemas/Currency'
+        released_amount:
+          $ref: '#/components/schemas/Decimal'
+        remaining_locked_amount:
+          $ref: '#/components/schemas/Decimal'
+    PledgeLiquidation:
+      type: object
+      required:
+        - id
+        - pledge_id
+        - status
+        - notice_period_seconds
+        - execute_after
+        - beneficiary_due
+        - created_at
+      properties:
+        id:
+          type: string
+          example: PLR_01JB...
+        pledge_id:
+          type: string
+          example: PLG_01HX...
+        status:
+          $ref: '#/components/schemas/PledgeLiquidationStatus'
+          example: pending_execution
+        notice_period_seconds:
+          type: integer
+          format: int64
+          example: 86400
+        execute_after:
+          $ref: '#/components/schemas/TimeStamp'
+        beneficiary_due:
+          $ref: '#/components/schemas/AmountWithCurrency'
+        created_at:
+          $ref: '#/components/schemas/TimeStamp'
+    CancelPledgeLiquidationResult:
+      type: object
+      required:
+        - id
+        - pledge_id
+        - status
+        - cancelled_at
+        - event_id
+      properties:
+        id:
+          type: string
+          example: PLR_01JB...
+        pledge_id:
+          type: string
+          example: PLG_01HX...
+        status:
+          $ref: '#/components/schemas/PledgeLiquidationStatus'
+          example: cancelled
+        cancelled_at:
+          $ref: '#/components/schemas/TimeStamp'
+        event_id:
+          type: string
+          example: PLE_01JC...
+    PledgeMeta:
+      type: object
+      additionalProperties: true
+      description: Optional non-query-critical pledge context.
+    PledgeStatus:
+      type: string
+      enum:
+        - authorized
+        - active
+        - liquidation_pending
+        - released
+        - liquidated
+        - expired
+        - cancelled
+    PledgeItemStatus:
+      type: string
+      enum:
+        - locked
+        - partially_released
+        - released
+        - partially_liquidated
+        - liquidated
+    PledgeLiquidationStatus:
+      type: string
+      enum:
+        - pending_execution
+        - cancelled
+        - processing
+        - completed
+        - failed
+      x-enum-varnames:
+        - PledgeLiquidationStatusPendingExecution
+        - PledgeLiquidationStatusCancelled
+        - PledgeLiquidationStatusProcessing
+        - PledgeLiquidationStatusCompleted
+        - PledgeLiquidationStatusFailed
     QuoteReference:
       type: string
       x-order: 2
@@ -7019,6 +7810,140 @@ components:
               $ref: '#/components/examples/SchemaValidationError'
     PaymentRequestError5XX:
       description: Default
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            internal_server_error:
+              $ref: '#/components/examples/InternalServerError'
+            service_unavailable_error:
+              $ref: '#/components/examples/ServiceUnavailableError'
+    PledgeQuoteResponse:
+      description: Successful pledge quote response
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/BaseSchema'
+              - type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/PledgeQuote'
+    PledgeResponse:
+      description: Successful pledge response
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/BaseSchema'
+              - type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Pledge'
+    PledgeListResponse:
+      description: Successful pledge list response
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/CursorPagination'
+              - type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Pledge'
+    PledgeActionResponse:
+      description: Successful pledge lifecycle action response
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/BaseSchema'
+              - type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/PledgeAction'
+    AddPledgeItemsResponse:
+      description: Successful add pledge items response
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/BaseSchema'
+              - type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/AddPledgeItemsResult'
+    ReleasePledgeResponse:
+      description: Successful pledge release response
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/BaseSchema'
+              - type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ReleasePledgeResult'
+    PledgeLiquidationResponse:
+      description: Successful pledge liquidation response
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/BaseSchema'
+              - type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/PledgeLiquidation'
+    CancelPledgeLiquidationResponse:
+      description: Successful pledge liquidation cancellation response
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/BaseSchema'
+              - type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/CancelPledgeLiquidationResult'
+    PledgeError4XX:
+      description: Client error when processing the pledge request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            default:
+              $ref: '#/components/examples/DefaultError'
+            not_found_error:
+              $ref: '#/components/examples/NotFoundError'
+            unauthorized_error:
+              $ref: '#/components/examples/UnAuthorizedError'
+            request_validation_error:
+              $ref: '#/components/examples/RequestValidationError'
+            schema_validation_error:
+              $ref: '#/components/examples/SchemaValidationError'
+    PledgeError5XX:
+      description: Server error when processing the pledge request
       content:
         application/json:
           schema:
