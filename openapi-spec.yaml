@@ -2789,6 +2789,16 @@ paths:
           required: false
           schema:
             $ref: '#/components/schemas/NanoID'
+        - name: reference
+          in: query
+          description: Filter transfers by one or more reference values
+          required: false
+          style: form
+          explode: false
+          schema:
+            type: array
+            items:
+              type: string
         - name: start_date
           in: query
           description: Filter by start date
@@ -7355,6 +7365,8 @@ components:
           $ref: '#/components/schemas/ResourceID'
         quote_id:
           $ref: '#/components/schemas/NanoID'
+        reference:
+          $ref: '#/components/schemas/QuoteReference'
         stages:
           type: array
           description: Ordered pipeline steps included in the transfer flow.
