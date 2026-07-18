@@ -3988,8 +3988,10 @@ components:
                 - active
                 - inactive
                 - submitted
+                - awaiting_review
                 - in_review
                 - rejected
+                - archived
               x-order: 9
             kyc_status:
               type: string
