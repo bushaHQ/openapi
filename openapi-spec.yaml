@@ -156,6 +156,9 @@ tags:
   - name: Files
     description: Provides APIs to handle files upload
     x-displayName: Files
+  - name: Insights
+    description: Business analytics insights endpoints
+    x-displayName: Insights
   - name: Mandate
     x-displayName: Mandate
   - name: Miscellaneous
@@ -680,6 +683,127 @@ paths:
           $ref: '#/components/responses/FilesError4XX'
         5XX:
           $ref: '#/components/responses/FilesError5XX'
+  /v1/insights/transactions/trends:
+    get:
+      tags:
+        - Insights
+      summary: Get transaction trends
+      description: |
+        Returns an inflow/outflow/net cash flow time series for completed transactions in the requested currency, bucketed by the requested interval (UTC). Buckets with no activity are zero-filled.
+      operationId: getTransactionTrends
+      security:
+        - Auth:
+            - insights:read
+            - api:read
+      parameters:
+        - $ref: '#/components/parameters/ProfileHeader'
+        - $ref: '#/components/parameters/InsightsCurrencyQueryParam'
+        - $ref: '#/components/parameters/InsightsStartDateQueryParam'
+        - $ref: '#/components/parameters/InsightsEndDateQueryParam'
+        - $ref: '#/components/parameters/InsightsIntervalQueryParam'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseSchema'
+                  - type: object
+                    required:
+                      - data
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/TransactionTrends'
+        4XX:
+          $ref: '#/components/responses/InsightsError4XX'
+        5XX:
+          $ref: '#/components/responses/InsightsError5XX'
+  /v1/insights/transactions/breakdown:
+    get:
+      tags:
+        - Insights
+      summary: Get transaction breakdown
+      description: |
+        Returns transaction counts within the requested date range grouped by the requested dimension, with percentage shares. Currency is optional; when omitted, all currencies are counted.
+      operationId: getTransactionBreakdown
+      security:
+        - Auth:
+            - insights:read
+            - api:read
+      parameters:
+        - $ref: '#/components/parameters/ProfileHeader'
+        - name: currency
+          in: query
+          required: false
+          description: Restrict the breakdown to a single currency. Counts all currencies when omitted.
+          schema:
+            type: string
+            example: NGN
+            x-oapi-codegen-extra-tags:
+              validate: min_len:3|max_len:10
+              filter: trim|upper
+        - $ref: '#/components/parameters/InsightsStartDateQueryParam'
+        - $ref: '#/components/parameters/InsightsEndDateQueryParam'
+        - name: group_by
+          in: query
+          required: false
+          description: Dimension to group transactions by. Defaults to status.
+          schema:
+            $ref: '#/components/schemas/TransactionBreakdownGroupBy'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseSchema'
+                  - type: object
+                    required:
+                      - data
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/TransactionBreakdown'
+        4XX:
+          $ref: '#/components/responses/InsightsError4XX'
+        5XX:
+          $ref: '#/components/responses/InsightsError5XX'
+  /v1/insights/customers/growth:
+    get:
+      tags:
+        - Insights
+      summary: Get customer growth
+      description: |
+        Returns the business customer growth trend: new and cumulative customer counts per interval bucket (UTC), plus a summary with the growth rate versus the immediately preceding period of equal length.
+      operationId: getCustomerGrowth
+      security:
+        - Auth:
+            - insights:read
+            - api:read
+      parameters:
+        - $ref: '#/components/parameters/ProfileHeader'
+        - $ref: '#/components/parameters/InsightsStartDateQueryParam'
+        - $ref: '#/components/parameters/InsightsEndDateQueryParam'
+        - $ref: '#/components/parameters/InsightsIntervalQueryParam'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseSchema'
+                  - type: object
+                    required:
+                      - data
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/CustomerGrowth'
+        4XX:
+          $ref: '#/components/responses/InsightsError4XX'
+        5XX:
+          $ref: '#/components/responses/InsightsError5XX'
   /v1/validate:
     post:
       x-rate-limit: 5
@@ -2989,6 +3113,42 @@ components:
       style: form
       example: fiat
       explode: false
+    InsightsCurrencyQueryParam:
+      name: currency
+      in: query
+      required: true
+      description: Currency to return insights for. Amounts are not converted across currencies.
+      schema:
+        type: string
+        example: NGN
+        x-oapi-codegen-extra-tags:
+          validate: min_len:3|max_len:10
+          filter: trim|upper
+    InsightsStartDateQueryParam:
+      name: start_date
+      in: query
+      required: false
+      description: Start of the reporting range (inclusive, UTC). Defaults to 30 days before end_date.
+      schema:
+        type: string
+        format: date
+      example: '2026-06-15'
+    InsightsEndDateQueryParam:
+      name: end_date
+      in: query
+      required: false
+      description: End of the reporting range (inclusive, UTC). Defaults to today.
+      schema:
+        type: string
+        format: date
+      example: '2026-07-15'
+    InsightsIntervalQueryParam:
+      name: interval
+      in: query
+      required: false
+      description: Bucket size for the series. Defaults to day.
+      schema:
+        $ref: '#/components/schemas/InsightsInterval'
     PlatformIDInQueryParam:
       in: query
       name: id
@@ -4162,6 +4322,197 @@ components:
           type: string
           format: date-time
           example: '2024-01-01T00:00:00Z'
+    InsightsInterval:
+      type: string
+      description: Time bucket size for insight series.
+      enum:
+        - day
+        - week
+        - month
+      example: day
+    TransactionBreakdownGroupBy:
+      type: string
+      description: |
+        Dimension to group the transaction breakdown by. payment_method buckets transactions into payment rails (bank_transfer, mobile_money, direct_debit, crypto, others) derived from their category.
+      enum:
+        - status
+        - payment_method
+      example: status
+    TransactionTrends:
+      type: object
+      description: Inflow/outflow/net cash flow time series for a currency.
+      required:
+        - currency
+        - start_date
+        - end_date
+        - interval
+        - summary
+        - series
+      properties:
+        currency:
+          type: string
+          example: NGN
+        start_date:
+          type: string
+          format: date
+          example: '2026-06-15'
+        end_date:
+          type: string
+          format: date
+          example: '2026-07-15'
+        interval:
+          $ref: '#/components/schemas/InsightsInterval'
+        summary:
+          $ref: '#/components/schemas/TransactionTrendsSummary'
+        series:
+          type: array
+          items:
+            $ref: '#/components/schemas/TransactionTrendsPoint'
+    TransactionTrendsSummary:
+      type: object
+      description: Totals for the whole reporting range.
+      required:
+        - total_inflow
+        - total_outflow
+        - net_cash_flow
+      properties:
+        total_inflow:
+          $ref: '#/components/schemas/Decimal'
+        total_outflow:
+          $ref: '#/components/schemas/Decimal'
+        net_cash_flow:
+          $ref: '#/components/schemas/Decimal'
+    TransactionTrendsPoint:
+      type: object
+      description: One time bucket of the cash flow series.
+      required:
+        - date
+        - inflow
+        - outflow
+        - net
+      properties:
+        date:
+          type: string
+          format: date
+          description: Start of the bucket (UTC).
+          example: '2026-06-15'
+        inflow:
+          $ref: '#/components/schemas/Decimal'
+        outflow:
+          $ref: '#/components/schemas/Decimal'
+        net:
+          $ref: '#/components/schemas/Decimal'
+    TransactionBreakdown:
+      type: object
+      description: Transaction counts grouped by a dimension.
+      required:
+        - group_by
+        - total_count
+        - items
+      properties:
+        group_by:
+          $ref: '#/components/schemas/TransactionBreakdownGroupBy'
+        total_count:
+          type: integer
+          format: int64
+          example: 100932
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/TransactionBreakdownItem'
+    TransactionBreakdownItem:
+      type: object
+      description: One slice of the breakdown.
+      required:
+        - key
+        - count
+        - percentage
+      properties:
+        key:
+          type: string
+          description: Value of the grouped dimension, e.g. a transaction status or payment method.
+          example: completed
+        count:
+          type: integer
+          format: int64
+          example: 91646
+        percentage:
+          $ref: '#/components/schemas/Decimal'
+    CustomerGrowth:
+      type: object
+      description: Business customer growth trend.
+      required:
+        - start_date
+        - end_date
+        - interval
+        - summary
+        - series
+      properties:
+        start_date:
+          type: string
+          format: date
+          example: '2026-06-15'
+        end_date:
+          type: string
+          format: date
+          example: '2026-07-15'
+        interval:
+          $ref: '#/components/schemas/InsightsInterval'
+        summary:
+          $ref: '#/components/schemas/CustomerGrowthSummary'
+        series:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomerGrowthPoint'
+    CustomerGrowthSummary:
+      type: object
+      description: Customer totals for the reporting range.
+      required:
+        - total_customers
+        - new_customers
+      properties:
+        total_customers:
+          type: integer
+          format: int64
+          description: Total customers as at end_date.
+          example: 100932
+        new_customers:
+          type: integer
+          format: int64
+          description: Customers added within the reporting range.
+          example: 2340
+        growth_rate:
+          $ref: '#/components/schemas/NullableDecimal'
+    CustomerGrowthPoint:
+      type: object
+      description: One time bucket of the customer growth series.
+      required:
+        - date
+        - new_customers
+        - cumulative_customers
+      properties:
+        date:
+          type: string
+          format: date
+          description: Start of the bucket (UTC).
+          example: '2026-06-15'
+        new_customers:
+          type: integer
+          format: int64
+          example: 12
+        cumulative_customers:
+          type: integer
+          format: int64
+          example: 98211
+    NullableDecimal:
+      type: string
+      description: nullable decimal value
+      example: '100'
+      x-go-type: decimal.Decimal
+      x-go-type-import:
+        path: github.com/shopspring/decimal
+        name: decimal
+      nullable: true
     VirtualBankAccount:
       type: object
       required:
@@ -4826,15 +5177,6 @@ components:
               example: 64ae8c26ea1033204c805a8a
               description: |
                 This represents the recipient ID. Used for `direct_debit` types (mandate ID).
-    NullableDecimal:
-      type: string
-      description: nullable decimal value
-      example: '100'
-      x-go-type: decimal.Decimal
-      x-go-type-import:
-        path: github.com/shopspring/decimal
-        name: decimal
-      nullable: true
     Pairs:
       type: object
       required:
@@ -4948,11 +5290,27 @@ components:
       type: object
       properties:
         quote_amount:
-          $ref: '#/components/schemas/NullableDecimal'
+          type: string
+          format: decimal
+          nullable: true
+          x-go-type: decimal.Decimal
+          x-go-type-import:
+            path: github.com/shopspring/decimal
+            name: decimal
+          x-oapi-codegen-extra-tags:
+            validate: num_gte:0
         quote_currency:
           $ref: '#/components/schemas/NullableCurrency'
         target_amount:
-          $ref: '#/components/schemas/NullableDecimal'
+          type: string
+          format: decimal
+          nullable: true
+          x-go-type: decimal.Decimal
+          x-go-type-import:
+            path: github.com/shopspring/decimal
+            name: decimal
+          x-oapi-codegen-extra-tags:
+            validate: num_gte:0
         target_currency:
           allOf:
             - $ref: '#/components/schemas/Currency'
@@ -4979,7 +5337,7 @@ components:
         allow_customer_amount:
           type: boolean
         amount_limit:
-          $ref: '#/components/schemas/AmountLimit'
+          $ref: '#/components/schemas/PaymentLinkRequestAmountLimit'
         allow_quantity_selection:
           type: boolean
         customer_email:
@@ -5001,7 +5359,7 @@ components:
           type: array
           description: Update line items for existing invoices
           items:
-            $ref: '#/components/schemas/InvoiceItem'
+            $ref: '#/components/schemas/PaymentLinkRequestInvoiceItem'
     CreatePaymentLinkReq:
       type: object
       required:
@@ -5026,13 +5384,18 @@ components:
         description:
           type: string
         quote_amount:
-          $ref: '#/components/schemas/Decimal'
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          x-oapi-codegen-extra-tags:
+            validate: num_gte:0
         quote_currency:
           allOf:
             - $ref: '#/components/schemas/Currency'
         target_amount:
           allOf:
             - $ref: '#/components/schemas/Decimal'
+          x-oapi-codegen-extra-tags:
+            validate: num_gte:0
         target_currency:
           allOf:
             - $ref: '#/components/schemas/Currency'
@@ -5048,7 +5411,7 @@ components:
         allow_customer_amount:
           type: boolean
         amount_limit:
-          $ref: '#/components/schemas/AmountLimit'
+          $ref: '#/components/schemas/PaymentLinkRequestAmountLimit'
         allow_quantity_selection:
           type: boolean
         customer_email:
@@ -5070,7 +5433,7 @@ components:
           type: array
           description: Line items for invoice type payment links
           items:
-            $ref: '#/components/schemas/InvoiceItem'
+            $ref: '#/components/schemas/PaymentLinkRequestInvoiceItem'
         dry_run:
           type: boolean
           description: if true, will not create a payment transfer
@@ -5248,6 +5611,43 @@ components:
           $ref: '#/components/schemas/Decimal'
         max_amount:
           $ref: '#/components/schemas/Decimal'
+    PaymentLinkRequestInvoiceItem:
+      type: object
+      required:
+        - item
+        - quantity
+        - amount
+      properties:
+        item:
+          type: string
+          description: Name/description of the item
+          maxLength: 255
+        quantity:
+          type: integer
+          description: Quantity of the item
+          minimum: 1
+        amount:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: Unit price of the item
+          x-oapi-codegen-extra-tags:
+            validate: num_gte:0
+    PaymentLinkRequestAmountLimit:
+      type: object
+      required:
+        - min_amount
+        - max_amount
+      properties:
+        min_amount:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          x-oapi-codegen-extra-tags:
+            validate: num_gte:0
+        max_amount:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          x-oapi-codegen-extra-tags:
+            validate: num_gte:0
     PaymentLinkExtraInfo:
       type: object
       required:
@@ -5539,16 +5939,25 @@ components:
         - source_currency
       properties:
         quote_amount:
-          $ref: '#/components/schemas/Decimal'
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          x-oapi-codegen-extra-tags:
+            validate: num_gte:0
         quote_currency:
           allOf:
             - $ref: '#/components/schemas/Currency'
         source_currency:
           $ref: '#/components/schemas/Currency'
         source_amount:
-          $ref: '#/components/schemas/Decimal'
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          x-oapi-codegen-extra-tags:
+            validate: num_gte:0
         target_amount:
-          $ref: '#/components/schemas/Decimal'
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          x-oapi-codegen-extra-tags:
+            validate: num_gte:0
         pay_in:
           $ref: '#/components/schemas/PayInObj'
         requested_info:
@@ -5588,18 +5997,27 @@ components:
         additional_info:
           $ref: '#/components/schemas/AdditionalInfo'
         quote_amount:
-          $ref: '#/components/schemas/Decimal'
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          x-oapi-codegen-extra-tags:
+            validate: num_gte:0
         quote_currency:
           allOf:
             - $ref: '#/components/schemas/Currency'
           description: This optional field specifies the currency to price the payment request in, which is converted from the source amount
           example: NGN
         source_amount:
-          $ref: '#/components/schemas/Decimal'
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          x-oapi-codegen-extra-tags:
+            validate: num_gte:0
         source_currency:
           $ref: '#/components/schemas/Currency'
         target_amount:
-          $ref: '#/components/schemas/Decimal'
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          x-oapi-codegen-extra-tags:
+            validate: num_gte:0
         target_currency:
           $ref: '#/components/schemas/Currency'
         pay_in:
@@ -5994,7 +6412,10 @@ components:
         asset:
           $ref: '#/components/schemas/Currency'
         amount:
-          $ref: '#/components/schemas/Decimal'
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          x-oapi-codegen-extra-tags:
+            validate: num_gte:0
     PledgeItemAmountRequest:
       type: object
       required:
@@ -6009,7 +6430,10 @@ components:
             validate: required|min_len:1
             filter: trim
         amount:
-          $ref: '#/components/schemas/Decimal'
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          x-oapi-codegen-extra-tags:
+            validate: num_gte:0
     PledgeQuote:
       type: object
       required:
@@ -6333,35 +6757,26 @@ components:
           description: This optional field specifies the currency to price the quote in, which is converted from the source amount
           example: NGN
         quote_amount:
-          type: string
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
           description: The amount in the pricing currency. Required when quote_currency is provided
           example: '100'
-          x-go-type: decimal.Decimal
-          x-go-type-import:
-            path: github.com/shopspring/decimal
-            name: decimal
-            x-oapi-codegen-extra-tags:
-              validate: requiredWith:quote_currency|num
+          x-oapi-codegen-extra-tags:
+            validate: requiredWith:QuoteCurrency|num_gte:0
         source_amount:
-          type: string
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
           description: Source Amount. Either `source_amount` or `target_amount` must be set.
           example: '100'
-          x-go-type: decimal.Decimal
-          x-go-type-import:
-            path: github.com/shopspring/decimal
-            name: decimal
-            x-oapi-codegen-extra-tags:
-              validate: requiredWithout:target_amount|num
+          x-oapi-codegen-extra-tags:
+            validate: num_gte:0
         target_amount:
-          type: string
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
           description: Target Amount. Either `source_amount` or `target_amount` must be set.
           example: '100'
-          x-go-type: decimal.Decimal
-          x-go-type-import:
-            path: github.com/shopspring/decimal
-            name: decimal
-            x-oapi-codegen-extra-tags:
-              validate: requiredWithout:source_amount|num
+          x-oapi-codegen-extra-tags:
+            validate: num_gte:0
         pay_in:
           $ref: '#/components/schemas/UnAuthPayInObj'
         pay_out:
@@ -6382,15 +6797,12 @@ components:
           description: This optional field specifies the currency to price the quote in, which is converted from the source amount
           example: NGN
         quote_amount:
-          type: string
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
           description: The amount in the pricing currency. Required when quote_currency is provided
           example: '100'
-          x-go-type: decimal.Decimal
-          x-go-type-import:
-            path: github.com/shopspring/decimal
-            name: decimal
-            x-oapi-codegen-extra-tags:
-              validate: requiredWith:quote_currency|num
+          x-oapi-codegen-extra-tags:
+            validate: requiredWith:QuoteCurrency|num_gte:0
         reversal_policy:
           type: string
           description: This optional field specifies the reversal policy for the conversion. Allowed values are 'conversion_only'.
@@ -6399,25 +6811,19 @@ components:
         reference:
           $ref: '#/components/schemas/QuoteReference'
         source_amount:
-          type: string
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
           description: Source Amount. Either `source_amount` or `target_amount` must be set.
           example: '100'
-          x-go-type: decimal.Decimal
-          x-go-type-import:
-            path: github.com/shopspring/decimal
-            name: decimal
-            x-oapi-codegen-extra-tags:
-              validate: requiredWithout:target_amount|num
+          x-oapi-codegen-extra-tags:
+            validate: num_gte:0
         target_amount:
-          type: string
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
           description: Target Amount. Either `source_amount` or `target_amount` must be set.
           example: '100'
-          x-go-type: decimal.Decimal
-          x-go-type-import:
-            path: github.com/shopspring/decimal
-            name: decimal
-            x-oapi-codegen-extra-tags:
-              validate: requiredWithout:source_amount|num
+          x-oapi-codegen-extra-tags:
+            validate: num_gte:0
         pay_in:
           allOf:
             - $ref: '#/components/schemas/PayInObj'
@@ -7634,6 +8040,34 @@ components:
             service_unavailable_error:
               $ref: '#/components/examples/ServiceUnavailableError'
     FilesError4XX:
+      description: Default
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            default:
+              $ref: '#/components/examples/DefaultError'
+            not_found_error:
+              $ref: '#/components/examples/NotFoundError'
+            unauthorized_error:
+              $ref: '#/components/examples/UnAuthorizedError'
+            request_validation_error:
+              $ref: '#/components/examples/RequestValidationError'
+            schema_validation_error:
+              $ref: '#/components/examples/SchemaValidationError'
+    InsightsError5XX:
+      description: Default
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            internal_server_error:
+              $ref: '#/components/examples/InternalServerError'
+            service_unavailable_error:
+              $ref: '#/components/examples/ServiceUnavailableError'
+    InsightsError4XX:
       description: Default
       content:
         application/json:
