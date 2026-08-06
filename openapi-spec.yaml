@@ -190,6 +190,8 @@ tags:
     x-displayName: Quotes
   - name: Recipients
     x-displayName: Recipients
+  - name: Stocks
+    x-displayName: Stocks
   - name: Transactions
     x-displayName: Transactions
   - name: Transfers
@@ -2786,6 +2788,263 @@ paths:
           $ref: '#/components/responses/RecipientError4XX'
         5XX:
           $ref: '#/components/responses/RecipientError5XX'
+  /v1/stocks:
+    get:
+      security:
+        - AuthOptional: []
+      tags:
+        - Stocks
+      summary: List stocks
+      operationId: listStocks
+      parameters:
+        - $ref: '#/components/parameters/ProfileHeader'
+        - name: q
+          in: query
+          schema:
+            type: string
+          x-oapi-codegen-extra-tags:
+            filter: trim
+        - name: sector
+          in: query
+          schema:
+            type: string
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum:
+              - stock
+              - etf
+        - name: weekend_enabled
+          in: query
+          schema:
+            type: boolean
+        - name: following
+          in: query
+          description: |
+            Restrict results to the authenticated profile's watchlist. Authed only: an unauthenticated request with following=true returns an empty list rather than an error.
+          schema:
+            type: boolean
+        - $ref: '#/components/parameters/CursorQueryParams'
+        - $ref: '#/components/parameters/SortQueryParam'
+        - $ref: '#/components/parameters/LimitQueryParam'
+      responses:
+        '200':
+          description: A list of stocks.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/CursorPagination'
+                  - type: object
+                    required:
+                      - data
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Stock'
+        4XX:
+          $ref: '#/components/responses/StocksError4XX'
+        5XX:
+          $ref: '#/components/responses/StocksError5XX'
+  /v1/stocks/market-status:
+    get:
+      security:
+        - AuthOptional: []
+      tags:
+        - Stocks
+      summary: Market status
+      operationId: getStocksMarketStatus
+      responses:
+        '200':
+          description: Whether the US tokenized-equities venue is open.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseSchema'
+                  - type: object
+                    required:
+                      - data
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/MarketStatus'
+        4XX:
+          $ref: '#/components/responses/StocksError4XX'
+        5XX:
+          $ref: '#/components/responses/StocksError5XX'
+  /v1/stocks/movers:
+    get:
+      security:
+        - AuthOptional: []
+      tags:
+        - Stocks
+      summary: Top movers
+      description: |
+        Top gainers and losers by 24h percent change over listed symbols with a fresh enough price to rank.
+      operationId: getStocksMovers
+      parameters:
+        - name: limit
+          in: query
+          description: Max entries per list (gainers and losers each). Default 6, max 20.
+          schema:
+            type: integer
+            default: 6
+            maximum: 20
+      responses:
+        '200':
+          description: Top gainers and losers.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseSchema'
+                  - type: object
+                    required:
+                      - data
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/StockMovers'
+        4XX:
+          $ref: '#/components/responses/StocksError4XX'
+        5XX:
+          $ref: '#/components/responses/StocksError5XX'
+  /v1/stocks/portfolio:
+    get:
+      security:
+        - Auth:
+            - stocks:read
+            - api:read
+      tags:
+        - Stocks
+      summary: Stock holdings
+      description: |
+        Every open stock position for the authenticated profile, valued at the current display (mid) token price. The spread is what a trade costs, not part of what is owned, so it is not applied here.
+      operationId: getStocksPortfolio
+      parameters:
+        - $ref: '#/components/parameters/ProfileHeader'
+      responses:
+        '200':
+          description: Stock holdings and totals.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseSchema'
+                  - type: object
+                    required:
+                      - data
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/StockPortfolio'
+        4XX:
+          $ref: '#/components/responses/StocksError4XX'
+        5XX:
+          $ref: '#/components/responses/StocksError5XX'
+  /v1/stocks/portfolio/{symbol}:
+    get:
+      security:
+        - Auth:
+            - stocks:read
+            - api:read
+      tags:
+        - Stocks
+      summary: Stock position detail
+      description: |
+        One position for the authenticated profile plus a page of the fills behind it, newest first.
+      operationId: getStocksPosition
+      parameters:
+        - $ref: '#/components/parameters/ProfileHeader'
+        - $ref: '#/components/parameters/StockSymbolPathParam'
+        - $ref: '#/components/parameters/CursorQueryParams'
+        - $ref: '#/components/parameters/LimitQueryParam'
+      responses:
+        '200':
+          description: Position detail with recent activity.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/CursorPagination'
+                  - type: object
+                    required:
+                      - data
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/StockPositionDetail'
+        4XX:
+          $ref: '#/components/responses/StocksError4XX'
+        5XX:
+          $ref: '#/components/responses/StocksError5XX'
+  /v1/stocks/{symbol}:
+    get:
+      security:
+        - AuthOptional: []
+      tags:
+        - Stocks
+      summary: Stock detail
+      operationId: getStock
+      parameters:
+        - $ref: '#/components/parameters/StockSymbolPathParam'
+      responses:
+        '200':
+          description: Stock detail.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseSchema'
+                  - type: object
+                    required:
+                      - data
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/StockDetail'
+        4XX:
+          $ref: '#/components/responses/StocksError4XX'
+        5XX:
+          $ref: '#/components/responses/StocksError5XX'
+  /v1/stocks/{symbol}/ohlc:
+    get:
+      security:
+        - AuthOptional: []
+      tags:
+        - Stocks
+      summary: Stock OHLC candles
+      operationId: getStockOHLC
+      parameters:
+        - $ref: '#/components/parameters/StockSymbolPathParam'
+        - name: period
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - 1d
+              - 1w
+              - 1m
+              - 1y
+              - all
+            default: 1d
+      responses:
+        '200':
+          description: Candle series (token-price series).
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseSchema'
+                  - type: object
+                    required:
+                      - data
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/StockOHLC'
+        4XX:
+          $ref: '#/components/responses/StocksError4XX'
+        5XX:
+          $ref: '#/components/responses/StocksError5XX'
   /v1/transactions:
     get:
       tags:
@@ -3217,6 +3476,15 @@ components:
         enum:
           - '2025-06-01'
           - '2025-07-11'
+    StockSymbolPathParam:
+      name: symbol
+      in: path
+      required: true
+      schema:
+        type: string
+        example: AAPLON
+        x-oapi-codegen-extra-tags:
+          filter: trim|upper
     StatusQueryParam:
       name: status
       in: query
@@ -7161,6 +7429,386 @@ components:
           type: string
           description: Name of receiving bank
           example: Trust Bank
+    StockMovers:
+      type: object
+      required:
+        - gainers
+        - losers
+      properties:
+        gainers:
+          type: array
+          items:
+            $ref: '#/components/schemas/Stock'
+          description: Sorted by change_24h_percent, highest first.
+          x-order: 1
+        losers:
+          type: array
+          items:
+            $ref: '#/components/schemas/Stock'
+          description: Sorted by change_24h_percent, lowest first.
+          x-order: 2
+    Stock:
+      type: object
+      required:
+        - symbol
+        - name
+        - display_ticker
+        - type
+        - weekend_enabled
+        - is_market_open
+        - buy_supported
+        - sell_supported
+      properties:
+        symbol:
+          type: string
+          example: AAPLON
+          x-order: 1
+        name:
+          type: string
+          example: Apple
+          x-order: 2
+        display_ticker:
+          type: string
+          example: AAPL
+          description: Display label only. Not a pricing or reconciliation key.
+          x-order: 3
+        type:
+          type: string
+          enum:
+            - stock
+            - etf
+          x-order: 4
+        sector:
+          type: string
+          x-order: 5
+        logo_url:
+          allOf:
+            - $ref: '#/components/schemas/UrlField'
+          x-order: 6
+        price:
+          allOf:
+            - $ref: '#/components/schemas/AmountWithCurrency'
+          description: Latest token price in USD; absent when no fresh price.
+          x-order: 7
+        change_24h_percent:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          x-order: 8
+        weekend_enabled:
+          type: boolean
+          x-order: 9
+        is_market_open:
+          type: boolean
+          x-order: 10
+        buy_supported:
+          type: boolean
+          x-order: 11
+        sell_supported:
+          type: boolean
+          x-order: 12
+    StockDetail:
+      allOf:
+        - $ref: '#/components/schemas/Stock'
+        - type: object
+          properties:
+            description:
+              type: string
+            isin:
+              type: string
+            buy_price:
+              allOf:
+                - $ref: '#/components/schemas/AmountWithCurrency'
+              description: Display buy price (token price plus spread).
+            sell_price:
+              allOf:
+                - $ref: '#/components/schemas/AmountWithCurrency'
+            underlying_price:
+              allOf:
+                - $ref: '#/components/schemas/AmountWithCurrency'
+              description: Underlying stock market price. Informational only.
+            shares_multiplier:
+              allOf:
+                - $ref: '#/components/schemas/Decimal'
+              description: Shares represented by one token; drifts up as dividends reinvest.
+            session:
+              type: string
+              enum:
+                - premarket
+                - regular
+                - postmarket
+                - overnight
+                - offhours
+                - paused
+                - closed
+            min_order:
+              allOf:
+                - $ref: '#/components/schemas/AmountWithCurrency'
+            max_order:
+              allOf:
+                - $ref: '#/components/schemas/AmountWithCurrency'
+            open_price:
+              allOf:
+                - $ref: '#/components/schemas/AmountWithCurrency'
+              description: |
+                Opening price of the current daily candle. Absent when the daily chart has not been requested recently enough to be cached.
+            range_24h_high:
+              allOf:
+                - $ref: '#/components/schemas/AmountWithCurrency'
+              description: Highest recorded price in the last 24h; absent without history.
+            range_24h_low:
+              allOf:
+                - $ref: '#/components/schemas/AmountWithCurrency'
+              description: Lowest recorded price in the last 24h; absent without history.
+            following:
+              type: boolean
+              description: |
+                Whether this symbol is on the authenticated profile's stock watchlist. Always false for anonymous (unauthenticated) requests.
+    StockPortfolio:
+      type: object
+      required:
+        - positions
+        - holdings_count
+        - total_value
+        - total_cost_basis
+        - unrealized_pnl
+        - unrealized_pnl_percent
+        - unpriced_count
+      properties:
+        positions:
+          type: array
+          items:
+            $ref: '#/components/schemas/StockPosition'
+          x-order: 1
+        holdings_count:
+          type: integer
+          x-order: 2
+        total_value:
+          allOf:
+            - $ref: '#/components/schemas/AmountWithCurrency'
+          description: Sum of every position valued at its display (mid) price.
+          x-order: 3
+        total_cost_basis:
+          allOf:
+            - $ref: '#/components/schemas/AmountWithCurrency'
+          description: Total paid across every position, priced or not — a historical fact independent of today's feed.
+          x-order: 4
+        unrealized_pnl:
+          allOf:
+            - $ref: '#/components/schemas/AmountWithCurrency'
+          description: Summed only across positions that currently have a price; zero when there is no cost basis to measure against, or when nothing is priced. See unpriced_count.
+          x-order: 5
+        unrealized_pnl_percent:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: Measured against the cost basis of the same priced positions unrealized_pnl sums, not total_cost_basis. Zero when there is no cost basis to measure against.
+          x-order: 6
+        unpriced_count:
+          type: integer
+          description: How many positions were excluded from unrealized_pnl/unrealized_pnl_percent for want of a current price. Zero means those totals are complete; caption them as partial otherwise.
+          x-order: 7
+    StockPosition:
+      type: object
+      required:
+        - symbol
+        - name
+        - display_ticker
+        - tokens
+        - value
+        - cost_basis
+      properties:
+        symbol:
+          type: string
+          example: AAPLON
+          x-order: 1
+        name:
+          type: string
+          example: Apple
+          x-order: 2
+        display_ticker:
+          type: string
+          example: AAPL
+          x-order: 3
+        logo_url:
+          allOf:
+            - $ref: '#/components/schemas/UrlField'
+          x-order: 4
+        tokens:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: Token quantity held, 18 decimal places.
+          x-order: 5
+        price:
+          allOf:
+            - $ref: '#/components/schemas/AmountWithCurrency'
+          description: Display (mid) token price; absent when no price is available.
+          x-order: 6
+        value:
+          allOf:
+            - $ref: '#/components/schemas/AmountWithCurrency'
+          description: tokens times price; zero when there is no price.
+          x-order: 7
+        cost_basis:
+          allOf:
+            - $ref: '#/components/schemas/AmountWithCurrency'
+          description: Total paid for the position under average-cost accounting.
+          x-order: 8
+        unrealized_pnl:
+          allOf:
+            - $ref: '#/components/schemas/AmountWithCurrency'
+          description: Absent when the position is unpriced (see price) — never a loss reported against a price the feed does not have.
+          x-order: 9
+        unrealized_pnl_percent:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: Absent under the same condition as unrealized_pnl.
+          x-order: 10
+        change_24h_percent:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          x-order: 11
+    StockPositionDetail:
+      type: object
+      required:
+        - position
+        - activities
+      properties:
+        position:
+          $ref: '#/components/schemas/StockPosition'
+        activities:
+          type: array
+          items:
+            $ref: '#/components/schemas/StockActivity'
+    StockActivity:
+      type: object
+      required:
+        - id
+        - symbol
+        - action
+        - tokens
+        - amount
+        - unit_price
+        - status
+        - created_at
+      properties:
+        id:
+          type: string
+          example: SBE_1a2b3c
+          x-order: 1
+        symbol:
+          type: string
+          example: AAPLON
+          x-order: 2
+        action:
+          type: string
+          enum:
+            - buy
+            - sell
+          x-order: 3
+        tokens:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          x-order: 4
+        amount:
+          allOf:
+            - $ref: '#/components/schemas/AmountWithCurrency'
+          description: Settlement value of the fill.
+          x-order: 5
+        unit_price:
+          allOf:
+            - $ref: '#/components/schemas/AmountWithCurrency'
+          description: Executed price per token, spread included.
+          x-order: 6
+        funding_currency:
+          type: string
+          example: NGN
+          x-order: 7
+        funding_amount:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          x-order: 8
+        status:
+          type: string
+          example: completed
+          x-order: 9
+        created_at:
+          type: string
+          format: date-time
+          x-order: 10
+    MarketStatus:
+      type: object
+      required:
+        - open
+        - session
+      properties:
+        open:
+          type: boolean
+          x-order: 1
+        session:
+          type: string
+          enum:
+            - premarket
+            - regular
+            - postmarket
+            - overnight
+            - offhours
+            - paused
+            - closed
+          x-order: 2
+        next_open:
+          type: string
+          format: date-time
+          nullable: true
+          description: |
+            Next scheduled venue open (RFC3339). Prefers the venue's own schedule when the vendor answers it — holiday-aware — falling back to a calendar-blind weekly-schedule computation only when it doesn't. Usually set while closed; may also be set while open, naming the open that follows the next close.
+          x-order: 3
+        next_close:
+          type: string
+          format: date-time
+          nullable: true
+          description: |
+            Next scheduled venue close (RFC3339). Same venue-preferred, calendar-fallback sourcing as next_open. Under the calendar fallback this is set only while open, but the venue's own answer may report a next_close while the market currently reads closed too (e.g. a paused state) — callers should not infer "market is open" merely from this being present.
+          x-order: 4
+    StockOHLC:
+      type: object
+      required:
+        - symbol
+        - period
+        - candles
+      properties:
+        symbol:
+          type: string
+        period:
+          type: string
+          enum:
+            - 1d
+            - 1w
+            - 1m
+            - 1y
+            - all
+        candles:
+          type: array
+          items:
+            $ref: '#/components/schemas/StockCandle'
+    StockCandle:
+      type: object
+      required:
+        - time
+        - open
+        - high
+        - low
+        - close
+      properties:
+        time:
+          type: string
+          format: date-time
+        open:
+          $ref: '#/components/schemas/Decimal'
+        high:
+          $ref: '#/components/schemas/Decimal'
+        low:
+          $ref: '#/components/schemas/Decimal'
+        close:
+          $ref: '#/components/schemas/Decimal'
     TransactionsListResponse:
       allOf:
         - $ref: '#/components/schemas/CursorPagination'
@@ -7730,6 +8378,10 @@ components:
         last_name:
           type: string
           description: Last name
+        message:
+          type: string
+          description: Note from the sender to the recipient (gifted vouchers)
+          example: Happy birthday Ada!
     TxnMetaCryptoWalletDestination:
       type: object
       description: Crypto Wallet Destination
@@ -8480,6 +9132,34 @@ components:
               $ref: '#/components/examples/SchemaValidationError'
     RecipientError5XX:
       description: Server error when processing the recipient request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            internal_server_error:
+              $ref: '#/components/examples/InternalServerError'
+            service_unavailable_error:
+              $ref: '#/components/examples/ServiceUnavailableError'
+    StocksError4XX:
+      description: Error from customer resource.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            default:
+              $ref: '#/components/examples/DefaultError'
+            not_found_error:
+              $ref: '#/components/examples/NotFoundError'
+            unauthorized_error:
+              $ref: '#/components/examples/UnAuthorizedError'
+            request_validation_error:
+              $ref: '#/components/examples/RequestValidationError'
+            schema_validation_error:
+              $ref: '#/components/examples/SchemaValidationError'
+    StocksError5XX:
+      description: Server error when processing the stocks request
       content:
         application/json:
           schema:
