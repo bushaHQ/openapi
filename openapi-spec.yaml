@@ -7728,6 +7728,8 @@ components:
           x-order: 8
         status:
           type: string
+          enum:
+            - completed
           example: completed
           x-order: 9
         created_at:
