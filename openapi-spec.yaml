@@ -7490,9 +7490,10 @@ components:
             - $ref: '#/components/schemas/AmountWithCurrency'
           description: Latest token price in USD; absent when no fresh price.
           x-order: 7
-        change_24h_percent:
+        change_24h:
           allOf:
-            - $ref: '#/components/schemas/Decimal'
+            - $ref: '#/components/schemas/PriceChange'
+          description: 24h price change (absolute and percent); absent when no 24h history.
           x-order: 8
         weekend_enabled:
           type: boolean
@@ -7571,7 +7572,6 @@ components:
         - total_value
         - total_cost_basis
         - unrealized_pnl
-        - unrealized_pnl_percent
         - unpriced_count
       properties:
         positions:
@@ -7594,18 +7594,13 @@ components:
           x-order: 4
         unrealized_pnl:
           allOf:
-            - $ref: '#/components/schemas/AmountWithCurrency'
-          description: Summed only across positions that currently have a price; zero when there is no cost basis to measure against, or when nothing is priced. See unpriced_count.
+            - $ref: '#/components/schemas/PriceChange'
+          description: Summed only across positions that currently have a price; amount is total P&L, percent is return %. See unpriced_count.
           x-order: 5
-        unrealized_pnl_percent:
-          allOf:
-            - $ref: '#/components/schemas/Decimal'
-          description: Measured against the cost basis of the same priced positions unrealized_pnl sums, not total_cost_basis. Zero when there is no cost basis to measure against.
-          x-order: 6
         unpriced_count:
           type: integer
-          description: How many positions were excluded from unrealized_pnl/unrealized_pnl_percent for want of a current price. Zero means those totals are complete; caption them as partial otherwise.
-          x-order: 7
+          description: How many positions were excluded from unrealized_pnl for want of a current price. Zero means those totals are complete; caption them as partial otherwise.
+          x-order: 6
     StockPosition:
       type: object
       required:
@@ -7652,20 +7647,26 @@ components:
             - $ref: '#/components/schemas/AmountWithCurrency'
           description: Total paid for the position under average-cost accounting.
           x-order: 8
-        unrealized_pnl:
+        average_price:
           allOf:
             - $ref: '#/components/schemas/AmountWithCurrency'
-          description: Absent when the position is unpriced (see price) — never a loss reported against a price the feed does not have.
+          description: Average entry price (cost_basis / tokens); absent when there is no position.
           x-order: 9
-        unrealized_pnl_percent:
+        average_price_change:
           allOf:
-            - $ref: '#/components/schemas/Decimal'
-          description: Absent under the same condition as unrealized_pnl.
+            - $ref: '#/components/schemas/PriceChange'
+          description: Change between current price and average entry price; absent when no position or unpriced.
           x-order: 10
-        change_24h_percent:
+        unrealized_pnl:
           allOf:
-            - $ref: '#/components/schemas/Decimal'
+            - $ref: '#/components/schemas/PriceChange'
+          description: All-time return; amount is total P&L, percent is return %. Absent when the position is unpriced.
           x-order: 11
+        change_24h:
+          allOf:
+            - $ref: '#/components/schemas/PriceChange'
+          description: 24h price change (absolute and percent); absent when no 24h history.
+          x-order: 13
     StockPositionDetail:
       type: object
       required:
@@ -7811,6 +7812,22 @@ components:
           $ref: '#/components/schemas/Decimal'
         close:
           $ref: '#/components/schemas/Decimal'
+    PriceChange:
+      type: object
+      description: Price change with currency, absolute amount and percentage.
+      properties:
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/Currency'
+          description: Currency the amount is denominated in.
+        amount:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: Absolute change (current - reference).
+        percent:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: Percentage change, e.g. 1.25 = +1.25%.
     TransactionsListResponse:
       allOf:
         - $ref: '#/components/schemas/CursorPagination'
