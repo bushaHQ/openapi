@@ -7006,6 +7006,13 @@ components:
         - PledgeLiquidationStatusProcessing
         - PledgeLiquidationStatusCompleted
         - PledgeLiquidationStatusFailed
+    TransferPayInObj:
+      allOf:
+        - $ref: '#/components/schemas/PaymentObj'
+        - type: object
+          properties:
+            payer_details:
+              $ref: '#/components/schemas/RecipientDetails'
     QuoteReference:
       type: string
       x-order: 2
@@ -7610,6 +7617,9 @@ components:
         - tokens
         - value
         - cost_basis
+        - is_market_open
+        - buy_supported
+        - sell_supported
       properties:
         symbol:
           type: string
@@ -7667,6 +7677,18 @@ components:
             - $ref: '#/components/schemas/PriceChange'
           description: 24h price change (absolute and percent); absent when no 24h history.
           x-order: 13
+        is_market_open:
+          type: boolean
+          description: Whether the venue is open and a fresh price exists for the symbol.
+          x-order: 14
+        buy_supported:
+          type: boolean
+          description: Whether a buy can be placed; tradeable symbol with the market open.
+          x-order: 15
+        sell_supported:
+          type: boolean
+          description: Whether a sell can be placed; tradeable symbol with the market open.
+          x-order: 16
     StockPositionDetail:
       type: object
       required:
@@ -8517,7 +8539,7 @@ components:
             $ref: '#/components/schemas/Fee'
         pay_in:
           allOf:
-            - $ref: '#/components/schemas/PaymentObj'
+            - $ref: '#/components/schemas/TransferPayInObj'
           x-order: 13
         pay_out:
           allOf:
