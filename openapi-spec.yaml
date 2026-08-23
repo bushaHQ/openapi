@@ -635,6 +635,29 @@ paths:
           $ref: '#/components/responses/CustomerError4XX'
         5XX:
           $ref: '#/components/responses/CustomerError5XX'
+  /v1/customers/{id}/kyc-link:
+    post:
+      x-rate-limit: 20
+      x-internal: false
+      security:
+        - Auth:
+            - customers:write
+            - api:write
+      summary: Generate KYC link for a customer
+      description: Generate a KYC verification link for an individual customer
+      operationId: generateCustomerKYCLink
+      tags:
+        - Customers
+      parameters:
+        - $ref: '#/components/parameters/PathParamNanoID'
+        - $ref: '#/components/parameters/ProfileHeader'
+      responses:
+        '200':
+          $ref: '#/components/responses/CustomerKYCLinkResponse'
+        4XX:
+          $ref: '#/components/responses/CustomerError4XX'
+        5XX:
+          $ref: '#/components/responses/CustomerError5XX'
   /v1/customers/industries:
     get:
       x-internal: false
@@ -3077,6 +3100,33 @@ paths:
               $ref: '#/components/schemas/TransactionTypes'
           style: form
           explode: false
+        - name: status
+          in: query
+          description: Filter transactions by status, comma-separated to match any of them.
+          required: false
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/TransactionStatus'
+          style: form
+          explode: false
+          example: completed,pending
+        - name: start_date
+          in: query
+          description: Filter transactions created on or after this date (inclusive, UTC)
+          required: false
+          schema:
+            type: string
+            format: date
+          example: '2022-01-01'
+        - name: end_date
+          in: query
+          description: Filter transactions created on or before this date (inclusive, UTC)
+          required: false
+          schema:
+            type: string
+            format: date
+          example: '2022-01-31'
         - $ref: '#/components/parameters/CursorQueryParams'
         - $ref: '#/components/parameters/LimitQueryParam'
         - $ref: '#/components/parameters/ProfileHeader'
@@ -3480,9 +3530,10 @@ components:
       name: symbol
       in: path
       required: true
+      description: The stock's display ticker (e.g. AAPL), never the vendor symbol.
       schema:
         type: string
-        example: AAPLON
+        example: AAPL
         x-oapi-codegen-extra-tags:
           filter: trim|upper
     StatusQueryParam:
@@ -4511,6 +4562,23 @@ components:
         token:
           type: string
           description: JWT token
+    CustomerKYCLinkResponse:
+      description: Response containing the generated KYC verification link
+      allOf:
+        - $ref: '#/components/schemas/BaseSchema'
+        - type: object
+          required:
+            - data
+          properties:
+            data:
+              type: object
+              required:
+                - url
+              properties:
+                url:
+                  type: string
+                  format: url
+                  description: URL to the KYC verification link
     NameField:
       type: string
       example: John
@@ -7468,7 +7536,8 @@ components:
       properties:
         symbol:
           type: string
-          example: AAPLON
+          example: AAPL
+          description: Display ticker, the user-facing stock identity.
           x-order: 1
         name:
           type: string
@@ -7507,6 +7576,8 @@ components:
           x-order: 9
         is_market_open:
           type: boolean
+          description: |
+            Whether this stock's market is open right now, from the persisted book-meta snapshot (the inverse of its closed state, so it is off-hours aware). Falls back to the live venue observation until the first snapshot is written.
           x-order: 10
         buy_supported:
           type: boolean
@@ -7623,7 +7694,7 @@ components:
       properties:
         symbol:
           type: string
-          example: AAPLON
+          example: AAPL
           x-order: 1
         name:
           type: string
@@ -7679,7 +7750,8 @@ components:
           x-order: 13
         is_market_open:
           type: boolean
-          description: Whether the venue is open and a fresh price exists for the symbol.
+          description: |
+            Whether this stock's market is open right now, from the persisted book-meta snapshot (the inverse of its closed state, so it is off-hours aware). Falls back to the live venue observation until the first snapshot is written.
           x-order: 14
         buy_supported:
           type: boolean
@@ -7719,7 +7791,7 @@ components:
           x-order: 1
         symbol:
           type: string
-          example: AAPLON
+          example: AAPL
           x-order: 2
         action:
           type: string
@@ -7881,6 +7953,17 @@ components:
         - sends
         - receives
         - card_fees
+    TransactionStatus:
+      type: string
+      description: Transaction status. `pending_review` indicates that the transaction requires manual review before completion.
+      enum:
+        - pending
+        - pending_review
+        - completed
+        - failed
+        - cancelled
+        - processing
+      example: completed
     Transaction:
       type: object
       required:
@@ -7911,14 +7994,8 @@ components:
           example: transaction
         status:
           x-order: 3
-          type: string
-          description: transaction status
-          enum:
-            - pending
-            - completed
-            - failed
-            - cancelled
-            - processing
+          allOf:
+            - $ref: '#/components/schemas/TransactionStatus'
           example: completed
         created_at:
           x-order: 4
@@ -8702,6 +8779,12 @@ components:
                     type: array
                     items:
                       $ref: '#/components/schemas/CustomerBusinessIndustry'
+    CustomerKYCLinkResponse:
+      description: Successful response
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CustomerKYCLinkResponse'
     CustomerListResponse:
       description: Customer List Response
       content:
