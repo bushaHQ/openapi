@@ -1120,7 +1120,7 @@ paths:
         - name: type
           in: query
           description: |
-            This filter pairs based on the type. fiat filter return pairs where the counter currency-type is a fiat crypto filter return pairs where the counter currency type is digital stablecoin filter return pairs where the base or counter currency is a stablecoin base_crypto filter return pairs where the base currency is digital base_fiat filter return pairs where the base currency is a fiat
+            This filter pairs based on the type. fiat filter return pairs where the counter currency-type is a fiat crypto filter return pairs where the counter currency type is digital stablecoin filter return pairs where the base or counter currency is a stablecoin base_crypto filter return pairs where the base currency is digital base_fiat filter return pairs where the base currency is a fiat stock filter returns stock pairs
           schema:
             type: string
             enum:
@@ -1129,6 +1129,7 @@ paths:
               - crypto
               - base_crypto
               - base_fiat
+              - stock
         - name: is_business
           in: query
           schema:
@@ -1136,14 +1137,14 @@ paths:
         - name: base
           in: query
           x-oapi-codegen-extra-tags:
-            validate: min_len:2|max_len:10
+            validate: min_len:1|max_len:10
             filter: trim|upper
           schema:
             $ref: '#/components/schemas/Currency'
         - name: counter
           in: query
           x-oapi-codegen-extra-tags:
-            validate: min_len:2|max_len:10
+            validate: min_len:1|max_len:10
             filter: trim|upper
           schema:
             $ref: '#/components/schemas/Currency'
@@ -2840,6 +2841,11 @@ paths:
               - etf
         - name: weekend_enabled
           in: query
+          schema:
+            type: boolean
+        - name: tradeable
+          in: query
+          description: Filter stocks by whether trading is enabled for the symbol.
           schema:
             type: boolean
         - name: following
@@ -5557,6 +5563,7 @@ components:
             - crypto
             - fiat
             - stablecoin
+            - stock
         buy_price:
           x-order: 5
           allOf:
