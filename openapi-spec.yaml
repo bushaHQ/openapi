@@ -3006,6 +3006,62 @@ paths:
           $ref: '#/components/responses/StocksError4XX'
         5XX:
           $ref: '#/components/responses/StocksError5XX'
+  /v1/stocks/activities:
+    get:
+      security:
+        - Auth:
+            - stocks:read
+            - api:read
+      tags:
+        - Stocks
+      summary: Stock activity
+      description: |
+        A page of the authenticated profile's stock fills (buys and sells) across every symbol, newest first. Optionally narrowed to one action and/or a set of symbols.
+      operationId: getStocksActivities
+      parameters:
+        - $ref: '#/components/parameters/ProfileHeader'
+        - name: action
+          in: query
+          description: Restrict the page to one action; omit for both.
+          schema:
+            type: string
+            enum:
+              - buy
+              - sell
+        - name: symbols
+          in: query
+          style: form
+          explode: false
+          description: Restrict the page to comma-separated display tickers (e.g. AAPL,TSLA).
+          schema:
+            type: array
+            items:
+              type: string
+              example: AAPL
+          x-oapi-codegen-extra-tags:
+            filter: slice_trim|slice_upper
+        - $ref: '#/components/parameters/CursorQueryParams'
+        - $ref: '#/components/parameters/LimitQueryParam'
+      responses:
+        '200':
+          description: A page of stock activity, newest first.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/CursorPagination'
+                  - type: object
+                    required:
+                      - data
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/StockActivity'
+        4XX:
+          $ref: '#/components/responses/StocksError4XX'
+        5XX:
+          $ref: '#/components/responses/StocksError5XX'
   /v1/stocks/{symbol}:
     get:
       security:
