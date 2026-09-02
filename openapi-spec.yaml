@@ -6572,6 +6572,24 @@ components:
           description: Address details (for international transfers)
           x-oapi-codegen-extra-tags:
             mapstructure: recipient_address,omitempty
+        recipient_city:
+          type: string
+          description: City of the recipient's address (for US transfers)
+          example: Woodhaven
+          x-oapi-codegen-extra-tags:
+            mapstructure: recipient_city,omitempty
+        recipient_state:
+          type: string
+          description: State of the recipient's address (for US transfers)
+          example: NY
+          x-oapi-codegen-extra-tags:
+            mapstructure: recipient_state,omitempty
+        recipient_postal_code:
+          type: string
+          description: Postal code of the recipient's address (for US transfers)
+          example: '11421'
+          x-oapi-codegen-extra-tags:
+            mapstructure: recipient_postal_code,omitempty
         intermediary_bank_name:
           type: string
           example: JPMorgan Chase Bank
