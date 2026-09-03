@@ -1119,17 +1119,21 @@ paths:
             type: string
         - name: type
           in: query
+          style: form
+          explode: false
           description: |
-            This filter pairs based on the type. fiat filter return pairs where the counter currency-type is a fiat crypto filter return pairs where the counter currency type is digital stablecoin filter return pairs where the base or counter currency is a stablecoin base_crypto filter return pairs where the base currency is digital base_fiat filter return pairs where the base currency is a fiat stock filter returns stock pairs
+            This filter pairs based on the type. Multiple types can be passed as a comma separated list e.g ?type=fiat,crypto. When multiple types are provided, pairs matching any of them are returned. fiat filter return pairs where the counter currency-type is a fiat crypto filter return pairs where the counter currency type is digital stablecoin filter return pairs where the base or counter currency is a stablecoin base_crypto filter return pairs where the base currency is digital base_fiat filter return pairs where the base currency is a fiat stock filter returns stock pairs
           schema:
-            type: string
-            enum:
-              - fiat
-              - stablecoin
-              - crypto
-              - base_crypto
-              - base_fiat
-              - stock
+            type: array
+            items:
+              type: string
+              enum:
+                - fiat
+                - stablecoin
+                - crypto
+                - base_crypto
+                - base_fiat
+                - stock
         - name: is_business
           in: query
           schema:
