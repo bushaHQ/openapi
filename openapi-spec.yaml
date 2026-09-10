@@ -3564,6 +3564,36 @@ components:
               type: array
               items:
                 $ref: '#/components/schemas/Balance'
+    SchemaViolation:
+      type: object
+      description: |
+        One thing wrong with the request body: in prose for a person, and in a code and a pointer for a program. `reason` and `fix` are written by the validation library and their wording changes between releases of it; `code` and `pointer` do not, so branch on those.
+      properties:
+        reason:
+          type: string
+          description: What is wrong, in prose. For a person reading a log, not for code to match on.
+          example: missing property 'additional_info'
+        fix:
+          type: string
+          description: What to do about it, in prose.
+          example: Ensure that the object being submitted, matches the schema correctly
+        code:
+          type: string
+          description: |
+            What is wrong, as a stable token. `missing-property` for a required property left out, `type-mismatch` for a value of the wrong JSON type, `enum-mismatch` for a value outside the documented set, `pattern-mismatch` for a string that fails its pattern, `unknown-property` for a property the endpoint does not declare, `malformed-json` for a body that is not JSON at all, and `constraint-<keyword>` for any other JSON Schema keyword the body tripped.
+          example: missing-property
+        pointer:
+          type: string
+          description: |
+            Where it is wrong: an RFC 6901 JSON Pointer into the request body. The empty string points at the body itself, which is the answer when no single property is at fault.
+          example: /additional_info
+        schema_validation_error:
+          type: array
+          description: The validator's own specifics, where it produced any.
+          items:
+            type: string
+          example:
+            - 'minLength: got 3, want 12'
     ErrorResponse:
       type: object
       required:
@@ -3587,7 +3617,7 @@ components:
         schema:
           type: array
           items:
-            type: object
+            $ref: '#/components/schemas/SchemaViolation'
       example:
         error:
           name: bad_request
@@ -4968,6 +4998,8 @@ components:
         setup_time:
           $ref: '#/components/schemas/FeeItem'
         activation_fee:
+          $ref: '#/components/schemas/FeeItem'
+        payout_in_dollars:
           $ref: '#/components/schemas/FeeItem'
         monthly_maintenance_fee:
           $ref: '#/components/schemas/FeeItem'
@@ -8791,14 +8823,23 @@ components:
           field2:
             - reason: One of target and source amount must be set
     SchemaValidationError:
-      description: Schema validation error example
+      description: |
+        Schema validation error example. One entry per violation, each with its own `code` and `pointer` naming what is wrong and where; branch on those rather than on the prose beside them.
       value:
         error:
           name: schema_validation
           message: Error Validating Requests
         schema:
-          - reason: The request body is defined as an object. However, it does not meet the schema requirements of the specification
+          - reason: Missing property 'market'
             fix: Ensure that the object being submitted, matches the schema correctly
+            code: missing-property
+            pointer: /market
+            schema_validation_error:
+              - missing property 'market'
+          - reason: 'MinLength: got 3, want 12'
+            fix: Ensure that the object being submitted, matches the schema correctly
+            code: constraint-minlength
+            pointer: /additional_info/name
             schema_validation_error:
               - 'minLength: got 3, want 12'
     InternalServerError:
