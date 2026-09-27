@@ -3062,6 +3062,39 @@ paths:
           $ref: '#/components/responses/StocksError4XX'
         5XX:
           $ref: '#/components/responses/StocksError5XX'
+  /v1/stocks/activities/{id}:
+    get:
+      security:
+        - Auth:
+            - stocks:read
+            - api:read
+      tags:
+        - Stocks
+      summary: Stock activity detail
+      description: |
+        One stock fill (buy or sell) belonging to the authenticated profile, by its journal id.
+      operationId: getStocksActivity
+      parameters:
+        - $ref: '#/components/parameters/ProfileHeader'
+        - $ref: '#/components/parameters/StockActivityIdPathParam'
+      responses:
+        '200':
+          description: One stock activity.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/BaseSchema'
+                  - type: object
+                    required:
+                      - data
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/StockActivity'
+        4XX:
+          $ref: '#/components/responses/StocksError4XX'
+        5XX:
+          $ref: '#/components/responses/StocksError5XX'
   /v1/stocks/{symbol}:
     get:
       security:
@@ -5622,6 +5655,41 @@ components:
         - donation
         - checkout
         - invoice
+    QuoteRateDiscountTier:
+      type: object
+      description: The rung the trade reached.
+      required:
+        - from
+        - currency
+      properties:
+        from:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: The rung starts at trades of this size.
+          example: '10000'
+        currency:
+          $ref: '#/components/schemas/Currency'
+    QuoteRateDiscount:
+      type: object
+      description: |
+        A volume discount the trade size earned. `rate` already includes it. Absent when no discount applied.
+      required:
+        - percentage
+        - saved
+        - tier
+      properties:
+        percentage:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: Percent off the base rate. "0.10" is 0.10%.
+          example: '0.10'
+        saved:
+          allOf:
+            - $ref: '#/components/schemas/AmountWithCurrency'
+          description: |
+            What the discount is worth before fees: extra of the currency received, or less of the currency paid.
+        tier:
+          $ref: '#/components/schemas/QuoteRateDiscountTier'
     QuoteRate:
       type: object
       properties:
@@ -5648,6 +5716,10 @@ components:
           enum:
             - FIXED
           example: FIXED
+        base_rate:
+          $ref: '#/components/schemas/Decimal'
+        discount:
+          $ref: '#/components/schemas/QuoteRateDiscount'
     FeeType:
       type: string
       enum:
@@ -8776,6 +8848,16 @@ components:
         example: AAPL
         x-oapi-codegen-extra-tags:
           filter: trim|upper
+    StockActivityIdPathParam:
+      name: id
+      in: path
+      required: true
+      description: The journal row id of the fill (e.g. SBE_1a2b3c).
+      schema:
+        type: string
+        example: SBE_1a2b3c
+        x-oapi-codegen-extra-tags:
+          filter: trim
     StatusQueryParam:
       name: status
       in: query
