@@ -7733,6 +7733,7 @@ components:
         - unit_price
         - status
         - created_at
+        - fees
       properties:
         id:
           type: string
@@ -7780,6 +7781,12 @@ components:
           type: string
           format: date-time
           x-order: 10
+        fees:
+          type: array
+          description: Fees charged on this fill, from the transfer that settled it.
+          items:
+            $ref: '#/components/schemas/Fee'
+          x-order: 11
     StockPositionDetail:
       type: object
       required:
@@ -7796,6 +7803,9 @@ components:
       allOf:
         - $ref: '#/components/schemas/Stock'
         - type: object
+          required:
+            - min_order
+            - max_order
           properties:
             description:
               type: string
@@ -7827,9 +7837,17 @@ components:
                 - paused
                 - closed
             min_order:
+              type: object
+              nullable: true
+              description: |
+                Minimum purchase amount from the complete counter limits of the stock's trading-currency book, denominated in that currency. Null when the book has no complete counter limits; available even when the book has no price.
               allOf:
                 - $ref: '#/components/schemas/AmountWithCurrency'
             max_order:
+              type: object
+              nullable: true
+              description: |
+                Maximum purchase amount from the complete counter limits of the stock's trading-currency book, denominated in that currency. Null when the book has no complete counter limits; available even when the book has no price.
               allOf:
                 - $ref: '#/components/schemas/AmountWithCurrency'
             open_price:
