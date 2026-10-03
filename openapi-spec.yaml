@@ -3584,6 +3584,10 @@ components:
           $ref: '#/components/schemas/Amount'
         total:
           $ref: '#/components/schemas/Amount'
+        in_orders:
+          allOf:
+            - $ref: '#/components/schemas/Amount'
+          description: Money backing this customer's open exchange orders, held in the account's `reserved` bucket. Placing an order moves money out of the spendable balance and into `reserved`, so `in_orders` is never part of `available`; it is part of `total`. Returns zero when there are no reserved funds.
     BalanceListResponse:
       allOf:
         - $ref: '#/components/schemas/CursorPagination'
