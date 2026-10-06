@@ -3787,6 +3787,7 @@ components:
             - fiat
             - crypto
             - stablecoin
+            - stock
           description: Indicates whether the cryptocurrency is a stablecoin.
         decimals:
           type: string
@@ -8690,6 +8691,7 @@ components:
             - fiat
             - crypto
             - stablecoin
+            - stock
       style: form
       example: fiat
       explode: false
