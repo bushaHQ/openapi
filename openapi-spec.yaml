@@ -1120,16 +1120,20 @@ paths:
         - name: type
           in: query
           description: |
-            This filter pairs based on the type. A single type is accepted. fiat filter return pairs where the counter currency-type is a fiat crypto filter return pairs where the counter currency type is digital stablecoin filter return pairs where the base or counter currency is a stablecoin base_crypto filter return pairs where the base currency is digital base_fiat filter return pairs where the base currency is a fiat stock filter returns stock pairs
+            One or more types, comma-separated (type=crypto,stock). A pair is listed when it matches any of them. Stock books are listed only when stock is named. fiat filter return pairs where the counter currency-type is a fiat crypto filter return pairs where the counter currency type is digital stablecoin filter return pairs where the base or counter currency is a stablecoin base_crypto filter return pairs where the base currency is digital base_fiat filter return pairs where the base currency is a fiat stock filter returns stock pairs
+          style: form
+          explode: false
           schema:
-            type: string
-            enum:
-              - fiat
-              - stablecoin
-              - crypto
-              - base_crypto
-              - base_fiat
-              - stock
+            type: array
+            items:
+              type: string
+              enum:
+                - fiat
+                - stablecoin
+                - crypto
+                - base_crypto
+                - base_fiat
+                - stock
         - name: is_business
           in: query
           schema:
@@ -2819,6 +2823,8 @@ paths:
       tags:
         - Stocks
       summary: List stocks
+      description: Deprecated. Use GET /v1/pairs?type=stock for prices and GET /v1/currencies?type=stock for the profile.
+      deprecated: true
       operationId: listStocks
       parameters:
         - $ref: '#/components/parameters/ProfileHeader'
@@ -2884,6 +2890,8 @@ paths:
       tags:
         - Stocks
       summary: Market status
+      description: Deprecated. Use stock.market on each stock from GET /v1/currencies?type=stock.
+      deprecated: true
       operationId: getStocksMarketStatus
       responses:
         '200':
@@ -2912,6 +2920,8 @@ paths:
       summary: Top movers
       description: |
         Top gainers and losers by 24h percent change over listed symbols with a fresh enough price to rank.
+        Deprecated. Use GET /v1/pairs?type=stock&sort_by=price_change&price_change_direction=positive, then negative.
+      deprecated: true
       operationId: getStocksMovers
       parameters:
         - name: limit
@@ -2950,6 +2960,8 @@ paths:
       summary: Stock holdings
       description: |
         Every open stock position for the authenticated profile, valued at the current display (mid) token price. The spread is what a trade costs, not part of what is owned, so it is not applied here.
+        Deprecated. Use GET /v1/balances and GET /v1/balances/overview.
+      deprecated: true
       operationId: getStocksPortfolio
       parameters:
         - $ref: '#/components/parameters/ProfileHeader'
@@ -2982,6 +2994,8 @@ paths:
       summary: Stock position detail
       description: |
         One position for the authenticated profile plus a page of the fills behind it, newest first.
+        Deprecated. Use GET /v1/balances/{code}.
+      deprecated: true
       operationId: getStocksPosition
       parameters:
         - $ref: '#/components/parameters/ProfileHeader'
@@ -3017,6 +3031,8 @@ paths:
       summary: Stock activity
       description: |
         A page of the authenticated profile's stock fills (buys and sells) across every symbol, newest first. Optionally narrowed to one action and/or a set of symbols.
+        Deprecated. Use GET /v1/transactions?currency={code}&type=buys,sells.
+      deprecated: true
       operationId: getStocksActivities
       parameters:
         - $ref: '#/components/parameters/ProfileHeader'
@@ -3073,6 +3089,8 @@ paths:
       summary: Stock activity detail
       description: |
         One stock fill (buy or sell) belonging to the authenticated profile, by its journal id.
+        Deprecated. Use GET /v1/transactions/{id}.
+      deprecated: true
       operationId: getStocksActivity
       parameters:
         - $ref: '#/components/parameters/ProfileHeader'
@@ -3102,6 +3120,8 @@ paths:
       tags:
         - Stocks
       summary: Stock detail
+      description: Deprecated. Use GET /v1/currencies/{code} and GET /v1/pairs?base={code}.
+      deprecated: true
       operationId: getStock
       parameters:
         - $ref: '#/components/parameters/StockSymbolPathParam'
@@ -3130,6 +3150,8 @@ paths:
       tags:
         - Stocks
       summary: Stock OHLC candles
+      description: Deprecated. Use GET /v1/currencies/ohlc/{book}.
+      deprecated: true
       operationId: getStockOHLC
       parameters:
         - $ref: '#/components/parameters/StockSymbolPathParam'
@@ -3355,7 +3377,7 @@ paths:
           description: Filter by source_currency code
           required: false
           x-oapi-codegen-extra-tags:
-            validate: min_len:3|max_len:10
+            validate: min_len:1|max_len:10
             filter: trim|upper
           schema:
             type: string
@@ -3364,7 +3386,7 @@ paths:
           description: Filter by target_currency code
           required: false
           x-oapi-codegen-extra-tags:
-            validate: min_len:3|max_len:10
+            validate: min_len:1|max_len:10
             filter: trim|upper
           schema:
             type: string
@@ -8785,7 +8807,7 @@ components:
         items:
           type: string
           x-oapi-codegen-extra-tags:
-            validate: min_len:3|max_len:10
+            validate: min_len:1|max_len:10
             filter: trim|upper
       style: form
       explode: false
