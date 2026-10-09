@@ -3595,6 +3595,7 @@ components:
           enum:
             - fiat
             - crypto
+            - stock
           example: crypto
         pending:
           $ref: '#/components/schemas/Amount'
