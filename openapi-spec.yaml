@@ -4263,6 +4263,10 @@ components:
           type: number
           minimum: 0
           maximum: 100
+          x-go-type: decimal.Decimal
+          x-go-type-import:
+            path: github.com/shopspring/decimal
+            name: decimal
         is_pep:
           type: boolean
           default: false
