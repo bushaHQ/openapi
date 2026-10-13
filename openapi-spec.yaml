@@ -2137,6 +2137,62 @@ paths:
           $ref: '#/components/responses/QuoteError4XX'
         5XX:
           $ref: '#/components/responses/QuoteError5XX'
+  /v1/quotes/pending-approvals:
+    get:
+      security:
+        - Auth:
+            - transfer_approval:read
+      summary: List pending transfer approvals
+      description: |
+        Lists the quotes the business has held for the owner's approval (two-step
+        type `approval`). An ordinary pending quote is not listed. A held quote
+        keeps the normal quote validity, so if the owner does not act before it
+        expires the quote expires and the requester must re-quote. Approval
+        replaces the transfer's one-time code: the owner's decision is the second
+        factor, so no authenticator code is required to approve.
+      operationId: listPendingTransferApprovals
+      tags:
+        - Quotes
+      parameters:
+        - $ref: '#/components/parameters/ProfileHeader'
+        - $ref: '#/components/parameters/SortQueryParam'
+        - $ref: '#/components/parameters/CursorQueryParams'
+        - $ref: '#/components/parameters/LimitQueryParam'
+      responses:
+        '200':
+          $ref: '#/components/responses/QuotesListResponse'
+        4XX:
+          $ref: '#/components/responses/QuoteError4XX'
+        5XX:
+          $ref: '#/components/responses/QuoteError5XX'
+  /v1/quotes/pending-approvals/{id}/reject:
+    post:
+      security:
+        - Auth:
+            - transfer_approval:write
+      summary: Reject a pending transfer approval
+      description: |
+        Rejects a held transfer approval and records the reason as a notice on the
+        quote, which is marked expired.
+      operationId: rejectTransferApproval
+      tags:
+        - Quotes
+      parameters:
+        - $ref: '#/components/parameters/PathParamNanoID'
+        - $ref: '#/components/parameters/ProfileHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RejectTransferApprovalRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/QuoteResponse'
+        4XX:
+          $ref: '#/components/responses/QuoteError4XX'
+        5XX:
+          $ref: '#/components/responses/QuoteError5XX'
   /v1/recipients:
     post:
       x-rate-limit: 20
@@ -5907,8 +5963,9 @@ components:
           type: string
           enum:
             - authenticator
+            - approval
           example: authenticator
-          description: the type of two step verification required
+          description: the type of two step verification required; approval hands the transfer to the business owner
         message:
           type: string
           example: Enter your 2FA code to continue
@@ -7049,6 +7106,15 @@ components:
           type: boolean
         meta:
           $ref: '#/components/schemas/PaymentOptionMeta'
+    RejectTransferApprovalRequest:
+      type: object
+      required:
+        - reason
+      properties:
+        reason:
+          type: string
+          description: The reason shown to the requester on the quote.
+          example: This transfer was rejected by your business owner.
     RecipientBase-2025-07-11:
       type: object
       required:
