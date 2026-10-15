@@ -2304,6 +2304,7 @@ paths:
                 summary: Recipient creation BTC (2025-07-11)
                 value:
                   type: crypto
+                  currency: BTC
                   address_label: My Bitcoin Wallet
                   network: BTC
                   address: bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh
@@ -2311,6 +2312,7 @@ paths:
                 summary: Recipient creation USDT ON ETH NETWORK (2025-07-11)
                 value:
                   type: crypto
+                  currency: USDT
                   address_label: My Ethereum Wallet
                   network: ETH
                   address: '0x742d35Cc6543C4532f5D2b8d9a2b2A1234567890'
@@ -2318,6 +2320,7 @@ paths:
                 summary: Recipient creation STELLAR LUMENS (2025-07-11)
                 value:
                   type: crypto
+                  currency: XLM
                   address_label: My Stellar Wallet
                   network: XLM
                   address: GAHK7EEG2WWHVKDNT4CEQFZGKF2LGDSW2IVM4S5DP42RBW3K6BTODB4A
@@ -2505,6 +2508,7 @@ paths:
                       address: bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh
                       address_label: My Bitcoin Wallet
                       category: crypto
+                      currency: BTC
                       network: BTC
                       object: recipients
                       owned_by_customer: true
@@ -2521,6 +2525,7 @@ paths:
                       address: '0x742d35Cc6543C4532f5D2b8d9a2b2A1234567890'
                       address_label: My Ethereum Wallet
                       category: crypto
+                      currency: USDT
                       network: ETH
                       object: recipients
                       owned_by_customer: true
@@ -2537,6 +2542,7 @@ paths:
                       address: GAHK7EEG2WWHVKDNT4CEQFZGKF2LGDSW2IVM4S5DP42RBW3K6BTODB4A
                       address_label: My Stellar Wallet
                       category: crypto
+                      currency: XLM
                       memo: '123456789'
                       network: XLM
                       object: recipients
@@ -7127,7 +7133,7 @@ components:
             mapstructure: channel,omitempty
         currency:
           type: string
-          description: Currency code for the recipient
+          description: Currency code for the recipient (the asset for crypto transfers)
           x-oapi-codegen-extra-tags:
             mapstructure: currency,omitempty
         country_code:
