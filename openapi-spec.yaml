@@ -6914,6 +6914,7 @@ components:
           type: string
           x-order: 14
           format: date-time
+          description: When the quote stops holding its price, seconds after it was made (30 seconds unless its book sets its own lifetime). Create the transfer before this time; show it as a countdown and ask for a new quote when it passes.
           example: '2023-12-01T15:04:05Z'
         created_at:
           type: string
