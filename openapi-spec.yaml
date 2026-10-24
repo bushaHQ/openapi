@@ -7496,6 +7496,10 @@ components:
             - betting
             - electricity
             - cable
+            - insurance
+            - flights
+            - taxes
+            - embassy
             - card
         phone_number:
           type: string
