@@ -1058,6 +1058,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/ProfileHeader'
         - $ref: '#/components/parameters/CurrencyCodePathParam'
+        - $ref: '#/components/parameters/VirtualBankAccountVersion'
         - name: amount
           in: query
           required: false
@@ -1069,7 +1070,7 @@ paths:
         - Miscellaneous
       operationId: getVirtualBankAccount
       summary: Get virtual bank account
-      description: Get a virtual bank account for a currency
+      description: Get virtual bank accounts for a currency. Without X-BU-Version, or with 2025-06-01 or 2025-07-11, return the oldest eligible account at the selected provider as one object without preferred. X-BU-Version 2026-10-20 returns every eligible account as an array. Only the preferred account moves to the front; all other accounts stay newest first. Disabled accounts and providers with deposit disabled are excluded. Provider status is not a gate. Provisioning of missing bank channels is unchanged.
       responses:
         '200':
           $ref: '#/components/responses/VirtualBankAccountResponse'
@@ -4717,6 +4718,32 @@ components:
           $ref: '#/components/schemas/Decimal'
         meta:
           $ref: '#/components/schemas/VirtualBankAccountMeta'
+    VirtualBankAccountListItem:
+      allOf:
+        - $ref: '#/components/schemas/VirtualBankAccount'
+        - type: object
+          required:
+            - preferred
+          properties:
+            preferred:
+              type: boolean
+              description: True only for the lowest-order active configured channel with an available account at the selected provider. Equal orders keep configuration order. At most one account is preferred; none is preferred when no active configured channel has an available account.
+              example: true
+    VirtualBankAccountResponseBody:
+      allOf:
+        - $ref: '#/components/schemas/BaseSchema'
+        - type: object
+          required:
+            - data
+          properties:
+            data:
+              description: One legacy account object, or an array from 2026-10-20
+              oneOf:
+                - $ref: '#/components/schemas/VirtualBankAccount'
+                - type: array
+                  description: Only the preferred account moves first; every other account stays newest first
+                  items:
+                    $ref: '#/components/schemas/VirtualBankAccountListItem'
     FeeItem:
       type: object
       description: A fee or setup item with label, value and optional description
@@ -8096,6 +8123,18 @@ components:
         filter: trim|upper
       schema:
         type: string
+    VirtualBankAccountVersion:
+      in: header
+      name: X-BU-Version
+      required: false
+      description: Absent, 2025-06-01 and 2025-07-11 return one object without preferred, keeping the oldest eligible account at the selected provider. 2026-10-20 returns an array with preferred on every item. Unknown versions return 400.
+      schema:
+        type: string
+        example: '2026-10-20'
+        enum:
+          - '2025-06-01'
+          - '2025-07-11'
+          - '2026-10-20'
     PaymentLinkTypeQueryParam:
       name: type
       in: query
@@ -8496,14 +8535,7 @@ components:
       content:
         application/json:
           schema:
-            allOf:
-              - $ref: '#/components/schemas/BaseSchema'
-              - type: object
-                required:
-                  - data
-                properties:
-                  data:
-                    $ref: '#/components/schemas/VirtualBankAccount'
+            $ref: '#/components/schemas/VirtualBankAccountResponseBody'
     VirtualBankAccountTermsResponse:
       description: Successful Response
       content:
