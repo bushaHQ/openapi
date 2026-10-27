@@ -156,9 +156,9 @@ tags:
   - name: Files
     description: Provides APIs to handle files upload
     x-displayName: Files
-  - name: Futures
-    description: Futures account management
-    x-displayName: Futures
+  - name: Perps
+    description: Perpetual futures
+    x-displayName: Perps
   - name: Insights
     description: Business analytics insights endpoints
     x-displayName: Insights
