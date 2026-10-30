@@ -7254,6 +7254,7 @@ components:
         - sends
         - receives
         - card_fees
+        - perps
     TransactionStatus:
       type: string
       description: Transaction status. `pending_review` indicates that the transaction requires manual review before completion.
@@ -7283,6 +7284,93 @@ components:
         rate_explained:
           type: string
           description: Human readable rate explanation
+    TxnMetaPerps:
+      type: object
+      description: |
+        A perps wallet movement, on rows of type `perps` only: one row per order that opens a
+        position, adds to one, or closes all or part of one. An open or an add is a debit of its
+        margin and our opening fee; a close is a credit of the margin released and the profit, less
+        a loss and our closing fee. Figures are USDT.
+      required:
+        - outcome
+        - market
+        - side
+        - leverage
+        - size
+        - paid
+        - received
+        - pnl
+        - pnl_percent
+        - trigger
+        - position_id
+        - order_id
+      properties:
+        outcome:
+          type: string
+          enum:
+            - opened
+            - added
+            - partly_closed
+            - closed
+          description: What the movement did to the position.
+          example: closed
+        market:
+          type: string
+          example: BTC-PERP
+        side:
+          type: string
+          enum:
+            - long
+            - short
+          example: long
+        leverage:
+          $ref: '#/components/schemas/Decimal'
+        size:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: What the order filled, in the underlying.
+          example: '0.006'
+        paid:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: |
+            What the customer paid for the part of the position the row is about: margin and our
+            opening fee. On a close, the share of the position's opens that the close covers.
+          example: '96.72'
+        received:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: What came back to the USDT wallet; 0 on an open or an add.
+          example: '107.262'
+        pnl:
+          type: string
+          nullable: true
+          x-go-type: decimal.Decimal
+          x-go-type-import:
+            path: github.com/shopspring/decimal
+            name: decimal
+          description: received − paid, fees included, on a close; null on an open or an add.
+          example: '10.542'
+        pnl_percent:
+          type: string
+          nullable: true
+          x-go-type: decimal.Decimal
+          x-go-type-import:
+            path: github.com/shopspring/decimal
+            name: decimal
+          description: pnl as a percentage of paid, 2 places, on a close; null on an open or an add.
+          example: '10.90'
+        trigger:
+          type: string
+          nullable: true
+          description: What closed the position when the customer did not (a stop or a take profit). Null in v1.
+          example: null
+        position_id:
+          type: string
+          example: ppos_kd2d6warmn
+        order_id:
+          type: string
+          example: pord_nc31thgkxu
     TxnMetaBankTransferSource:
       type: object
       description: Bank Transfer Source
@@ -7666,6 +7754,8 @@ components:
       properties:
         conversion:
           $ref: '#/components/schemas/TxnMetaConversion'
+        perps:
+          $ref: '#/components/schemas/TxnMetaPerps'
         price:
           type: object
           properties:
