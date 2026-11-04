@@ -3655,7 +3655,8 @@ components:
                   id:
                     type: string
                   email:
-                    $ref: '#/components/schemas/EmailField'
+                    allOf:
+                      - $ref: '#/components/schemas/EmailField'
             level:
               type: string
             created_at:
@@ -3733,13 +3734,15 @@ components:
         - type: object
           properties:
             phone:
-              $ref: '#/components/schemas/PhoneField'
+              allOf:
+                - $ref: '#/components/schemas/PhoneField'
             birth_date:
               type: string
               example: 24-12-2000
               description: date of birth of the user
             address:
-              $ref: '#/components/schemas/Address'
+              allOf:
+                - $ref: '#/components/schemas/Address'
             identifying_information:
               type: array
               description: List of identification documents provided by the customer
@@ -3798,13 +3801,18 @@ components:
         nationality:
           $ref: '#/components/schemas/CountryID'
         address:
-          $ref: '#/components/schemas/Address'
+          allOf:
+            - $ref: '#/components/schemas/Address'
         proof_of_address:
           type: string
+          description: Link to the proof of address, as issued by the platform's upload link.
+          example: https://cdn.busha.co/proofs/addr.pdf
         bvn:
           $ref: '#/components/schemas/BVNField'
         proof_of_id:
           type: string
+          description: Link to the proof of identity, as issued by the platform's upload link.
+          example: https://cdn.busha.co/proofs/id.pdf
     CustomerBusinessTransaction:
       type: object
       required:
@@ -3938,7 +3946,8 @@ components:
             - type
           properties:
             email:
-              $ref: '#/components/schemas/EmailField'
+              allOf:
+                - $ref: '#/components/schemas/EmailField'
             has_accepted_terms:
               type: boolean
               description: Indicates whether the customer has explicitly accepted the terms and conditions
@@ -5306,10 +5315,11 @@ components:
             A narration or description for the withdrawal. Required for USD bank transfer withdrawals.
         payment_invoice_url:
           type: string
-          example: https://example.com/invoice.pdf
+          example: https://cdn.busha.co/invoices/INV-2026-001.pdf
           description: |
-            URL of the payment invoice or supporting document. Required for business account USD withdrawals
-            and personal account USD withdrawals exceeding $10,000.
+            URL of the payment invoice or supporting document, as issued by the platform's upload link
+            (`POST /v1/files`). Required for business account USD withdrawals and personal account USD
+            withdrawals exceeding $10,000.
     RecipientDetails:
       type: object
       properties:
@@ -5399,7 +5409,8 @@ components:
           format: email
           description: email address for the payment request
         phone_number:
-          $ref: '#/components/schemas/PhoneField'
+          allOf:
+            - $ref: '#/components/schemas/PhoneField'
         name:
           $ref: '#/components/schemas/NameField'
         source:
@@ -5599,7 +5610,8 @@ components:
         - type: object
           properties:
             phone:
-              $ref: '#/components/schemas/PhoneField'
+              allOf:
+                - $ref: '#/components/schemas/PhoneField'
             recipient_id:
               type: string
               example: 64ae8c26ea1033204c805a8a
@@ -6289,7 +6301,8 @@ components:
             - type: object
               properties:
                 phone:
-                  $ref: '#/components/schemas/PhoneField'
+                  allOf:
+                    - $ref: '#/components/schemas/PhoneField'
         pay_out:
           $ref: '#/components/schemas/PayOutObj'
     UnauthenticatedCreateQuote:
@@ -6503,7 +6516,8 @@ components:
           type: string
           description: IBAN (for international transfers)
         phone_number:
-          $ref: '#/components/schemas/PhoneField'
+          allOf:
+            - $ref: '#/components/schemas/PhoneField'
         network:
           type: string
           description: Blockchain network (for crypto transfers)
