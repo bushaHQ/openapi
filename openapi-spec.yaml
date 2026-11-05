@@ -6957,8 +6957,9 @@ components:
           nullable: true
           description: |
             What closed the position when the customer did not: `liquidation` for Busha's liquidation,
-            `staff` for a close Busha's staff made by hand (its outcome is `closed` or `partly_closed`), and
-            a stop or a take profit later. Null for the customer's own.
+            `staff` for a close Busha's staff made by hand, and `stop_loss` or `take_profit` for the close
+            the customer's stop sent when the mark reached it (each with outcome `closed` or `partly_closed`).
+            Null for the customer's own.
           example: null
         position_id:
           type: string
