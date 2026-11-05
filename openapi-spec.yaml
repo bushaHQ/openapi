@@ -2696,7 +2696,12 @@ paths:
       description: Get details of a specific recipient
       operationId: getRecipient
       parameters:
-        - $ref: '#/components/parameters/PathParamUUID'
+        - name: id
+          in: path
+          required: true
+          description: Recipient ID. Older recipients have a UUID, newer ones a 24-character hex ID.
+          schema:
+            type: string
         - $ref: '#/components/parameters/ProfileHeader'
         - $ref: '#/components/parameters/X-BU-Version'
       responses:
@@ -2772,7 +2777,12 @@ paths:
       description: Delete a specific recipient
       operationId: deleteRecipient
       parameters:
-        - $ref: '#/components/parameters/PathParamUUID'
+        - name: id
+          in: path
+          required: true
+          description: Recipient ID. Older recipients have a UUID, newer ones a 24-character hex ID.
+          schema:
+            type: string
         - $ref: '#/components/parameters/ProfileHeader'
         - $ref: '#/components/parameters/X-BU-Version'
       responses:
