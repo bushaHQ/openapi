@@ -6552,6 +6552,10 @@ components:
           type: string
           description: Postal code of the recipient's address (for US transfers)
           example: '11421'
+        recipient_address_2:
+          type: string
+          description: Apartment, suite or unit of the recipient's address (for US transfers)
+          example: Apt 4B
         intermediary_bank_name:
           type: string
           example: JPMorgan Chase Bank
