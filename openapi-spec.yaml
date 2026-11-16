@@ -3068,6 +3068,57 @@ paths:
           $ref: '#/components/responses/TransferError4XX'
         5XX:
           $ref: '#/components/responses/TransferError5XX'
+  /v1/transfers/{id}/liveness:
+    post:
+      x-rate-limit: 10
+      security:
+        - Auth:
+            - transfers:write
+            - api:write
+      summary: Open the selfie of a held payout
+      description: |
+        A payout whose transfer carries `liveness.required: true` waits for the customer's selfie before any money moves.
+        This starts the selfie and answers the token Sumsub's native SDK runs it with, with its level and when it runs
+        out; call it again for a new token. The customer has 30 minutes from when the payout was held. A selfie that
+        passes sends the payout; one that fails, or none taken in time, cancels it, and the transfer carries a
+        `notice` saying why. Once the selfie no longer waits, this answers its `status` and no token. `404` when the
+        transfer does not wait on a selfie; `422` `liveness_check_unavailable` when Sumsub has no face on file to
+        match, which only support can then release.
+      operationId: openTransferLiveness
+      tags:
+        - Transfers
+      parameters:
+        - $ref: '#/components/parameters/PathParamNanoID'
+        - $ref: '#/components/parameters/ProfileHeader'
+      responses:
+        '200':
+          $ref: '#/components/responses/TransferLivenessResponse'
+        4XX:
+          $ref: '#/components/responses/TransferError4XX'
+        5XX:
+          $ref: '#/components/responses/TransferError5XX'
+    get:
+      security:
+        - Auth:
+            - transfers:read
+            - api:read
+      summary: Get the selfie of a held payout
+      description: |
+        The state of the selfie a held payout waits for: `waiting` until Sumsub answers, then `passed`, `failed`,
+        `expired` or `cancelled`. It carries no token. `404` when the transfer does not wait on a selfie.
+      operationId: getTransferLiveness
+      tags:
+        - Transfers
+      parameters:
+        - $ref: '#/components/parameters/PathParamNanoID'
+        - $ref: '#/components/parameters/ProfileHeader'
+      responses:
+        '200':
+          $ref: '#/components/responses/TransferLivenessResponse'
+        4XX:
+          $ref: '#/components/responses/TransferError4XX'
+        5XX:
+          $ref: '#/components/responses/TransferError5XX'
 components:
   securitySchemes:
     Auth:
@@ -7534,6 +7585,33 @@ components:
           properties:
             payer_details:
               $ref: '#/components/schemas/RecipientDetails'
+    TransferLivenessHold:
+      type: object
+      description: |
+        Present when the payout was held for the customer's selfie. While the transfer is `pending`, open the selfie
+        with `POST /v1/transfers/{id}/liveness`.
+      required:
+        - required
+      properties:
+        required:
+          type: boolean
+          example: true
+    TransferNotice:
+      type: object
+      description: Why the transfer stopped, for the customer to read.
+      properties:
+        type:
+          type: string
+          description: |
+            What stopped it. A payout held for a selfie ends with `liveness_failed`, `liveness_expired`,
+            `quote_expired` (its price ran out while it waited) or `payout_not_approved` (support declined it).
+          example: liveness_expired
+        stage:
+          type: string
+          example: approval
+        text:
+          type: string
+          example: The selfie wasn't taken in time. Transfer cancelled.
     Transfer:
       type: object
       required:
@@ -7636,6 +7714,12 @@ components:
           type: string
           format: date-time
           example: '2023-10-15T12:20:45Z'
+        liveness:
+          allOf:
+            - $ref: '#/components/schemas/TransferLivenessHold'
+        notice:
+          allOf:
+            - $ref: '#/components/schemas/TransferNotice'
     CreateTransferRequest:
       type: object
       required:
@@ -7643,6 +7727,36 @@ components:
       properties:
         quote_id:
           $ref: '#/components/schemas/NanoID'
+    TransferLiveness:
+      type: object
+      required:
+        - transfer_id
+        - status
+      properties:
+        transfer_id:
+          $ref: '#/components/schemas/ResourceID'
+        status:
+          type: string
+          enum:
+            - waiting
+            - passed
+            - failed
+            - expired
+            - cancelled
+          example: waiting
+        access_token:
+          type: string
+          description: The token Sumsub's native SDK runs the selfie with; only on opening a selfie that waits.
+          example: _act-sbx-b8ebfb63-5f24-4b89-9c08-000000000000
+        level_name:
+          type: string
+          description: The Sumsub level the token is for.
+          example: liveness-confirmation
+        expires_at:
+          type: string
+          format: date-time
+          description: When the selfie stops counting; open it again for a fresh token before then.
+          example: '2026-11-15T15:04:05Z'
   parameters:
     ProfileHeader:
       in: header
@@ -8583,3 +8697,16 @@ components:
                 properties:
                   data:
                     $ref: '#/components/schemas/Transfer'
+    TransferLivenessResponse:
+      description: The selfie a held payout waits for
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/BaseSchema'
+              - type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/TransferLiveness'
