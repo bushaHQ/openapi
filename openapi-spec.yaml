@@ -623,6 +623,1185 @@ paths:
           $ref: '#/components/responses/CustomerError4XX'
         5XX:
           $ref: '#/components/responses/CustomerError5XX'
+  /v1/exchange/markets:
+    get:
+      tags:
+        - Exchange
+      security:
+        - AuthOptional:
+            - exchange:read
+            - api:read
+      summary: List exchange markets
+      description: |
+        Markets that accept new orders and the rules an order against them has to satisfy: the tick, the step, the size bounds, the minimum notional and the display precisions. A bot reads this once at start-up and again whenever a `market_halted`, `price_off_tick` or `quantity_off_step` rejection tells it the copy it holds has gone stale.
+
+        The list is small and unpaginated, as `/v1/pairs` is. Reading it needs no credential; a bearer token is accepted so a client can keep one code path for public and private calls. Read from the venue's own market catalogue; a market that has not been listed under a symbol yet is absent. By default, only `trading`, `post_only` and `limit_only` markets are returned. Set `include_inactive=true` to also load `halted`, `cancel_only` and `delisted` market metadata for existing orders and history. An explicit `status` filter takes precedence over this flag.
+      operationId: listExchangeMarkets
+      parameters:
+        - name: status
+          in: query
+          required: false
+          description: Only markets in this state, including inactive states; overrides include_inactive
+          schema:
+            $ref: '#/components/schemas/ExchangeMarketStatus'
+        - name: include_inactive
+          in: query
+          required: false
+          description: Include inactive market metadata when status is omitted
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Markets
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExchangeMarketListResponse'
+              examples:
+                default:
+                  summary: Markets accepting new orders
+                  value:
+                    status: success
+                    message: Markets retrieved
+                    data:
+                      - symbol: USDT-NGN
+                        base_currency: USDT
+                        quote_currency: NGN
+                        status: trading
+                        price_tick: '0.01'
+                        quantity_step: '0.01'
+                        min_quantity: '10'
+                        max_quantity: '500000'
+                        min_notional: '5000'
+                        price_decimals: 2
+                        quantity_decimals: 2
+                      - symbol: BTC-NGN
+                        base_currency: BTC
+                        quote_currency: NGN
+                        status: trading
+                        price_tick: '1000'
+                        quantity_step: '0.00000001'
+                        min_quantity: '0.0001'
+                        max_quantity: '5'
+                        min_notional: '5000'
+                        price_decimals: 0
+                        quantity_decimals: 8
+                      - symbol: BTC-USDT
+                        base_currency: BTC
+                        quote_currency: USDT
+                        status: post_only
+                        price_tick: '0.1'
+                        quantity_step: '0.00001'
+                        min_quantity: '0.0001'
+                        max_quantity: '20'
+                        min_notional: '5'
+                        price_decimals: 1
+                        quantity_decimals: 5
+        4XX:
+          $ref: '#/components/responses/ExchangeError4XX'
+        5XX:
+          $ref: '#/components/responses/ExchangeError5XX'
+  /v1/exchange/markets/{symbol}:
+    get:
+      tags:
+        - Exchange
+      security:
+        - AuthOptional:
+            - exchange:read
+            - api:read
+      summary: Get one exchange market
+      description: |
+        One market by symbol, carrying the same trading rules the list does. An unknown symbol is `not_found`, and so is a market the venue has not listed under a symbol.
+      operationId: getExchangeMarket
+      parameters:
+        - $ref: '#/components/parameters/SymbolPathParam'
+      responses:
+        '200':
+          description: Market
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExchangeMarketResponse'
+              examples:
+                default:
+                  value:
+                    status: success
+                    message: Market retrieved
+                    data:
+                      symbol: USDT-NGN
+                      base_currency: USDT
+                      quote_currency: NGN
+                      status: trading
+                      price_tick: '0.01'
+                      quantity_step: '0.01'
+                      min_quantity: '10'
+                      max_quantity: '500000'
+                      min_notional: '5000'
+                      price_decimals: 2
+                      quantity_decimals: 2
+        4XX:
+          $ref: '#/components/responses/ExchangeError4XX'
+        5XX:
+          $ref: '#/components/responses/ExchangeError5XX'
+  /v1/exchange/markets/{symbol}/order_book:
+    get:
+      tags:
+        - Exchange
+      security:
+        - AuthOptional:
+            - exchange:read
+            - api:read
+      summary: Get an order book snapshot
+      description: |
+        Aggregated depth for one market: `bids` best first and descending, `asks` best first and ascending, each level the positional pair `[price, quantity]`, both decimal strings. The quantity is the total resting size at that price, not one order's.
+
+        `sequence` is the book's revision: the market's own order sequence, read in the same database snapshot as the levels, so it dates them. It only ever moves forward, so two snapshots can be ordered by it — but it counts accepted orders, not book changes, so a cancellation or a fill can change the depth without moving it and a step of more than one is not a gap. **Do not use it to decide whether the book has changed**; compare the `ETag`, which is derived from the levels themselves and therefore moves whenever they do. A conditional re-read with `If-None-Match` answers `304` only when the depth served is byte-for-byte what the client already holds.
+
+        **This endpoint is not part of stream synchronisation.** A client keeping a live book subscribes to `order_book` and joins on the snapshot the stream itself sends in band as its first message; there is no window between the two to reason about and nothing to fetch first. This read is for clients that want depth without holding a socket open. The procedure and the sequencing rules belong to the stream protocol.
+
+        `depth` names how many levels a side returns and must be one of 1, 5, 10, 20, 50, 100 or 500; omitting it returns 50. The depth is aggregated from the resting orders themselves: an order past its own expiry is not liquidity and is left out, because a taker could not have hit it.
+      operationId: getExchangeOrderBook
+      parameters:
+        - $ref: '#/components/parameters/SymbolPathParam'
+        - name: depth
+          in: query
+          required: false
+          description: Levels per side. One of 1, 5, 10, 20, 50, 100, 500. Defaults to 50.
+          schema:
+            type: integer
+            enum:
+              - 1
+              - 5
+              - 10
+              - 20
+              - 50
+              - 100
+              - 500
+            example: 5
+      responses:
+        '200':
+          description: Order book
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExchangeOrderBookResponse'
+              examples:
+                default:
+                  summary: Five levels a side on USDT-NGN
+                  value:
+                    status: success
+                    message: Order book retrieved
+                    data:
+                      sequence: 90114627
+                      bids:
+                        - - '1371.50'
+                          - '4200.00'
+                        - - '1371.20'
+                          - '6150.00'
+                        - - '1370.85'
+                          - '11800.00'
+                        - - '1370.40'
+                          - '9300.00'
+                        - - '1369.95'
+                          - '22450.00'
+                      asks:
+                        - - '1372.30'
+                          - '3100.00'
+                        - - '1372.65'
+                          - '5400.00'
+                        - - '1373.10'
+                          - '10250.00'
+                        - - '1373.70'
+                          - '8800.00'
+                        - - '1374.25'
+                          - '19600.00'
+                      time: '2026-09-06T12:00:00.482Z'
+        4XX:
+          $ref: '#/components/responses/ExchangeError4XX'
+        5XX:
+          $ref: '#/components/responses/ExchangeError5XX'
+  /v1/exchange/markets/{symbol}/trades:
+    get:
+      tags:
+        - Exchange
+      security:
+        - AuthOptional:
+            - exchange:read
+            - api:read
+      summary: List public trades
+      description: |
+        The public tape for one market, most recent first, cursor paginated. `taker_side` is the side of the order that crossed the spread, published as itself rather than as an inverted "the buyer was the maker" boolean, so no client has to reason about the negation.
+
+        `limit` defaults to 50 and is capped at 500. `trade_id` is the print's own sequence on this market, and paging by cursor walks it downwards, so a tape that grows while a client reads it never repeats or skips a print.
+
+        `from` and `to` bound the execution time (`time`), inclusively, using RFC3339 timestamps. Either bound may be omitted. `from` must not be later than `to`. The window is applied before paging, so `next_cursor` and `previous_cursor` stay inside it.
+      operationId: listExchangeTrades
+      parameters:
+        - $ref: '#/components/parameters/SymbolPathParam'
+        - name: from
+          in: query
+          required: false
+          description: |
+            Only trades executed at or after this instant. Compared at microsecond precision; digits finer than a microsecond are truncated.
+          schema:
+            type: string
+            format: date-time
+            pattern: ^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$
+            example: '2026-10-01T00:00:00Z'
+        - name: to
+          in: query
+          required: false
+          description: |
+            Only trades executed at or before this instant. Compared at microsecond precision; digits finer than a microsecond are truncated.
+          schema:
+            type: string
+            format: date-time
+            pattern: ^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$
+            example: '2026-10-02T23:59:59Z'
+        - $ref: '#/components/parameters/CursorQueryParams'
+        - $ref: '#/components/parameters/LimitQueryParam'
+      responses:
+        '200':
+          description: Trades
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExchangeTradeListResponse'
+              examples:
+                default:
+                  value:
+                    status: success
+                    message: Trades retrieved
+                    pagination:
+                      current_entries_size: 3
+                    data:
+                      - trade_id: '4820117'
+                        price: '1372.10'
+                        quantity: '1500.00'
+                        taker_side: buy
+                        time: '2026-09-06T11:59:58.412Z'
+                      - trade_id: '4820116'
+                        price: '1371.85'
+                        quantity: '820.00'
+                        taker_side: sell
+                        time: '2026-09-06T11:59:41.907Z'
+                      - trade_id: '4820115'
+                        price: '1372.30'
+                        quantity: '3100.00'
+                        taker_side: buy
+                        time: '2026-09-06T11:58:12.150Z'
+        4XX:
+          $ref: '#/components/responses/ExchangeError4XX'
+        5XX:
+          $ref: '#/components/responses/ExchangeError5XX'
+  /v1/exchange/markets/{symbol}/candles:
+    get:
+      tags:
+        - Exchange
+      security:
+        - AuthOptional:
+            - exchange:read
+            - api:read
+      summary: List candles
+      description: |
+        OHLCV rows for one market, oldest first. Each row is an object naming its own fields: `time`, `open`, `high`, `low`, `close`, `volume`, `quote_volume` and `trades`.
+
+        `time` is the RFC3339 instant the interval opened; `open`, `high`, `low`, `close`, `volume` and `quote_volume` are decimal strings, because prices must never be JSON numbers on this surface; `trades` is a count, and so a JSON number.
+
+        `interval` is required. `start_time` and `end_time` bound the window; with neither, the most recent `limit` intervals are returned. `limit` defaults to 200 and is capped at 1000. There is no history ceiling: page back through time with `end_time` rather than being told older data cannot be retrieved. The bar that is still forming is included, and it moves as the market trades.
+
+        Every interval from the market's first trade to the one forming now has a row, as Binance, Kraken and OKX publish klines. An interval nothing traded in is flat at the previous close: `open`, `high`, `low` and `close` are that close, and `volume`, `quote_volume` and `trades` are zero. Intervals before the market's first trade are left out.
+      operationId: listExchangeCandles
+      parameters:
+        - $ref: '#/components/parameters/SymbolPathParam'
+        - name: interval
+          in: query
+          required: true
+          description: Candle width
+          schema:
+            $ref: '#/components/schemas/ExchangeCandleInterval'
+        - name: start_time
+          in: query
+          required: false
+          description: Only candles opening at or after this instant
+          schema:
+            $ref: '#/components/schemas/TimeStamp'
+        - name: end_time
+          in: query
+          required: false
+          description: Only candles opening before this instant
+          schema:
+            $ref: '#/components/schemas/TimeStamp'
+        - $ref: '#/components/parameters/LimitQueryParam'
+      responses:
+        '200':
+          description: Candles
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExchangeCandleListResponse'
+              examples:
+                default:
+                  summary: Three one-hour candles on USDT-NGN
+                  value:
+                    status: success
+                    message: Candles retrieved
+                    data:
+                      - time: '2026-09-06T09:00:00Z'
+                        open: '1369.40'
+                        high: '1371.90'
+                        low: '1368.80'
+                        close: '1371.05'
+                        volume: '94200.00'
+                        quote_volume: '129108910.00'
+                        trades: 312
+                      - time: '2026-09-06T10:00:00Z'
+                        open: '1371.05'
+                        high: '1373.60'
+                        low: '1370.20'
+                        close: '1371.80'
+                        volume: '88150.00'
+                        quote_volume: '120920417.00'
+                        trades: 287
+                      - time: '2026-09-06T11:00:00Z'
+                        open: '1371.80'
+                        high: '1375.90'
+                        low: '1371.10'
+                        close: '1372.10'
+                        volume: '102640.00'
+                        quote_volume: '140878174.00'
+                        trades: 341
+        4XX:
+          $ref: '#/components/responses/ExchangeError4XX'
+        5XX:
+          $ref: '#/components/responses/ExchangeError5XX'
+  /v1/exchange/markets/{symbol}/ticker:
+    get:
+      tags:
+        - Exchange
+      security:
+        - AuthOptional:
+            - exchange:read
+            - api:read
+      summary: Get one market's ticker
+      description: |
+        The 24-hour summary and the top of book for one market: the same payload the tickers list carries, for a client watching a single symbol.
+      operationId: getExchangeTicker
+      parameters:
+        - $ref: '#/components/parameters/SymbolPathParam'
+      responses:
+        '200':
+          description: Ticker
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExchangeTickerResponse'
+              examples:
+                default:
+                  value:
+                    status: success
+                    message: Ticker retrieved
+                    data:
+                      symbol: USDT-NGN
+                      last_price: '1372.10'
+                      best_bid: '1371.50'
+                      best_bid_quantity: '4200.00'
+                      best_ask: '1372.30'
+                      best_ask_quantity: '3100.00'
+                      open_24h: '1366.40'
+                      high_24h: '1375.90'
+                      low_24h: '1364.20'
+                      volume_24h: '1842300.55'
+                      quote_volume_24h: '2527845913.20'
+                      price_change_24h: '5.70'
+                      price_change_percent_24h: '0.42'
+                      trade_count_24h: 8241
+                      time: '2026-09-06T12:00:00Z'
+        4XX:
+          $ref: '#/components/responses/ExchangeError4XX'
+        5XX:
+          $ref: '#/components/responses/ExchangeError5XX'
+  /v1/exchange/tickers:
+    get:
+      tags:
+        - Exchange
+      security:
+        - AuthOptional:
+            - exchange:read
+            - api:read
+      summary: List exchange tickers
+      description: |
+        The 24-hour summary and the top of book for every market, in one read. The two are merged deliberately: a bot that wants the best bid and offer nearly always wants the day's range with it, and merging them removes a round trip.
+
+        Unpaginated, as the market list is. It covers every market a trade can still print on, so a `delisted` book is absent. Read from the venue's folded bars and its live book.
+      operationId: listExchangeTickers
+      responses:
+        '200':
+          description: Tickers
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExchangeTickerListResponse'
+              examples:
+                default:
+                  summary: Every market's ticker
+                  value:
+                    status: success
+                    message: Tickers retrieved
+                    data:
+                      - symbol: USDT-NGN
+                        last_price: '1372.10'
+                        best_bid: '1371.50'
+                        best_bid_quantity: '4200.00'
+                        best_ask: '1372.30'
+                        best_ask_quantity: '3100.00'
+                        open_24h: '1366.40'
+                        high_24h: '1375.90'
+                        low_24h: '1364.20'
+                        volume_24h: '1842300.55'
+                        quote_volume_24h: '2527845913.20'
+                        price_change_24h: '5.70'
+                        price_change_percent_24h: '0.42'
+                        trade_count_24h: 8241
+                        time: '2026-09-06T12:00:00Z'
+                      - symbol: BTC-NGN
+                        last_price: '106760000'
+                        best_bid: '106755000'
+                        best_bid_quantity: '0.12000000'
+                        best_ask: '106768000'
+                        best_ask_quantity: '0.08500000'
+                        open_24h: '106120000'
+                        high_24h: '107310000'
+                        low_24h: '105870000'
+                        volume_24h: '12.44180000'
+                        quote_volume_24h: '1328214592000'
+                        price_change_24h: '640000'
+                        price_change_percent_24h: '0.60'
+                        trade_count_24h: 417
+                        time: '2026-09-06T12:00:00Z'
+                      - symbol: BTC-USDT
+                        last_price: '77790.0'
+                        best_bid: '77780.5'
+                        best_bid_quantity: '0.34000'
+                        best_ask: '77800.0'
+                        best_ask_quantity: '0.21000'
+                        open_24h: '77340.0'
+                        high_24h: '78210.0'
+                        low_24h: '77105.0'
+                        volume_24h: '31.42000'
+                        quote_volume_24h: '2444151.80'
+                        price_change_24h: '450.0'
+                        price_change_percent_24h: '0.58'
+                        trade_count_24h: 1094
+                        time: '2026-09-06T12:00:00Z'
+        4XX:
+          $ref: '#/components/responses/ExchangeError4XX'
+        5XX:
+          $ref: '#/components/responses/ExchangeError5XX'
+  /v1/exchange/time:
+    get:
+      tags:
+        - Exchange
+      security: []
+      summary: Get exchange server time
+      description: |
+        The venue's clock, as an RFC3339 instant and as milliseconds since the Unix epoch. A client whose requests are being refused for timing reasons should read this first: every surveyed exchange ships the endpoint for exactly that diagnosis, and a drifted client clock is the commonest cause.
+
+        Public and unauthenticated, because a client cannot be asked to authenticate correctly before it knows what time the server thinks it is.
+      operationId: getExchangeTime
+      responses:
+        '200':
+          description: Server time
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExchangeTimeResponse'
+              examples:
+                default:
+                  value:
+                    status: success
+                    message: Server time retrieved
+                    data:
+                      time: '2026-09-06T12:00:00Z'
+                      epoch_ms: 1789041600000
+        4XX:
+          $ref: '#/components/responses/ExchangeError4XX'
+        5XX:
+          $ref: '#/components/responses/ExchangeError5XX'
+  /v1/exchange/orders:
+    post:
+      tags:
+        - Exchange
+      security:
+        - Auth:
+            - exchange:trade
+            - api:write
+      summary: Place an order
+      description: |
+        Places one order on one market. `type` and `time_in_force` are separate flat fields rather than a fused union key, and `post_only` is its own boolean rather than a distinct order type, so the wire format stays readable and the invalid combinations are refused by name.
+
+        Sizing. A `limit` order names `quantity` in the base asset and a `price` in the quote asset. A `market` `sell` names `quantity` and nothing else. A `market` `buy` names `quote_quantity`, the amount of the quote asset to spend, and nothing else; naming none is `market_buy_needs_quote_quantity`, because the spend would otherwise be unbounded. A `market` order of either side that names a `price` is refused: a market order takes what the book offers and carries no price bound. To bound the price, place a `limit` order with `time_in_force` `ioc` — it takes what is available at that price or better and cancels the rest. For a market buy, the executed quantity lands on the market's quantity step and the unspent remainder of the amount is returned.
+
+        Replay. `client_order_id` is the caller's own reference, at most 64 characters, and must be unique among that caller's live orders. Re-sending an identical request under an id a live order already holds is **not** an error and creates nothing: it answers `200` with that order, so a bot that lost the response to a network timeout can retry safely. Re-sending a *different* request under the same id is `duplicate_client_order_id`. Once an order is no longer live its id may be reused.
+
+        Self-trade prevention. `stp_mode` decides what happens when the order would match the caller's own resting order: `cancel_taker` cancels the incoming one, `cancel_maker` cancels the resting one, `cancel_both` cancels both, and `decrement` takes the crossing quantity off both and lets the remainder of each carry on. Omitting it takes the book's own default, which is `cancel_taker` unless staff have set another. A self-trade is always prevented; there is no value that lets one print.
+
+        The reply is the order as a later read returns it. Both success bodies carry the stored order, field for field, so `created_at`, `updated_at` and the resolved `stp_mode` are the venue's own values and not an echo of the request: a client may store the reply and compare it against `GET /v1/exchange/orders/{order_id}` without seeing a difference that is not there.
+
+        If placement is unavailable, this write returns `503 book_busy` by default.
+      operationId: createExchangeOrder
+      x-error-contract:
+        resource_state_conflict: 409
+      parameters:
+        - $ref: '#/components/parameters/ProfileHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateExchangeOrderRequest'
+            examples:
+              limit_post_only:
+                summary: A maker bid on USDT-NGN
+                value:
+                  market: USDT-NGN
+                  side: buy
+                  type: limit
+                  quantity: '5000.00'
+                  price: '1371.50'
+                  time_in_force: gtc
+                  post_only: true
+                  client_order_id: mm-usdtngn-bid-0091
+                  stp_mode: cancel_taker
+              market_buy:
+                summary: Spend 1,000,000 NGN at market
+                value:
+                  market: USDT-NGN
+                  side: buy
+                  type: market
+                  quote_quantity: '1000000.00'
+                  time_in_force: ioc
+                  client_order_id: taker-0442
+      responses:
+        '200':
+          description: |
+            An identical replay of a live `client_order_id`. Nothing was created; this is the order that already exists.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExchangeOrderResponse'
+              examples:
+                default:
+                  value:
+                    status: success
+                    message: Order already exists
+                    data:
+                      id: exo_7Kq2mZ4tRbXn
+                      client_order_id: mm-usdtngn-bid-0091
+                      market: USDT-NGN
+                      side: buy
+                      type: limit
+                      time_in_force: gtc
+                      post_only: true
+                      stp_mode: cancel_taker
+                      status: open
+                      price: '1371.50'
+                      quantity: '5000.00'
+                      quote_quantity: null
+                      filled_quantity: '0.00'
+                      filled_quote: '0.00'
+                      remaining_quantity: '5000.00'
+                      average_price: null
+                      maker_fee_rate: '0.0000'
+                      taker_fee_rate: '0.0010'
+                      created_at: '2026-09-06T12:00:00.115Z'
+                      updated_at: '2026-09-06T12:00:00.115Z'
+                      expires_at: null
+        '201':
+          description: Order placed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExchangeOrderResponse'
+              examples:
+                default:
+                  summary: The maker bid, resting
+                  value:
+                    status: success
+                    message: Order placed
+                    data:
+                      id: exo_7Kq2mZ4tRbXn
+                      client_order_id: mm-usdtngn-bid-0091
+                      market: USDT-NGN
+                      side: buy
+                      type: limit
+                      time_in_force: gtc
+                      post_only: true
+                      stp_mode: cancel_taker
+                      status: open
+                      price: '1371.50'
+                      quantity: '5000.00'
+                      quote_quantity: null
+                      filled_quantity: '0.00'
+                      filled_quote: '0.00'
+                      remaining_quantity: '5000.00'
+                      average_price: null
+                      maker_fee_rate: '0.0000'
+                      taker_fee_rate: '0.0010'
+                      created_at: '2026-09-06T12:00:00.115Z'
+                      updated_at: '2026-09-06T12:00:00.115Z'
+                      expires_at: null
+        4XX:
+          $ref: '#/components/responses/ExchangeError4XX'
+        5XX:
+          $ref: '#/components/responses/ExchangeError5XX'
+    get:
+      tags:
+        - Exchange
+      security:
+        - Auth:
+            - exchange:read
+            - api:read
+      summary: List the caller's orders
+      description: |
+        The caller's own orders, most recent first, cursor paginated. `status=open` returns the live ones, `open` and `partially_filled`, which a bot reconciles against on reconnect. `closed` returns `filled` and `cancelled`; `all` returns every status. Omitting it is `open`. `partially_filled`, `filled`, and `cancelled` each select that exact state.
+
+        Filters combine with AND. `market` selects one pair; `asset` selects markets with that base or quote currency. `side` selects buy or sell, and `type` selects market or limit. `from` and `to` bound the date placed (`created_at`), inclusively, using RFC3339 timestamps. Either date bound may be omitted. `from` must not be later than `to`.
+
+        `client_order_id` looks an order up by the caller's own reference, so an id is enough to find an order whose platform id was lost. `limit` defaults to 50 and is capped at 200. When placement is unavailable, this read serves example orders rather than live orders.
+      operationId: listExchangeOrders
+      parameters:
+        - $ref: '#/components/parameters/ProfileHeader'
+        - name: status
+          in: query
+          required: false
+          description: |
+            Defaults to `open`, which includes partially filled orders. `closed` includes filled and cancelled orders. The other states are exact matches; `all` returns every state.
+          schema:
+            type: string
+            enum:
+              - open
+              - closed
+              - all
+              - partially_filled
+              - filled
+              - cancelled
+            example: open
+        - name: market
+          in: query
+          required: false
+          description: Only orders on this market
+          schema:
+            $ref: '#/components/schemas/ExchangeSymbol'
+        - name: asset
+          in: query
+          required: false
+          description: Only orders whose market has this base or quote currency
+          schema:
+            type: string
+            pattern: ^[A-Z0-9]{2,10}$
+            minLength: 2
+            maxLength: 10
+            example: BTC
+        - name: side
+          in: query
+          required: false
+          description: Only buy or sell orders
+          schema:
+            $ref: '#/components/schemas/ExchangeSide'
+        - name: type
+          in: query
+          required: false
+          description: Only market or limit orders
+          schema:
+            $ref: '#/components/schemas/ExchangeOrderType'
+        - name: from
+          in: query
+          required: false
+          description: Only orders placed at or after this instant
+          schema:
+            type: string
+            format: date-time
+            pattern: ^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$
+            example: '2026-10-01T00:00:00Z'
+        - name: to
+          in: query
+          required: false
+          description: Only orders placed at or before this instant
+          schema:
+            type: string
+            format: date-time
+            pattern: ^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$
+            example: '2026-10-02T23:59:59Z'
+        - name: client_order_id
+          in: query
+          required: false
+          description: Only the order carrying this caller reference
+          schema:
+            type: string
+            maxLength: 64
+            example: mm-usdtngn-bid-0091
+        - $ref: '#/components/parameters/CursorQueryParams'
+        - $ref: '#/components/parameters/LimitQueryParam'
+      responses:
+        '200':
+          description: Orders
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExchangeOrderListResponse'
+              examples:
+                default:
+                  value:
+                    status: success
+                    message: Orders retrieved
+                    pagination:
+                      current_entries_size: 2
+                    data:
+                      - id: exo_7Kq2mZ4tRbXn
+                        client_order_id: mm-usdtngn-bid-0091
+                        market: USDT-NGN
+                        side: buy
+                        type: limit
+                        time_in_force: gtc
+                        post_only: true
+                        stp_mode: cancel_taker
+                        status: open
+                        price: '1371.50'
+                        quantity: '5000.00'
+                        quote_quantity: null
+                        filled_quantity: '0.00'
+                        filled_quote: '0.00'
+                        remaining_quantity: '5000.00'
+                        average_price: null
+                        maker_fee_rate: '0.0000'
+                        taker_fee_rate: '0.0010'
+                        created_at: '2026-09-06T12:00:00.115Z'
+                        updated_at: '2026-09-06T12:00:00.115Z'
+                        expires_at: null
+                      - id: exo_3Nd8vYpLwGtE
+                        client_order_id: mm-usdtngn-ask-0090
+                        market: USDT-NGN
+                        side: sell
+                        type: limit
+                        time_in_force: gtc
+                        post_only: true
+                        stp_mode: cancel_taker
+                        status: partially_filled
+                        price: '1372.30'
+                        quantity: '5000.00'
+                        quote_quantity: null
+                        filled_quantity: '1900.00'
+                        filled_quote: '2607370.00'
+                        remaining_quantity: '3100.00'
+                        average_price: '1372.30'
+                        maker_fee_rate: '0.0000'
+                        taker_fee_rate: '0.0010'
+                        created_at: '2026-09-06T11:52:03.884Z'
+                        updated_at: '2026-09-06T11:59:58.412Z'
+                        expires_at: null
+        4XX:
+          $ref: '#/components/responses/ExchangeError4XX'
+        5XX:
+          $ref: '#/components/responses/ExchangeError5XX'
+    delete:
+      tags:
+        - Exchange
+      security:
+        - Auth:
+            - exchange:trade
+            - api:write
+      summary: Cancel every order on one market
+      description: |
+        Cancels all of the caller's live orders on one market and answers with the orders the cancel applied to. `market` is **required**: a venue-wide cancel with no scope is too easy to fire by accident and too blunt for a maker quoting several books, so it is not offered. Cancel each market in turn, or arm the dead man's switch.
+
+        If placement is unavailable, this write returns `503 book_busy` by default.
+      operationId: cancelExchangeOrders
+      parameters:
+        - $ref: '#/components/parameters/ProfileHeader'
+        - name: market
+          in: query
+          required: true
+          description: The market to cancel on. Required.
+          schema:
+            $ref: '#/components/schemas/ExchangeSymbol'
+      responses:
+        '200':
+          description: Orders cancelled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExchangeOrderListResponse'
+              examples:
+                default:
+                  value:
+                    status: success
+                    message: Orders cancelled
+                    pagination:
+                      current_entries_size: 1
+                    data:
+                      - id: exo_7Kq2mZ4tRbXn
+                        client_order_id: mm-usdtngn-bid-0091
+                        market: USDT-NGN
+                        side: buy
+                        type: limit
+                        time_in_force: gtc
+                        post_only: true
+                        stp_mode: cancel_taker
+                        status: cancelled
+                        price: '1371.50'
+                        quantity: '5000.00'
+                        quote_quantity: null
+                        filled_quantity: '0.00'
+                        filled_quote: '0.00'
+                        remaining_quantity: '5000.00'
+                        average_price: null
+                        cancel_reason: cancel_all
+                        maker_fee_rate: '0.0000'
+                        taker_fee_rate: '0.0010'
+                        created_at: '2026-09-06T12:00:00.115Z'
+                        updated_at: '2026-09-06T12:01:11.006Z'
+                        expires_at: null
+        4XX:
+          $ref: '#/components/responses/ExchangeError4XX'
+        5XX:
+          $ref: '#/components/responses/ExchangeError5XX'
+  /v1/exchange/orders/cancel_all_after:
+    post:
+      tags:
+        - Exchange
+      security:
+        - Auth:
+            - exchange:trade
+            - api:write
+      summary: Arm the dead man's switch
+      description: |
+        Arms a timer that cancels every one of the caller's live orders, on every market, if the caller does not call again before it fires. It is the cheapest safety feature a venue can offer a market maker: a bot whose process dies, whose network partitions or whose container is evicted stops quoting instead of leaving stale orders exposed to a moving market.
+
+        Call it again with the same `timeout_seconds` on a cadence of half the timeout — 15 to 30 seconds for a 60-second window — to keep re-arming. `timeout_seconds: 0` disarms.
+
+        The response names both instants so a client can measure its own clock against the venue's without a second call. If placement is unavailable, this write returns `503 book_busy` by default.
+      operationId: setExchangeCancelAllAfter
+      parameters:
+        - $ref: '#/components/parameters/ProfileHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExchangeCancelAllAfterRequest'
+            examples:
+              arm:
+                summary: Cancel everything if silent for a minute
+                value:
+                  timeout_seconds: 60
+              disarm:
+                summary: Disarm
+                value:
+                  timeout_seconds: 0
+      responses:
+        '200':
+          description: Timer set
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExchangeCancelAllAfterResponse'
+              examples:
+                default:
+                  value:
+                    status: success
+                    message: Cancel-all-after armed
+                    data:
+                      current_time: '2026-09-06T12:00:00Z'
+                      trigger_time: '2026-09-06T12:01:00Z'
+        4XX:
+          $ref: '#/components/responses/ExchangeError4XX'
+        5XX:
+          $ref: '#/components/responses/ExchangeError5XX'
+  /v1/exchange/orders/{order_id}:
+    get:
+      tags:
+        - Exchange
+      security:
+        - Auth:
+            - exchange:read
+            - api:read
+      summary: Get one of the caller's orders
+      description: |
+        One order by its platform id, including orders that have already closed. To look one up by the caller's own reference instead, filter the list with `client_order_id`. An id belonging to another caller is `not_found`, not `forbidden`, so the surface does not confirm that an order it will not show exists. When placement is unavailable, this read serves example orders rather than live orders.
+      operationId: getExchangeOrder
+      parameters:
+        - $ref: '#/components/parameters/ProfileHeader'
+        - $ref: '#/components/parameters/OrderIDPathParam'
+      responses:
+        '200':
+          description: Order
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExchangeOrderResponse'
+              examples:
+                default:
+                  value:
+                    status: success
+                    message: Order retrieved
+                    data:
+                      id: exo_3Nd8vYpLwGtE
+                      client_order_id: mm-usdtngn-ask-0090
+                      market: USDT-NGN
+                      side: sell
+                      type: limit
+                      time_in_force: gtc
+                      post_only: true
+                      stp_mode: cancel_taker
+                      status: partially_filled
+                      price: '1372.30'
+                      quantity: '5000.00'
+                      quote_quantity: null
+                      filled_quantity: '1900.00'
+                      filled_quote: '2607370.00'
+                      remaining_quantity: '3100.00'
+                      average_price: '1372.30'
+                      maker_fee_rate: '0.0000'
+                      taker_fee_rate: '0.0010'
+                      created_at: '2026-09-06T11:52:03.884Z'
+                      updated_at: '2026-09-06T11:59:58.412Z'
+                      expires_at: null
+        4XX:
+          $ref: '#/components/responses/ExchangeError4XX'
+        5XX:
+          $ref: '#/components/responses/ExchangeError5XX'
+    delete:
+      tags:
+        - Exchange
+      security:
+        - Auth:
+            - exchange:trade
+            - api:write
+      summary: Cancel one order
+      description: |
+        Requests cancellation of one live order and answers with that order. The cancel is accepted, not necessarily applied: the order reaches `cancelled` when the engine acts on it, and a fill that was already in flight still prints. Cancelling an order that has already reached `filled` or `cancelled` is `order_not_cancellable`.
+
+        If placement is unavailable, this write returns `503 book_busy` by default.
+      operationId: cancelExchangeOrder
+      parameters:
+        - $ref: '#/components/parameters/ProfileHeader'
+        - $ref: '#/components/parameters/OrderIDPathParam'
+      responses:
+        '200':
+          description: Cancel accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExchangeOrderResponse'
+              examples:
+                default:
+                  value:
+                    status: success
+                    message: Order cancelled
+                    data:
+                      id: exo_3Nd8vYpLwGtE
+                      client_order_id: mm-usdtngn-ask-0090
+                      market: USDT-NGN
+                      side: sell
+                      type: limit
+                      time_in_force: gtc
+                      post_only: true
+                      stp_mode: cancel_taker
+                      status: cancelled
+                      price: '1372.30'
+                      quantity: '5000.00'
+                      quote_quantity: null
+                      filled_quantity: '1900.00'
+                      filled_quote: '2607370.00'
+                      remaining_quantity: '3100.00'
+                      average_price: '1372.30'
+                      cancel_reason: user_requested
+                      maker_fee_rate: '0.0000'
+                      taker_fee_rate: '0.0010'
+                      created_at: '2026-09-06T11:52:03.884Z'
+                      updated_at: '2026-09-06T12:01:11.006Z'
+                      expires_at: null
+        4XX:
+          $ref: '#/components/responses/ExchangeError4XX'
+        5XX:
+          $ref: '#/components/responses/ExchangeError5XX'
+  /v1/exchange/fills:
+    get:
+      tags:
+        - Exchange
+      security:
+        - Auth:
+            - exchange:read
+            - api:read
+      summary: List the caller's fills
+      description: |
+        Every execution against the caller's orders, most recent first, cursor paginated. One order produces as many fills as it took prints to complete, each carrying the fee actually charged and whether the caller was the `maker` or the `taker` on that print — which is what a maker's rebate accounting needs and what an average price alone cannot reconstruct.
+
+        Cursor paging is used rather than an offset because a fills feed is inserted into constantly, and an offset would skip and duplicate rows under concurrent inserts. `limit` defaults to 50 and is capped at 200. When placement is unavailable, this read serves example fills rather than live executions.
+
+        Filters combine with AND. `from` and `to` bound the execution time (`time`), inclusively, using RFC3339 timestamps. Either bound may be omitted. `from` must not be later than `to`. The window is applied before paging, so `next_cursor` and `previous_cursor` stay inside it.
+      operationId: listExchangeFills
+      parameters:
+        - $ref: '#/components/parameters/ProfileHeader'
+        - name: market
+          in: query
+          required: false
+          description: Only fills on this market
+          schema:
+            $ref: '#/components/schemas/ExchangeSymbol'
+        - name: order_id
+          in: query
+          required: false
+          description: Only fills on this order of the caller's. Another profile's order id returns no fills.
+          schema:
+            type: string
+            maxLength: 64
+            example: exo_3Nd8vYpLwGtE
+        - name: from
+          in: query
+          required: false
+          description: |
+            Only fills executed at or after this instant. Compared at microsecond precision; digits finer than a microsecond are truncated.
+          schema:
+            type: string
+            format: date-time
+            pattern: ^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$
+            example: '2026-10-01T00:00:00Z'
+        - name: to
+          in: query
+          required: false
+          description: |
+            Only fills executed at or before this instant. Compared at microsecond precision; digits finer than a microsecond are truncated.
+          schema:
+            type: string
+            format: date-time
+            pattern: ^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$
+            example: '2026-10-02T23:59:59Z'
+        - $ref: '#/components/parameters/CursorQueryParams'
+        - $ref: '#/components/parameters/LimitQueryParam'
+      responses:
+        '200':
+          description: Fills
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExchangeFillListResponse'
+              examples:
+                default:
+                  value:
+                    status: success
+                    message: Fills retrieved
+                    pagination:
+                      current_entries_size: 2
+                    data:
+                      - fill_id: '9930447'
+                        order_id: exo_3Nd8vYpLwGtE
+                        client_order_id: mm-usdtngn-ask-0090
+                        market: USDT-NGN
+                        side: sell
+                        price: '1372.30'
+                        quantity: '1500.00'
+                        quote_quantity: '2058450.00'
+                        fee: '0.00'
+                        fee_currency: NGN
+                        liquidity: maker
+                        time: '2026-09-06T11:59:58.412Z'
+                      - fill_id: '9930441'
+                        order_id: exo_3Nd8vYpLwGtE
+                        client_order_id: mm-usdtngn-ask-0090
+                        market: USDT-NGN
+                        side: sell
+                        price: '1372.30'
+                        quantity: '400.00'
+                        quote_quantity: '548920.00'
+                        fee: '0.00'
+                        fee_currency: NGN
+                        liquidity: maker
+                        time: '2026-09-06T11:56:20.771Z'
+        4XX:
+          $ref: '#/components/responses/ExchangeError4XX'
+        5XX:
+          $ref: '#/components/responses/ExchangeError5XX'
+  /v1/exchange/fees:
+    get:
+      tags:
+        - Exchange
+      security:
+        - Auth:
+            - exchange:read
+            - api:read
+      summary: List your exchange fee rates
+      description: |
+        Current effective maker and taker rates for the authenticated profile, including its maker rebate eligibility. Rates are decimal fractions: `0.002` means 0.2%, and a negative maker rate is a rebate. Fees settle in the market's quote currency.
+
+        Omit `market` for listed markets that accept new orders (`trading`, `post_only` and `limit_only`), in symbol order. An explicit `market` may select an inactive market. The list is small and unpaginated. An unknown symbol returns 404. If any requested market has unusable fee terms, the whole request returns 503; it never substitutes zero rates or demonstration data. An empty catalogue returns an empty array.
+
+        This read uses saved profile rates, or the entry tier if none have been computed. It does not recompute volume. Terms can change before placement: the accepted order's fee-rate snapshot governs its executions, and `/v1/exchange/fills` reports actual fees. This response is private and uses `Cache-Control: no-store`.
+      operationId: listExchangeFees
+      parameters:
+        - $ref: '#/components/parameters/ProfileHeader'
+        - name: market
+          in: query
+          required: false
+          description: Only this market
+          schema:
+            $ref: '#/components/schemas/ExchangeSymbol'
+      responses:
+        '200':
+          description: Current profile fee rates
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExchangeFeeListResponse'
+              example:
+                status: success
+                message: Exchange fees retrieved
+                data:
+                  - market: USDT-NGN
+                    maker_fee_rate: '0'
+                    taker_fee_rate: '0.002'
+                    fee_currency: NGN
+        4XX:
+          $ref: '#/components/responses/ExchangeError4XX'
+        5XX:
+          $ref: '#/components/responses/ExchangeError5XX'
+  /v1/exchange/stream_tokens:
+    post:
+      tags:
+        - Exchange
+      security:
+        - Auth:
+            - exchange:read
+            - api:read
+      summary: Mint a stream token
+      description: |
+        Mints the short-lived credential a private stream subscription presents for an authenticated caller acting for a profile. Developer keys may use `exchange:read`, `api:read` or Full Access (`api:*`); first-party sessions and OAuth2 tokens need `exchange:read`. Connect to `/v1/exchange/stream`, send `{"method": "authenticate", "params": {"token": "…"}}`, and the connection may then subscribe to the `orders` and `balances` channels. The token authenticates the subscription itself; there is no keep-alive to send and nothing to refresh mid-connection, so there is no stale-key failure mode to debug.
+
+        The token may authenticate multiple connections within 15 minutes of creation. `expires_at` is the deadline for redemption; an authenticated connection stays authenticated for its lifetime. Reconnects within the window may reuse the token, without a keep-alive or refresh request. While request proofs are enforced, a token minted by a device-bound web session is the exception: any `authenticate` spends it, accepted or refused, so the client mints a new token for each attempt.
+      operationId: createExchangeStreamToken
+      parameters:
+        - $ref: '#/components/parameters/ProfileHeader'
+      responses:
+        '201':
+          description: Token minted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExchangeStreamTokenResponse'
+              examples:
+                default:
+                  value:
+                    status: success
+                    message: Stream token minted
+                    data:
+                      token: exs_HnlTPaGDviu07UXrj1XwE7JN-iaSGbWFyLU5IVOFtn0
+                      expires_at: '2026-09-06T12:15:00Z'
+        4XX:
+          $ref: '#/components/responses/ExchangeError4XX'
+        5XX:
+          $ref: '#/components/responses/ExchangeError5XX'
   /v1/files:
     post:
       x-rate-limit: 10
@@ -4059,6 +5238,888 @@ components:
         sector:
           type: string
           description: Sector of the industry
+    ExchangeMarketStatus:
+      type: string
+      description: |
+        What a market currently admits. `trading` is normal two-sided trading. `post_only` accepts resting orders but no order that would take, which is how a venue reopens after a halt without letting the first taker cross a thin book. `limit_only` refuses market orders. `cancel_only` accepts no new orders and lets makers withdraw. `halted` accepts nothing. `delisted` is permanent.
+      enum:
+        - trading
+        - post_only
+        - limit_only
+        - cancel_only
+        - halted
+        - delisted
+      example: trading
+    ExchangeSymbol:
+      type: string
+      description: |
+        A market's one canonical identifier: the base asset, a hyphen, the quote asset, all uppercase. `USDT-NGN` means USDT priced in NGN, so a `buy` acquires USDT and spends NGN. The same string is used in paths, query parameters, request bodies and stream subscriptions; there is no second spelling of a market anywhere on this surface.
+      pattern: ^[A-Z0-9]{2,10}-[A-Z0-9]{2,10}$
+      minLength: 5
+      maxLength: 21
+      example: USDT-NGN
+    ExchangeMarket:
+      type: object
+      description: |
+        One market and every rule an order against it must satisfy. A client that mirrors these values locally can reject a bad order before spending a round trip on it.
+      required:
+        - symbol
+        - base_currency
+        - quote_currency
+        - status
+        - price_tick
+        - quantity_step
+        - min_quantity
+        - max_quantity
+        - min_notional
+        - price_decimals
+        - quantity_decimals
+      properties:
+        symbol:
+          $ref: '#/components/schemas/ExchangeSymbol'
+        base_currency:
+          type: string
+          description: The asset being bought and sold. `quantity` is denominated in it.
+          example: USDT
+        quote_currency:
+          type: string
+          description: The asset it is priced in. `price`, `quote_quantity` and notionals are denominated in it.
+          example: NGN
+        status:
+          $ref: '#/components/schemas/ExchangeMarketStatus'
+        price_tick:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: |
+            The smallest price increment. Every `price` must be a whole multiple of it, or the order is refused with `price_off_tick`.
+          example: '0.01'
+        quantity_step:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: |
+            The smallest size increment. Every `quantity` must be a whole multiple of it, or the order is refused with `quantity_off_step`.
+          example: '0.01'
+        min_quantity:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: The smallest order size, in the base asset
+          example: '10'
+        max_quantity:
+          type: string
+          nullable: true
+          description: |
+            The largest order size, in the base asset. Null means the book sets no ceiling, which is a different answer from a ceiling of zero.
+          example: '500000'
+        min_notional:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: |
+            The smallest order value in the quote asset. It exists so dust orders cannot be used to clog the book, and it binds independently of `min_quantity`.
+          example: '5000'
+        price_decimals:
+          type: integer
+          description: How many decimal places prices are displayed to. Derived from `price_tick` and repeated here so a client need not count.
+          example: 2
+        quantity_decimals:
+          type: integer
+          description: How many decimal places quantities are displayed to
+          example: 2
+    ExchangeMarketListResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseSchema'
+        - type: object
+          required:
+            - data
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/ExchangeMarket'
+    ExchangeMarketResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseSchema'
+        - type: object
+          required:
+            - data
+          properties:
+            data:
+              $ref: '#/components/schemas/ExchangeMarket'
+    ExchangeOrderBookLevel:
+      type: array
+      minItems: 2
+      maxItems: 2
+      items:
+        type: string
+      description: |
+        One aggregated price level as the positional pair `[price, quantity]`. Element `0` is the price the level rests at; element `1` is the total size resting there across every order, not one order's.
+
+        Both are decimal strings with trailing zeros **trimmed**, never padded to a fixed width: a level of 1390 for 2 is published as `["1390", "2"]` and not as `["1390.00", "2.00"]`. Nothing on this surface pads a decimal and nothing can — every amount renders through `decimal.String()` — so a client that wants a fixed width formats it itself, reading `price_decimals` and `quantity_decimals` off the market row, which is what those two fields are for. The example below is written out for readability and promises no width; the same rule holds for every decimal on this surface.
+
+        The pair is positional rather than a named object because that is what every venue an integrator has already written against publishes — Binance, Coinbase Exchange and Kraken all return `[price, size]`, and CCXT's unified order book is defined in those terms — so a generic client reads this book without a special case.
+
+        On the `order_book` stream channel a level's quantity is absolute rather than a delta, and a quantity of `"0"` means the price is gone from the book rather than that nothing rests there. The channel's own level shape is part of the stream protocol.
+      example:
+        - '1371.50'
+        - '4200.00'
+    TimeStamp:
+      type: string
+      format: date-time
+      example: '2023-10-15T12:15:30Z'
+    ExchangeOrderBook:
+      type: object
+      description: Aggregated depth for one market at one revision of the book
+      required:
+        - sequence
+        - bids
+        - asks
+        - time
+      properties:
+        sequence:
+          type: integer
+          format: int64
+          description: |
+            The book's revision: the market's own order sequence — the number of orders the venue has accepted on this book — read in the same statement and the same database snapshot as the levels beside it, so it dates them exactly.
+
+            It is monotonic and never decreases, which is what lets two snapshots be ordered. It is **not** a per-change counter, and a client must not treat a step of more than one as a gap: a cancellation or a fill changes the book without advancing it, and a placement advances it whether or not it changed the visible depth. Use it to tell which of two snapshots is newer, not to detect loss and not to detect change — the `ETag` is derived from the levels themselves and is what moves whenever the book does.
+
+            A client keeping a live book joins on the `order_book` stream's own in-band snapshot rather than on this one; the stream's sequencing rules are its own and are part of the stream protocol.
+          example: 90114627
+        bids:
+          type: array
+          description: |
+            Buy levels as `[price, quantity]` pairs, best (highest) price first, so `bids[0]` is the best bid. Empty when nothing rests on the buy side; never null.
+          items:
+            $ref: '#/components/schemas/ExchangeOrderBookLevel'
+        asks:
+          type: array
+          description: |
+            Sell levels as `[price, quantity]` pairs, best (lowest) price first, so `asks[0]` is the best ask. Empty when nothing rests on the sell side; never null.
+          items:
+            $ref: '#/components/schemas/ExchangeOrderBookLevel'
+        time:
+          $ref: '#/components/schemas/TimeStamp'
+    ExchangeOrderBookResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseSchema'
+        - type: object
+          required:
+            - data
+          properties:
+            data:
+              $ref: '#/components/schemas/ExchangeOrderBook'
+    ExchangeSide:
+      type: string
+      description: The direction of an order or a fill, in terms of the market's base asset
+      enum:
+        - buy
+        - sell
+      example: buy
+    ExchangeTrade:
+      type: object
+      description: One print on the public tape
+      required:
+        - trade_id
+        - price
+        - quantity
+        - taker_side
+        - time
+      properties:
+        trade_id:
+          type: string
+          description: The venue's identifier for this print, unique within the market
+          example: '4820117'
+        price:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: The price the trade printed at
+          example: '1372.10'
+        quantity:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: The size traded, in the base asset
+          example: '1500.00'
+        taker_side:
+          allOf:
+            - $ref: '#/components/schemas/ExchangeSide'
+          description: |
+            The side of the order that crossed the spread to cause this print, so `buy` means the aggressor lifted an offer. Published as itself rather than as a "the buyer was the maker" boolean, which every client would otherwise have to invert.
+          example: buy
+        time:
+          $ref: '#/components/schemas/TimeStamp'
+    ExchangeTradeListResponse:
+      allOf:
+        - $ref: '#/components/schemas/CursorPagination'
+        - type: object
+          required:
+            - data
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/ExchangeTrade'
+    ExchangeCandleInterval:
+      type: string
+      description: The width of one candle
+      enum:
+        - 1m
+        - 5m
+        - 15m
+        - 30m
+        - 1h
+        - 4h
+        - 1d
+        - 1w
+      example: 1h
+    ExchangeCandle:
+      type: object
+      description: |
+        One OHLCV interval, named field by field. A candle is an object rather than a positional row because the eight values are of three different kinds — an instant, six decimals and a count — and a positional row could only carry them by making every one of them a string.
+
+        `time` is the instant the interval opened; the candle covers `time` up to one interval width after it. The six prices and volumes are decimal strings, because a price that is a JSON number is a price some client's parser has already rounded. `trades` is a count, so it is a JSON number, as `trade_count_24h` is on the ticker.
+      required:
+        - time
+        - open
+        - high
+        - low
+        - close
+        - volume
+        - quote_volume
+        - trades
+      properties:
+        time:
+          allOf:
+            - $ref: '#/components/schemas/TimeStamp'
+          description: The instant this interval opened
+          example: '2026-09-06T11:00:00Z'
+        open:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: The first trade's price in the interval, or the previous close when nothing traded
+          example: '1371.80'
+        high:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: The highest price traded in the interval, or the previous close when nothing traded
+          example: '1375.90'
+        low:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: The lowest price traded in the interval, or the previous close when nothing traded
+          example: '1371.10'
+        close:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: The last trade's price in the interval, or the previous close when nothing traded
+          example: '1372.10'
+        volume:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: How much of the base asset traded in the interval
+          example: '102640.00'
+        quote_volume:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: What that volume was worth in the quote asset
+          example: '140878174.00'
+        trades:
+          type: integer
+          format: int64
+          description: How many prints happened in the interval
+          example: 341
+    ExchangeCandleListResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseSchema'
+        - type: object
+          required:
+            - data
+          properties:
+            data:
+              type: array
+              maxItems: 1000
+              items:
+                $ref: '#/components/schemas/ExchangeCandle'
+    ExchangeTicker:
+      type: object
+      description: |
+        One market's rolling 24-hour summary and its top of book, merged into one payload because a client that wants one nearly always wants the other.
+      required:
+        - symbol
+        - last_price
+        - best_bid
+        - best_bid_quantity
+        - best_ask
+        - best_ask_quantity
+        - open_24h
+        - high_24h
+        - low_24h
+        - volume_24h
+        - quote_volume_24h
+        - price_change_24h
+        - price_change_percent_24h
+        - trade_count_24h
+        - time
+      properties:
+        symbol:
+          $ref: '#/components/schemas/ExchangeSymbol'
+        last_price:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: The price of the most recent print
+          example: '1372.10'
+        best_bid:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: The highest resting buy price
+          example: '1371.50'
+        best_bid_quantity:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: The total size resting at `best_bid`
+          example: '4200.00'
+        best_ask:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: The lowest resting sell price
+          example: '1372.30'
+        best_ask_quantity:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: The total size resting at `best_ask`
+          example: '3100.00'
+        open_24h:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: The price 24 hours ago, on a rolling window rather than a calendar day
+          example: '1366.40'
+        high_24h:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: The highest print in the last 24 hours
+          example: '1375.90'
+        low_24h:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: The lowest print in the last 24 hours
+          example: '1364.20'
+        volume_24h:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: Base-asset volume traded in the last 24 hours
+          example: '1842300.55'
+        quote_volume_24h:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: Quote-asset volume traded in the last 24 hours
+          example: '2527845913.20'
+        price_change_24h:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: '`last_price` minus `open_24h`, which may be negative'
+          example: '5.70'
+        price_change_percent_24h:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: The same change as a percentage, which may be negative
+          example: '0.42'
+        trade_count_24h:
+          type: integer
+          format: int64
+          description: How many prints happened in the last 24 hours
+          example: 8241
+        time:
+          $ref: '#/components/schemas/TimeStamp'
+    ExchangeTickerResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseSchema'
+        - type: object
+          required:
+            - data
+          properties:
+            data:
+              $ref: '#/components/schemas/ExchangeTicker'
+    ExchangeTickerListResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseSchema'
+        - type: object
+          required:
+            - data
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/ExchangeTicker'
+    ExchangeTime:
+      type: object
+      description: The venue's clock, in both spellings a client might want to compare against
+      required:
+        - time
+        - epoch_ms
+      properties:
+        time:
+          $ref: '#/components/schemas/TimeStamp'
+        epoch_ms:
+          type: integer
+          format: int64
+          description: The same instant as milliseconds since the Unix epoch
+          example: 1789041600000
+    ExchangeTimeResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseSchema'
+        - type: object
+          required:
+            - data
+          properties:
+            data:
+              $ref: '#/components/schemas/ExchangeTime'
+    ExchangeOrderType:
+      type: string
+      description: |
+        `limit` rests at a named price. `market` takes whatever the book offers, bounded by `quote_quantity` on a buy and by `quantity` on a sell.
+      enum:
+        - limit
+        - market
+      example: limit
+    ExchangeTimeInForce:
+      type: string
+      description: |
+        How long the order may live. `gtc` rests until filled or cancelled. `ioc` fills what it can immediately and cancels the rest. `fok` fills in full immediately or does nothing at all.
+      enum:
+        - gtc
+        - ioc
+        - fok
+      example: gtc
+    ExchangeStpMode:
+      type: string
+      description: |
+        What happens when an order would match the same caller's resting order. `cancel_taker` cancels the incoming order, `cancel_maker` cancels the resting one, `cancel_both` cancels both, and `decrement` takes the crossing quantity off both and lets whatever is left of each carry on. Defaults to `cancel_taker`.
+
+        A self-trade is always prevented: there is no value that lets one print. That is what every major spot venue does — Binance permits its `NONE` mode on none of its live spot symbols, Coinbase Exchange states that self-trading is not allowed, and Kraken applies prevention to every order.
+      enum:
+        - cancel_taker
+        - cancel_maker
+        - cancel_both
+        - decrement
+      example: cancel_taker
+    ExchangeOrderStatus:
+      type: string
+      description: |
+        Where the order stands. `open` and `partially_filled` are live and can be cancelled; `filled` and `cancelled` are terminal. A partially filled order that is then cancelled ends `cancelled` with its `filled_quantity` intact.
+
+        A `market` `buy` sized by `quote_quantity` ends `filled` once it has spent the amount: every whole `quantity_step` the amount buys after the taker fee is bought, and what is left, less than one step, returns to the available balance. `filled_quote` plus the taker fee is what was spent. It ends `cancelled` with `immediate_or_cancel` when it bought nothing, when the matching walk stopped before the money ran out, or when a `decrement` self-trade prevention took part of the amount off without spending it.
+      enum:
+        - open
+        - partially_filled
+        - filled
+        - cancelled
+      example: open
+    ExchangeCancelReason:
+      type: string
+      description: |
+        Why a `cancelled` order was cancelled. It is the field a maker reads to tell an intentional withdrawal from one the venue forced.
+
+        This is the one field on an order that is **absent** rather than `null` when it does not apply. An enum cannot admit `null` in OpenAPI 3.0 without carrying `null` as a member of the enum itself, which generates a nonsense `"<nil>"` constant a Go client could send by accident; on a trading API that is a worse hazard than one optional key.
+
+        `admin` is a cancel the **venue** made rather than you: a staff member took the order off the book, either on its own or as part of clearing the whole market during an incident. Support can say who and why. It is deliberately not folded into `user_requested`, because a maker reconciling a morning of vanished quotes needs to tell "I cancelled these" from "somebody at the venue did", and only the second is worth a conversation.
+
+        `dust_remainder` means a remainder the book cannot trade: its executable quantity is zero or worth less than one minor unit of the quote asset at its own price (one kobo on an NGN book). Executable quantity is the remainder floored to the quantity step. When the walk reaches it, the venue retires it, returns its collateral, and continues to the next maker. A larger tradeable legacy off-step remainder supplies whole steps; its sub-step crumb is retired the next time it is reached.
+
+        `crossing_depth_exhausted` means the taker still had quantity remaining after reading the market's maximum crossing depth. Its remainder is cancelled and its unused collateral returned rather than resting against makers the bounded read did not reach.
+        `price_protection` means a market order's remainder could not fill inside its protection price: the market's reference price less (for a sell) or plus (for a buy) the market's price protection share, fixed when the order arrived. The remainder is cancelled and its unused collateral returned. Place a limit order to trade further from the market.
+        `price_band` means the market's price band stopped the order. Its next fill, or the price its remainder would rest at, lay further from the market's reference price than the band allows, or a resting order outside the band stood in its way. The band is the market's breaker threshold either side of the reference price, fixed when the order arrived. The rest is cancelled and its unused collateral returned (FIX OrdRejReason 8, "Price exceeds current price band").
+      enum:
+        - user_requested
+        - cancel_all
+        - dead_mans_switch
+        - admin
+        - dust_remainder
+        - crossing_depth_exhausted
+        - price_protection
+        - price_band
+        - post_only_would_cross
+        - immediate_or_cancel
+        - fill_or_kill
+        - self_trade_prevention
+        - market_halted
+        - expired
+        - insufficient_available
+      example: user_requested
+    ExchangeOrder:
+      type: object
+      description: |
+        One of the caller's orders. Every field is always present and the ones that do not apply are `null` rather than absent, so a client's parser never has to branch on a missing key. The single exception is `cancel_reason`, which is absent on an order that was not cancelled, for the reason its own description gives.
+      required:
+        - id
+        - client_order_id
+        - market
+        - side
+        - type
+        - time_in_force
+        - post_only
+        - stp_mode
+        - status
+        - price
+        - quantity
+        - quote_quantity
+        - filled_quantity
+        - filled_quote
+        - remaining_quantity
+        - average_price
+        - maker_fee_rate
+        - taker_fee_rate
+        - created_at
+        - updated_at
+        - expires_at
+      properties:
+        id:
+          type: string
+          description: The platform's identifier for the order
+          example: exo_3Nd8vYpLwGtE
+        client_order_id:
+          type: string
+          nullable: true
+          maxLength: 64
+          description: The caller's own reference, or `null` if none was supplied
+          example: mm-usdtngn-ask-0090
+        market:
+          $ref: '#/components/schemas/ExchangeSymbol'
+        side:
+          $ref: '#/components/schemas/ExchangeSide'
+        type:
+          $ref: '#/components/schemas/ExchangeOrderType'
+        time_in_force:
+          $ref: '#/components/schemas/ExchangeTimeInForce'
+        post_only:
+          type: boolean
+          description: Whether the order was placed as post-only
+          example: true
+        stp_mode:
+          $ref: '#/components/schemas/ExchangeStpMode'
+        status:
+          $ref: '#/components/schemas/ExchangeOrderStatus'
+        price:
+          type: string
+          format: decimal
+          nullable: true
+          description: The limit price, or `null` on a market order that named no cap
+          example: '1372.30'
+        quantity:
+          type: string
+          format: decimal
+          nullable: true
+          description: The size in the base asset, or `null` on an order sized by `quote_quantity`
+          example: '5000.00'
+        quote_quantity:
+          type: string
+          format: decimal
+          nullable: true
+          description: The spend in the quote asset, or `null` on an order sized by `quantity`
+          example: null
+        filled_quantity:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: How much of the base asset has traded so far. Zero on an untouched order.
+          example: '1900.00'
+        filled_quote:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: |
+            How much of the quote asset has changed hands so far. Carried alongside `filled_quantity` rather than left to the client to multiply, because rounding at each fill makes the product and the sum disagree.
+          example: '2607370.00'
+        remaining_quantity:
+          type: string
+          format: decimal
+          nullable: true
+          description: |
+            What is still open on the order: `quantity` less `filled_quantity`, less anything a self-trade decrement removed. It stays as the untraded leftover once the order closes, so a client can see what never traded. It is `null` exactly where `quantity` is null, and otherwise it is the same number the private stream publishes under the same name. For a market buy sized by `quote_quantity`, which has no quantity of its own, this field is null on the order reads while the private stream publishes "0" for the same order.
+          example: '3100.00'
+        average_price:
+          type: string
+          format: decimal
+          nullable: true
+          description: '`filled_quote` divided by `filled_quantity`, or `null` before the first fill'
+          example: '1372.30'
+        cancel_reason:
+          $ref: '#/components/schemas/ExchangeCancelReason'
+        maker_fee_rate:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: |
+            The fee rate applied to the parts of this order that rested and were taken, as a fraction rather than a percentage. Fixed at placement, so a later tier change does not reprice a resting order.
+          example: '0.0000'
+        taker_fee_rate:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: The fee rate applied to the parts of this order that crossed the spread, as a fraction
+          example: '0.0010'
+        created_at:
+          $ref: '#/components/schemas/TimeStamp'
+        updated_at:
+          $ref: '#/components/schemas/TimeStamp'
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: When the order expires of its own accord, or `null` for a `gtc` order
+          example: null
+    ExchangeOrderListResponse:
+      allOf:
+        - $ref: '#/components/schemas/CursorPagination'
+        - type: object
+          required:
+            - data
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/ExchangeOrder'
+    CreateExchangeOrderRequest:
+      type: object
+      additionalProperties: false
+      description: |
+        One order. `type`, `time_in_force` and `post_only` are flat and independent rather than fused into a single union key, so the wire format stays readable and extensible; the server refuses an invalid combination by name with `invalid_order_combination`. A property this schema does not declare is refused with `unknown-property` rather than ignored.
+      required:
+        - market
+        - side
+        - type
+      properties:
+        market:
+          $ref: '#/components/schemas/ExchangeSymbol'
+        side:
+          $ref: '#/components/schemas/ExchangeSide'
+        type:
+          $ref: '#/components/schemas/ExchangeOrderType'
+        quantity:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: |
+            The size in the base asset. Required for a `limit` order and for a `market` `sell`. Mutually exclusive with `quote_quantity`.
+          example: '5000.00'
+        quote_quantity:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: |
+            The amount of the quote asset to spend, for a `market` `buy` that wants to size its spend rather than its acquisition. Mutually exclusive with `quantity`.
+          example: '1000000.00'
+        price:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: |
+            The limit price, in the quote asset. Required for a `limit` order, and refused on a `market` order of either side, which takes what the book offers and carries no price bound. To bound the price, place a `limit` order with `time_in_force` `ioc`.
+          example: '1371.50'
+        time_in_force:
+          allOf:
+            - $ref: '#/components/schemas/ExchangeTimeInForce'
+          description: How long the order may live. Defaults to `gtc` for a `limit` order and `ioc` for a `market` one.
+          example: gtc
+        post_only:
+          type: boolean
+          description: |
+            When true the order will not take liquidity. If it arrives to find a resting order it would have crossed, it is accepted and immediately cancelled with a `cancel_reason` of `post_only_would_cross`, so a maker can never pay a taker fee by accident. That is an outcome and not a refusal: the order existed, ran and closed, and it answers `201` with a `cancelled` order rather than an error. It is `201` and not `200` because an order WAS created; `200` on this operation means the other thing the response table lists, an identical replay of a live `client_order_id`, which creates nothing. Defaults to false, and is not accepted on a `market` order.
+          example: true
+        client_order_id:
+          type: string
+          maxLength: 64
+          description: |
+            The caller's own reference, unique among that caller's live orders. Sending the same request twice under one id creates one order and answers 200 the second time, which is what makes a retry after a network timeout safe. Sending a *different* request under a live id is `duplicate_client_order_id`.
+          example: mm-usdtngn-bid-0091
+        stp_mode:
+          allOf:
+            - $ref: '#/components/schemas/ExchangeStpMode'
+          description: Self-trade prevention. Defaults to `cancel_taker`.
+          example: cancel_taker
+    ExchangeOrderResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseSchema'
+        - type: object
+          required:
+            - data
+          properties:
+            data:
+              $ref: '#/components/schemas/ExchangeOrder'
+    ExchangeCancelAllAfterRequest:
+      type: object
+      additionalProperties: false
+      description: |
+        The dead man's switch. Re-send on a cadence of about half the timeout to keep it armed. A property this schema does not declare is refused with `unknown-property` rather than ignored.
+      required:
+        - timeout_seconds
+      properties:
+        timeout_seconds:
+          type: integer
+          minimum: 0
+          maximum: 300
+          description: |
+            How long the venue waits, in seconds, before cancelling every one of the caller's live orders on every market. `0` disarms an armed timer. The ceiling is five minutes, because a switch that can be armed for an hour is not a safety feature.
+          example: 60
+    ExchangeCancelAllAfter:
+      type: object
+      description: |
+        Both instants, so a client can measure its own clock drift against the venue's without a second call to `/v1/exchange/time`.
+      required:
+        - current_time
+        - trigger_time
+      properties:
+        current_time:
+          $ref: '#/components/schemas/TimeStamp'
+        trigger_time:
+          type: string
+          format: date-time
+          nullable: true
+          description: When the cancel will fire if the caller stays silent, or `null` when the timer was disarmed
+          example: '2026-09-06T12:01:00Z'
+    ExchangeCancelAllAfterResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseSchema'
+        - type: object
+          required:
+            - data
+          properties:
+            data:
+              $ref: '#/components/schemas/ExchangeCancelAllAfter'
+    ExchangeLiquidity:
+      type: string
+      description: |
+        Whether the caller's order was resting when the fill happened (`maker`) or crossed the spread to cause it (`taker`). Fee rates differ by side, so this is what a rebate reconciliation keys on.
+      enum:
+        - maker
+        - taker
+      example: maker
+    ExchangeFill:
+      type: object
+      description: |
+        One execution against one of the caller's orders. An order that traded in five prints has five fills, each with the fee actually charged for it.
+      required:
+        - fill_id
+        - order_id
+        - client_order_id
+        - market
+        - side
+        - price
+        - quantity
+        - quote_quantity
+        - fee
+        - fee_currency
+        - liquidity
+        - time
+      properties:
+        fill_id:
+          type: string
+          description: The venue's identifier for this execution
+          example: '9930447'
+        order_id:
+          type: string
+          description: The order this execution filled
+          example: exo_3Nd8vYpLwGtE
+        client_order_id:
+          type: string
+          nullable: true
+          maxLength: 64
+          description: The caller's reference for that order, or `null` if none was supplied
+          example: mm-usdtngn-ask-0090
+        market:
+          $ref: '#/components/schemas/ExchangeSymbol'
+        side:
+          allOf:
+            - $ref: '#/components/schemas/ExchangeSide'
+          description: The side of the caller's order, not of the aggressor
+          example: sell
+        price:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: The price this execution printed at
+          example: '1372.30'
+        quantity:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: The size executed, in the base asset
+          example: '1500.00'
+        quote_quantity:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: The value executed, in the quote asset
+          example: '2058450.00'
+        fee:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: The fee charged for this execution. A maker rebate, when one applies, is negative.
+          example: '0.00'
+        fee_currency:
+          type: string
+          description: The asset the fee was charged in
+          example: NGN
+        liquidity:
+          $ref: '#/components/schemas/ExchangeLiquidity'
+        time:
+          $ref: '#/components/schemas/TimeStamp'
+    ExchangeFillListResponse:
+      allOf:
+        - $ref: '#/components/schemas/CursorPagination'
+        - type: object
+          required:
+            - data
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/ExchangeFill'
+    ExchangeFee:
+      type: object
+      required:
+        - market
+        - maker_fee_rate
+        - taker_fee_rate
+        - fee_currency
+      properties:
+        market:
+          $ref: '#/components/schemas/ExchangeSymbol'
+        maker_fee_rate:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: Maker fee as a decimal fraction; negative rates are rebates.
+          example: '-0.0001'
+        taker_fee_rate:
+          allOf:
+            - $ref: '#/components/schemas/Decimal'
+          description: Taker fee as a nonnegative decimal fraction.
+          example: '0.002'
+        fee_currency:
+          type: string
+          description: The market's quote asset, in which fees and rebates settle.
+          example: NGN
+    ExchangeFeeListResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseSchema'
+        - type: object
+          required:
+            - data
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/ExchangeFee'
+    ExchangeStreamToken:
+      type: object
+      description: A credential with a 15-minute window to authenticate private stream connections; reusable, except that while request proofs are enforced any authenticate spends a device-bound web session's, accepted or refused
+      required:
+        - token
+        - expires_at
+      properties:
+        token:
+          type: string
+          description: |
+            The value to send in the stream's `authenticate` control message. It is not a bearer token for REST and carries no other authority.
+          example: exs_HnlTPaGDviu07UXrj1XwE7JN-iaSGbWFyLU5IVOFtn0
+        expires_at:
+          $ref: '#/components/schemas/TimeStamp'
+    ExchangeStreamTokenResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseSchema'
+        - type: object
+          required:
+            - data
+          properties:
+            data:
+              $ref: '#/components/schemas/ExchangeStreamToken'
     PresignedUrlRequest:
       type: object
       required:
@@ -4929,10 +6990,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/InvoiceItem'
-    TimeStamp:
-      type: string
-      format: date-time
-      example: '2023-10-15T12:15:30Z'
     PaymentLink:
       type: object
       required:
@@ -7828,6 +9885,23 @@ components:
         type: string
         format: nanoid
         example: bus_123456789
+    SymbolPathParam:
+      name: symbol
+      in: path
+      required: true
+      description: The market symbol, `BASE-QUOTE` in uppercase
+      schema:
+        $ref: '#/components/schemas/ExchangeSymbol'
+    OrderIDPathParam:
+      name: order_id
+      in: path
+      required: true
+      description: The platform's identifier for the order, as `POST /v1/exchange/orders` returned it
+      schema:
+        type: string
+        minLength: 4
+        maxLength: 64
+        example: exo_3Nd8vYpLwGtE
     InsightsCurrencyQueryParam:
       name: currency
       in: query
@@ -8163,6 +10237,46 @@ components:
                     type: array
                     items:
                       $ref: '#/components/schemas/CustomerBusinessIndustry'
+    ExchangeError4XX:
+      description: Client error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            default:
+              $ref: '#/components/examples/DefaultError'
+            not_found_error:
+              $ref: '#/components/examples/NotFoundError'
+            unauthorized_error:
+              $ref: '#/components/examples/UnAuthorizedError'
+            request_validation_error:
+              $ref: '#/components/examples/RequestValidationError'
+            schema_validation_error:
+              $ref: '#/components/examples/SchemaValidationError'
+            below_min_notional:
+              summary: An order under the market's minimum value
+              value:
+                error:
+                  name: below_min_notional
+                  message: Order value must be at least 5000 NGN
+            market_halted:
+              summary: An order against a market that is not accepting them
+              value:
+                error:
+                  name: market_halted
+                  message: USDT-NGN is not accepting new orders
+    ExchangeError5XX:
+      description: Server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            internal_server_error:
+              $ref: '#/components/examples/InternalServerError'
+            service_unavailable_error:
+              $ref: '#/components/examples/ServiceUnavailableError'
     FilesError4XX:
       description: Default
       content:
