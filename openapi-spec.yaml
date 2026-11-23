@@ -106,6 +106,9 @@ info:
 
     Requests exceeding the allocated quota will receive a `429 Too Many Requests` response.
 
+    ## Rejected business verification
+    A business whose verification was rejected is view-only. Every request from its members that changes state answers `400` with `error.name = "profile_rejected"`, including operations whose per-operation error contract does not list that name. Reads, the caller's own session, and notifications stay available. Contact support to reopen the case.
+
     ##  Common Parameters
     Common parameters enhance consistency across endpoints:
       | **Parameter Name** | **Location** | **Description** | **Example** |
@@ -3244,62 +3247,6 @@ paths:
           $ref: '#/components/responses/QuoteError4XX'
         5XX:
           $ref: '#/components/responses/QuoteError5XX'
-  /v1/quotes/pending-approvals:
-    get:
-      security:
-        - Auth:
-            - transfer_approval:read
-      summary: List pending transfer approvals
-      description: |
-        Lists the quotes the business has held for the owner's approval (two-step
-        type `approval`). An ordinary pending quote is not listed. A held quote
-        keeps the normal quote validity, so if the owner does not act before it
-        expires the quote expires and the requester must re-quote. Approval
-        replaces the transfer's one-time code: the owner's decision is the second
-        factor, so no authenticator code is required to approve.
-      operationId: listPendingTransferApprovals
-      tags:
-        - Quotes
-      parameters:
-        - $ref: '#/components/parameters/ProfileHeader'
-        - $ref: '#/components/parameters/SortQueryParam'
-        - $ref: '#/components/parameters/CursorQueryParams'
-        - $ref: '#/components/parameters/LimitQueryParam'
-      responses:
-        '200':
-          $ref: '#/components/responses/QuotesListResponse'
-        4XX:
-          $ref: '#/components/responses/QuoteError4XX'
-        5XX:
-          $ref: '#/components/responses/QuoteError5XX'
-  /v1/quotes/pending-approvals/{id}/reject:
-    post:
-      security:
-        - Auth:
-            - transfer_approval:write
-      summary: Reject a pending transfer approval
-      description: |
-        Rejects a held transfer approval and records the reason as a notice on the
-        quote, which is marked expired.
-      operationId: rejectTransferApproval
-      tags:
-        - Quotes
-      parameters:
-        - $ref: '#/components/parameters/PathParamNanoID'
-        - $ref: '#/components/parameters/ProfileHeader'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/RejectTransferApprovalRequest'
-      responses:
-        '200':
-          $ref: '#/components/responses/QuoteResponse'
-        4XX:
-          $ref: '#/components/responses/QuoteError4XX'
-        5XX:
-          $ref: '#/components/responses/QuoteError5XX'
   /v1/recipients:
     post:
       x-rate-limit: 20
@@ -4226,6 +4173,40 @@ paths:
           $ref: '#/components/responses/TransferError4XX'
         5XX:
           $ref: '#/components/responses/TransferError5XX'
+  /v1/transfers/awaiting-approval:
+    get:
+      x-error-contract:
+        invalid_approver: 403
+      security:
+        - Auth:
+            - transfers:read
+      summary: List transfers waiting for approval
+      description: |
+        The acting business's transfers waiting for a decision, newest first by default. An approver (the owner, or a
+        member whose role the business's approval policy names) reads every one; anyone else receives `403`. With
+        `mine=true` any member reads only the transfers they started. The policy's roles, not a scope, decide who
+        approves, so any member who can read transfers reaches it; an API key receives `403`.
+      operationId: listTransferApprovals
+      tags:
+        - Transfers
+      parameters:
+        - $ref: '#/components/parameters/ProfileHeader'
+        - $ref: '#/components/parameters/CursorQueryParams'
+        - $ref: '#/components/parameters/SortQueryParam'
+        - $ref: '#/components/parameters/LimitQueryParam'
+        - name: mine
+          in: query
+          required: false
+          description: Only the transfers the caller started.
+          schema:
+            type: boolean
+      responses:
+        '200':
+          $ref: '#/components/responses/TransferListResponse'
+        4XX:
+          $ref: '#/components/responses/TransferError4XX'
+        5XX:
+          $ref: '#/components/responses/TransferError5XX'
   /v1/transfers/{id}:
     get:
       security:
@@ -4240,6 +4221,45 @@ paths:
       parameters:
         - $ref: '#/components/parameters/PathParamNanoID'
         - $ref: '#/components/parameters/ProfileHeader'
+      responses:
+        '200':
+          $ref: '#/components/responses/TransferResponse'
+        4XX:
+          $ref: '#/components/responses/TransferError4XX'
+        5XX:
+          $ref: '#/components/responses/TransferError5XX'
+  /v1/transfers/{id}/approval:
+    post:
+      x-rate-limit: 60
+      x-error-contract:
+        invalid_approver: 403
+        invalid_auth_code: 400
+        no_authenticator: 400
+        resource_state_conflict: 409
+      security:
+        - Auth:
+            - transfers:read
+      summary: Approve, reject or cancel a held business transfer
+      description: |
+        An approver decides a transfer held for approval. Approving requires the approver's authenticator code in
+        `code`; a wrong or missing code answers `invalid_auth_code` and leaves the transfer pending. Rejecting moves
+        no money, so it needs no code. An approved transfer converts at the market price when it runs. Nobody may
+        decide a transfer they started (`403`), and an API key may not decide one (`403`); the policy's approver roles,
+        not a scope, decide who may. The member who started it may `cancel` it before a decision. The
+        window is 24 hours, or until the pay-in closes for a transfer paid by deposit: a decision after it answers
+        `409 resource_state_conflict`, and the transfer is cancelled.
+      operationId: decideTransferApproval
+      tags:
+        - Transfers
+      parameters:
+        - $ref: '#/components/parameters/PathParamNanoID'
+        - $ref: '#/components/parameters/ProfileHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DecideTransferApprovalRequest'
       responses:
         '200':
           $ref: '#/components/responses/TransferResponse'
@@ -8285,6 +8305,27 @@ components:
       example: QUO_123456abc
       maxLength: 64
       minLength: 12
+    OwnerApproval:
+      type: object
+      required:
+        - policy_type
+      properties:
+        policy_type:
+          type: string
+          enum:
+            - all
+            - threshold
+          example: threshold
+          description: The policy that held the quote, all transfers or a threshold; a threshold carries the amount and currency it was at or above.
+        amount:
+          type: string
+          format: decimal
+          description: The threshold; only the threshold policy carries it.
+          example: '1000'
+        currency:
+          type: string
+          description: The threshold's currency; only the threshold policy carries it.
+          example: USD
     Quote:
       type: object
       required:
@@ -8355,6 +8396,10 @@ components:
           example: '2023-10-15T12:20:45Z'
         two_step:
           $ref: '#/components/schemas/TwoStep'
+        owner_approval:
+          allOf:
+            - $ref: '#/components/schemas/OwnerApproval'
+          description: Present when the member's transfer must be held for the business owner's approval. The member still completes their own two-step; the owner's approval is a second gate, not a replacement.
         quote_rate:
           allOf:
             - $ref: '#/components/schemas/QuoteRate'
@@ -8528,15 +8573,6 @@ components:
           type: boolean
         meta:
           $ref: '#/components/schemas/PaymentOptionMeta'
-    RejectTransferApprovalRequest:
-      type: object
-      required:
-        - reason
-      properties:
-        reason:
-          type: string
-          description: The reason shown to the requester on the quote.
-          example: This transfer was rejected by your business owner.
     RecipientBase-2025-07-11:
       type: object
       required:
@@ -9661,7 +9697,8 @@ components:
           type: string
           description: |
             What stopped it. A payout held for a selfie ends with `liveness_failed`, `liveness_expired`,
-            `quote_expired` (its price ran out while it waited) or `payout_not_approved` (support declined it).
+            `quote_expired` (its price ran out while it waited) or `payout_not_approved` (support declined it);
+            a business transfer held for its owner ends with `transfer_not_approved` or `quote_expired`.
           example: liveness_expired
         stage:
           type: string
@@ -9669,6 +9706,67 @@ components:
         text:
           type: string
           example: The selfie wasn't taken in time. Transfer cancelled.
+    TransferOwnerApproval:
+      type: object
+      description: |
+        Present on a business transfer held for approval, from the hold to its outcome. An approver decides it with
+        `POST /v1/transfers/{id}/approval`; the requester's own two-step is unchanged.
+      required:
+        - required
+        - status
+      properties:
+        required:
+          type: boolean
+          description: Whether it still waits for a decision.
+          example: true
+        status:
+          type: string
+          enum:
+            - pending
+            - approved
+            - rejected
+            - expired
+            - cancelled
+          example: pending
+        requested_by:
+          type: string
+          description: The user who started the transfer; empty for one an API key started.
+          example: 6f1c2a8e-4c1b-4f0a-9d3e-2b7a1c9e0f11
+        requested_by_name:
+          type: string
+          description: The requester's name, so approvers who cannot read the team list see who asked; empty for one an API key started.
+          example: Ada Palm
+        via_api:
+          type: boolean
+          description: Whether an API key started it.
+          example: false
+        expires_at:
+          type: string
+          format: date-time
+          description: |
+            When the window closes: 24 hours for a transfer paid from the balance, or when the pay-in closes for one
+            paid by deposit. A decision after it answers `409 resource_state_conflict`, and the transfer is
+            cancelled when the request closes.
+          example: '2026-11-20T17:30:00Z'
+        decided_by:
+          type: string
+          description: The user who approved, rejected or cancelled it; empty while it waits and when it expired.
+          example: 0b6a2f1e-7c3d-4e5f-8a9b-1c2d3e4f5a6b
+        decided_by_name:
+          type: string
+          description: The decider's name.
+          example: Kemi Palm
+        decided_at:
+          type: string
+          format: date-time
+          description: When it was decided or expired; empty while it waits.
+          example: '2026-11-20T12:05:00Z'
+        reason:
+          type: string
+          description: The reason the approver gave for a rejection.
+          example: Wrong supplier account
+        policy:
+          $ref: '#/components/schemas/OwnerApproval'
     Transfer:
       type: object
       required:
@@ -9777,6 +9875,9 @@ components:
         notice:
           allOf:
             - $ref: '#/components/schemas/TransferNotice'
+        owner_approval:
+          allOf:
+            - $ref: '#/components/schemas/TransferOwnerApproval'
     CreateTransferRequest:
       type: object
       required:
@@ -9784,6 +9885,29 @@ components:
       properties:
         quote_id:
           $ref: '#/components/schemas/NanoID'
+    DecideTransferApprovalRequest:
+      type: object
+      required:
+        - decision
+      properties:
+        decision:
+          type: string
+          enum:
+            - approve
+            - reject
+            - cancel
+          example: approve
+        reason:
+          type: string
+          maxLength: 500
+          description: Why the approver declined it, shown to the requester as the decision context.
+          example: Approved for the supplier payment
+        code:
+          type: string
+          description: |
+            The approver's authenticator code; required to approve. Rejecting or cancelling moves no money, so it is
+            accepted without one.
+          example: '492817'
     TransferLiveness:
       type: object
       required:
