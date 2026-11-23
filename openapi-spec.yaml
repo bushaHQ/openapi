@@ -9767,6 +9767,38 @@ components:
           example: Wrong supplier account
         policy:
           $ref: '#/components/schemas/OwnerApproval'
+    TransferInitiator:
+      type: object
+      description: |
+        Who made a business transfer: the team member signed in to the dashboard, or the API key that called the API.
+        A limit or recurring order's transfers name whoever placed the order. Absent on personal transfers, on
+        transfers of a business's sub-account customers, on ones a scheduled flow made (such as a savings plan), on a
+        payment link paid by someone outside the business, and on business transfers made before this was recorded.
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          enum:
+            - member
+            - api_key
+          example: member
+        user_id:
+          type: string
+          description: The member's user id; empty for an API key.
+          example: 6f1c2a8e-4c1b-4f0a-9d3e-2b7a1c9e0f11
+        name:
+          type: string
+          description: The member's name when they made it; empty for an API key.
+          example: Ada Palm
+        api_key_id:
+          type: string
+          description: The API key's id; empty for a member, and for a partner app signed in with OAuth2.
+          example: 0b6a2f1e-7c3d-4e5f-8a9b-1c2d3e4f5a6b
+        api_key_label:
+          type: string
+          description: The API key's label when it made the transfer.
+          example: Payouts server
     Transfer:
       type: object
       required:
@@ -9878,6 +9910,9 @@ components:
         owner_approval:
           allOf:
             - $ref: '#/components/schemas/TransferOwnerApproval'
+        initiated_by:
+          allOf:
+            - $ref: '#/components/schemas/TransferInitiator'
     CreateTransferRequest:
       type: object
       required:
