@@ -5911,18 +5911,24 @@ components:
         quantity:
           allOf:
             - $ref: '#/components/schemas/Decimal'
+          pattern: ^-?[0-9]{1,30}(\.[0-9]{1,30})?$
+          maxLength: 62
           description: |
             The size in the base asset. Required for a `limit` order and for a `market` `sell`. Mutually exclusive with `quote_quantity`.
           example: '5000.00'
         quote_quantity:
           allOf:
             - $ref: '#/components/schemas/Decimal'
+          pattern: ^-?[0-9]{1,30}(\.[0-9]{1,30})?$
+          maxLength: 62
           description: |
             The amount of the quote asset to spend, for a `market` `buy` that wants to size its spend rather than its acquisition. Mutually exclusive with `quantity`.
           example: '1000000.00'
         price:
           allOf:
             - $ref: '#/components/schemas/Decimal'
+          pattern: ^-?[0-9]{1,30}(\.[0-9]{1,30})?$
+          maxLength: 62
           description: |
             The limit price, in the quote asset. Required for a `limit` order, and refused on a `market` order of either side, which takes what the book offers and carries no price bound. To bound the price, place a `limit` order with `time_in_force` `ioc`.
           example: '1371.50'
