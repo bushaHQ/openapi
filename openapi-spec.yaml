@@ -1146,7 +1146,7 @@ paths:
 
         Sizing. A `limit` order names `quantity` in the base asset and a `price` in the quote asset. A `market` `sell` names `quantity` and nothing else. A `market` `buy` names `quote_quantity`, the amount of the quote asset to spend, and nothing else; naming none is `market_buy_needs_quote_quantity`, because the spend would otherwise be unbounded. A `market` order of either side that names a `price` is refused: a market order takes what the book offers and carries no price bound. To bound the price, place a `limit` order with `time_in_force` `ioc` — it takes what is available at that price or better and cancels the rest. For a market buy, the executed quantity lands on the market's quantity step and the unspent remainder of the amount is returned.
 
-        Replay. `client_order_id` is the caller's own reference, at most 64 characters, and must be unique among that caller's live orders. Re-sending an identical request under an id a live order already holds is **not** an error and creates nothing: it answers `200` with that order, so a bot that lost the response to a network timeout can retry safely. Re-sending a *different* request under the same id is `duplicate_client_order_id`. Once an order is no longer live its id may be reused.
+        Replay. `client_order_id` is the caller's own reference, at most 64 characters, and must be unique among that caller's orders placed in the last 24 hours and among their live orders however old. Re-sending an identical request under an id such an order holds is **not** an error and creates nothing: it answers `200` with that order, even after the order has filled or been cancelled, so a bot that lost the response to a network timeout can retry safely. Re-sending a *different* request under the same id is `duplicate_client_order_id`. A terminal order's reference is free for reuse 24 hours after it was placed; a live order holds it for as long as it rests. An identical replay is answered even when the market has stopped admitting new orders, as long as the caller is still admitted to the exchange (their profile may trade and the exchange's own admission policy allows it); a new or *different* request is refused by that admission first.
 
         Self-trade prevention. `stp_mode` decides what happens when the order would match the caller's own resting order: `cancel_taker` cancels the incoming one, `cancel_maker` cancels the resting one, `cancel_both` cancels both, and `decrement` takes the crossing quantity off both and lets the remainder of each carry on. Omitting it takes the book's own default, which is `cancel_taker` unless staff have set another. A self-trade is always prevented; there is no value that lets one print.
 
@@ -1189,7 +1189,7 @@ paths:
       responses:
         '200':
           description: |
-            An identical replay of a live `client_order_id`. Nothing was created; this is the order that already exists.
+            An identical replay of a held `client_order_id` — placed within the last 24 hours, or still live. Nothing was created; this is the order as it stands now, including any status change since the first response.
           content:
             application/json:
               schema:
@@ -5940,13 +5940,13 @@ components:
         post_only:
           type: boolean
           description: |
-            When true the order will not take liquidity. If it arrives to find a resting order it would have crossed, it is accepted and immediately cancelled with a `cancel_reason` of `post_only_would_cross`, so a maker can never pay a taker fee by accident. That is an outcome and not a refusal: the order existed, ran and closed, and it answers `201` with a `cancelled` order rather than an error. It is `201` and not `200` because an order WAS created; `200` on this operation means the other thing the response table lists, an identical replay of a live `client_order_id`, which creates nothing. Defaults to false, and is not accepted on a `market` order.
+            When true the order will not take liquidity. If it arrives to find a resting order it would have crossed, it is accepted and immediately cancelled with a `cancel_reason` of `post_only_would_cross`, so a maker can never pay a taker fee by accident. That is an outcome and not a refusal: the order existed, ran and closed, and it answers `201` with a `cancelled` order rather than an error. It is `201` and not `200` because an order WAS created; `200` on this operation means the other thing the response table lists, an identical replay of a `client_order_id`, which creates nothing. Defaults to false, and is not accepted on a `market` order.
           example: true
         client_order_id:
           type: string
           maxLength: 64
           description: |
-            The caller's own reference, unique among that caller's live orders. Sending the same request twice under one id creates one order and answers 200 the second time, which is what makes a retry after a network timeout safe. Sending a *different* request under a live id is `duplicate_client_order_id`.
+            The caller's own reference, unique among that caller's orders placed in the last 24 hours and among their live orders however old. Sending the same request twice under one id creates one order and answers 200 the second time, which is what makes a retry after a network timeout safe. Sending a *different* request under a held id is `duplicate_client_order_id`.
           example: mm-usdtngn-bid-0091
         stp_mode:
           allOf:
