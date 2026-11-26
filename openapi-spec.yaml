@@ -4236,13 +4236,15 @@ paths:
         invalid_auth_code: 400
         no_authenticator: 400
         resource_state_conflict: 409
+        two_factor_required: 400
       security:
         - Auth:
             - transfers:read
       summary: Approve, reject or cancel a held business transfer
       description: |
         An approver decides a transfer held for approval. Approving requires the approver's authenticator code in
-        `code`; a wrong or missing code answers `invalid_auth_code` and leaves the transfer pending. Rejecting moves
+        `code`; a wrong or missing code answers `invalid_auth_code` and leaves the transfer pending, and an approver
+        whose two-factor is off answers `two_factor_required`. Rejecting moves
         no money, so it needs no code. An approved transfer converts at the market price when it runs. Nobody may
         decide a transfer they started (`403`), and an API key may not decide one (`403`); the policy's approver roles,
         not a scope, decide who may. The member who started it may `cancel` it before a decision. The
