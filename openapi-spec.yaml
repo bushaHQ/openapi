@@ -2178,11 +2178,20 @@ paths:
           schema:
             type: string
             example: '100'
+        - name: bank_code
+          in: query
+          required: false
+          description: The bank code of the virtual account to create or return, such as 100039. The bank must be configured for the provider. Without it the provider's default bank is used.
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 32
+            example: '100039'
       tags:
         - Miscellaneous
       operationId: getVirtualBankAccount
       summary: Get virtual bank account
-      description: Get virtual bank accounts for a currency. Without X-BU-Version, or with 2025-06-01 or 2025-07-11, return the oldest available account as one object without preferred. X-BU-Version 2026-10-20 returns every available account as an array. Only the preferred account moves to the front; all other accounts stay newest first. Disabled accounts and banks that are not taking deposits are left out.
+      description: 'Get virtual bank accounts for a currency. Without X-BU-Version, or with 2025-06-01 or 2025-07-11, return the oldest available account as one object without preferred. X-BU-Version 2026-10-20 returns every available account as an array. Only the preferred account moves to the front; all other accounts stay newest first. Disabled accounts and banks that are not taking deposits are left out. bank_code names one configured bank: it is created when missing and returned first, or alone for the legacy shape.'
       responses:
         '200':
           $ref: '#/components/responses/VirtualBankAccountResponse'
@@ -3379,6 +3388,13 @@ paths:
                   network: XLM
                   address: GAHK7EEG2WWHVKDNT4CEQFZGKF2LGDSW2IVM4S5DP42RBW3K6BTODB4A
                   memo: '123456789'
+              btag:
+                summary: Recipient creation BUSHA TAG (butag)
+                value:
+                  type: btag
+                  username: moyo
+                  address_label: My brother
+                  currency: BTC
       responses:
         '201':
           description: Recipient created successfully
@@ -8606,6 +8622,7 @@ components:
             - mpesa_mobile_money
             - mtn_mobile_money
             - crypto
+            - btag
             - paybill
             - till
         entity_type:
@@ -8669,6 +8686,9 @@ components:
         address:
           type: string
           description: Wallet address (for crypto transfers)
+        username:
+          type: string
+          description: Busha tag of the recipient (for btag transfers)
         memo:
           type: string
           description: Tag/memo (for crypto transfers)
